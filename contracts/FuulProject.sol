@@ -100,22 +100,13 @@ contract FuulProject is
     }
 
     function fuulManagerInstance() public view returns (IFuulManager) {
-        address fm = fuulManagerAddress();
-        return IFuulManager(fm);
+        return IFuulManager(fuulManagerAddress());
     }
 
     function isCurrencyAccepted(
         address currency
     ) public view returns (bool isAccepted) {
         return fuulManagerInstance().isCurrencyTokenAccepted(currency);
-    }
-
-    function getCampaignBudgetCooldown()
-        public
-        view
-        returns (uint256 campaignBudgetCooldown)
-    {
-        return fuulManagerInstance().campaignBudgetCooldown();
     }
 
     /*╔═════════════════════════════╗
@@ -323,7 +314,7 @@ contract FuulProject is
             deactivatedAt > 0,
             "Campaign is active. Please deactivate it first"
         );
-        return deactivatedAt + getCampaignBudgetCooldown();
+        return deactivatedAt + fuulManagerInstance().campaignBudgetCooldown();
     }
 
     function removeFungibleBudget(

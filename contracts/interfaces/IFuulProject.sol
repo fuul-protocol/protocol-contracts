@@ -76,11 +76,11 @@ interface IFuulProject {
 
     function isCurrencyAccepted(address currency) external view returns (bool);
 
-    function getCampaignBudgetCooldown() external view returns (uint256);
-
     /*╔═════════════════════════════╗
       ║         CAMPAIGNS           ║
       ╚═════════════════════════════╝*/
+
+    function campaignsCreated() external view returns (uint256);
 
     function createCampaign(string memory _tokenURI, address currency) external;
 
