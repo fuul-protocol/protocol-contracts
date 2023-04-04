@@ -11,11 +11,14 @@ interface IFuulProject {
     // uint256[] tokenIds: used in ERC721 and ERC1155
     // uint256[] amounts: used in ERC1155
 
+    event CampaignMetadataUpdated(uint256 campaignId, string campaignURI);
+
     event CampaignCreated(
         address indexed account,
         address currency,
         uint256 campaignTokenId,
-        IFuulManager.TokenType tokenType
+        IFuulManager.TokenType tokenType,
+        string _campaignURI
     );
 
     event BudgetDeposited(
@@ -54,13 +57,15 @@ interface IFuulProject {
 
     function projectEventSigner() external view returns (address);
 
+    // Opt out signature
+
     function setProjectEventSigner(address _signer) external;
 
     function fuulFactory() external view returns (address);
 
-    function campaignBalances(
+    function campaigns(
         uint256 tokenId
-    ) external view returns (uint256, uint256, address, uint256);
+    ) external view returns (uint256, uint256, address, uint256, string memory);
 
     function amountClaimed(
         address user,
@@ -87,7 +92,9 @@ interface IFuulProject {
 
     function deactivateCampaign(uint256 tokenId) external;
 
-    function setTokenURI(uint256 _tokenId, string memory _tokenURI) external;
+    function campaignURI(uint256 tokenId) external view returns (string memory);
+
+    function setCampaignURI(uint256 _tokenId, string memory _tokenURI) external;
 
     /*╔═════════════════════════════╗
       ║           DEPOSIT           ║

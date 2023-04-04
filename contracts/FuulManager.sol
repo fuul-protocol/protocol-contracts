@@ -337,10 +337,10 @@ contract FuulManager is
                 keccak256(
                     abi.encode(
                         keccak256(
-                            "ClaimVoucher(string voucherId,uint256 campaignTokenId,address account,uint256[] tokenIds,uint256[] amounts,uint256 deadline)"
+                            "ClaimVoucher(string voucherId,uint256 campaignId,address account,uint256[] tokenIds,uint256[] amounts,uint256 deadline)"
                         ),
                         keccak256(bytes(voucher.voucherId)),
-                        voucher.campaignTokenId,
+                        voucher.campaignId,
                         voucher.account,
                         keccak256(abi.encodePacked(voucher.rewardTokenIds)),
                         keccak256(abi.encodePacked(voucher.amounts)),

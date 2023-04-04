@@ -42,45 +42,40 @@ describe("Fuul Project - Campaign management", function () {
     this.user2 = user2;
     this.adminRole = adminRole;
 
-    this.tokenURI = "tokenURI";
+    this.campaignURI = "campaignURI";
   });
 
   it("Should create campaign with correct data", async function () {
     expect(
-      await this.fuulProject.createCampaign(this.tokenURI, this.token.address)
+      await this.fuulProject.createCampaign(
+        this.campaignURI,
+        this.token.address
+      )
     )
       .to.emit(this.fuulProject, "CampaignCreated")
-      .withArgs(this.user1.address, this.token.address, 1, 1);
+      .withArgs(this.user1.address, this.token.address, 1, 1, this.campaignURI);
 
     const tokenId = 1;
-
-    // Token Info
-    expect(await this.fuulProject.ownerOf(tokenId)).to.equal(
-      this.fuulProject.address
-    );
-
-    expect(await this.fuulProject.tokenURI(tokenId)).to.equal(this.tokenURI);
 
     // Campaign info
     expect(await this.fuulProject.campaignsCreated()).to.equal(1);
 
-    const campaign = await this.fuulProject.campaignBalances(tokenId);
+    const campaign = await this.fuulProject.campaigns(tokenId);
 
     expect(campaign.currency).to.equal(this.token.address);
     expect(campaign.deactivatedAt).to.equal(0);
+    expect(campaign.campaignURI).to.equal(this.campaignURI);
   });
 
   it("Should deactivate and reactivate campaign", async function () {
-    await this.fuulProject.createCampaign(this.tokenURI, this.token.address);
+    await this.fuulProject.createCampaign(this.campaignURI, this.token.address);
 
     const tokenId = 1;
 
     // Deactivate campaign
     await this.fuulProject.deactivateCampaign(1);
 
-    const deactivatedCampaign = await this.fuulProject.campaignBalances(
-      tokenId
-    );
+    const deactivatedCampaign = await this.fuulProject.campaigns(tokenId);
 
     const deactvatedAt = Number(deactivatedCampaign.deactivatedAt);
 
@@ -89,14 +84,42 @@ describe("Fuul Project - Campaign management", function () {
     // Reactivate campaign
     await this.fuulProject.reactivateCampaign(1);
 
-    const reactivatedCampaign = await this.fuulProject.campaignBalances(
-      tokenId
-    );
+    const reactivatedCampaign = await this.fuulProject.campaigns(tokenId);
 
     expect(reactivatedCampaign.deactivatedAt).to.equal(0);
   });
 
-  it("Should fail to create, activate and deactivate campaign and set tokenURI if not admin role", async function () {
+  it("Should set new campaign URI", async function () {
+    await this.fuulProject.createCampaign(this.campaignURI, this.token.address);
+
+    const tokenId = 1;
+    const newTokenURI = "newTokenURI";
+
+    expect(await this.fuulProject.setCampaignURI(tokenId, newTokenURI))
+      .to.emit(this.fuulProject, "CampaignMetadataUpdated")
+      .withArgs(tokenId, newTokenURI);
+
+    expect(await this.fuulProject.campaignURI(tokenId)).to.equal(newTokenURI);
+  });
+
+  // Fail
+  it("Should fail to to deactivate, reactivate and set campaign uri if campaign does not exist", async function () {
+    const error = "Campaign does not exist";
+
+    await expect(
+      this.fuulProject.setCampaignURI(1, this.campaignURI)
+    ).to.be.revertedWith(error);
+
+    await expect(this.fuulProject.deactivateCampaign(1)).to.be.revertedWith(
+      error
+    );
+
+    await expect(this.fuulProject.reactivateCampaign(1)).to.be.revertedWith(
+      error
+    );
+  });
+
+  it("Should fail to create, activate and deactivate campaign and set campaignURI if not admin role", async function () {
     const error = `AccessControl: account ${this.user2.address.toLowerCase()} is missing role ${
       this.adminRole
     }`;
@@ -104,14 +127,14 @@ describe("Fuul Project - Campaign management", function () {
     await expect(
       this.fuulProject
         .connect(this.user2)
-        .createCampaign(this.tokenURI, this.token.address)
+        .createCampaign(this.campaignURI, this.token.address)
     ).to.be.revertedWith(error);
 
     // Create campaign
-    await this.fuulProject.createCampaign(this.tokenURI, this.token.address);
+    await this.fuulProject.createCampaign(this.campaignURI, this.token.address);
 
     await expect(
-      this.fuulProject.connect(this.user2).setTokenURI(1, this.tokenURI)
+      this.fuulProject.connect(this.user2).setCampaignURI(1, this.campaignURI)
     ).to.be.revertedWith(error);
 
     await expect(
@@ -148,23 +171,23 @@ describe("Fuul Project - Deposit and remove fungible", function () {
     this.adminRole = adminRole;
     this.provider = provider;
 
-    this.tokenURI = "tokenURI";
+    this.campaignURI = "campaignURI";
 
-    await this.fuulProject.createCampaign(this.tokenURI, this.token.address);
+    await this.fuulProject.createCampaign(this.campaignURI, this.token.address);
     await this.fuulProject.createCampaign(
-      this.tokenURI,
+      this.campaignURI,
       ethers.constants.AddressZero
     );
 
-    this.erc20CampaignTokenId = 1;
-    this.nativeCampaignTokenId = 2;
+    this.erc20CampaignId = 1;
+    this.nativeCampaignId = 2;
 
     this.amount = ethers.utils.parseEther("1000");
   });
 
   it("Should deposit correctly & set correct values with currency = 0x", async function () {
     await expect(
-      this.fuulProject.depositFungibleToken(this.nativeCampaignTokenId, 0, {
+      this.fuulProject.depositFungibleToken(this.nativeCampaignId, 0, {
         value: this.amount,
       })
     )
@@ -173,7 +196,7 @@ describe("Fuul Project - Deposit and remove fungible", function () {
         this.user1.address,
         this.amount,
         ethers.constants.AddressZero,
-        this.nativeCampaignTokenId,
+        this.nativeCampaignId,
         0,
         [],
         []
@@ -181,9 +204,7 @@ describe("Fuul Project - Deposit and remove fungible", function () {
 
     // Campaign info
 
-    const campaign = await this.fuulProject.campaignBalances(
-      this.nativeCampaignTokenId
-    );
+    const campaign = await this.fuulProject.campaigns(this.nativeCampaignId);
 
     expect(campaign.totalDeposited).to.equal(this.amount);
     expect(campaign.currentBudget).to.equal(this.amount);
@@ -196,12 +217,12 @@ describe("Fuul Project - Deposit and remove fungible", function () {
 
   it("Should remove correctly & set correct values with currency = 0x", async function () {
     // Deposit
-    await this.fuulProject.depositFungibleToken(this.nativeCampaignTokenId, 0, {
+    await this.fuulProject.depositFungibleToken(this.nativeCampaignId, 0, {
       value: this.amount,
     });
 
     // Deactivate campaign
-    await this.fuulProject.deactivateCampaign(this.nativeCampaignTokenId);
+    await this.fuulProject.deactivateCampaign(this.nativeCampaignId);
 
     // Increase time
 
@@ -212,15 +233,13 @@ describe("Fuul Project - Deposit and remove fungible", function () {
 
     // Remove
     await this.fuulProject.removeFungibleBudget(
-      this.nativeCampaignTokenId,
+      this.nativeCampaignId,
       this.amount
     );
 
     // Campaign info
 
-    const campaign = await this.fuulProject.campaignBalances(
-      this.nativeCampaignTokenId
-    );
+    const campaign = await this.fuulProject.campaigns(this.nativeCampaignId);
 
     expect(campaign.totalDeposited).to.equal(this.amount);
     expect(campaign.currentBudget).to.equal(0);
@@ -231,24 +250,34 @@ describe("Fuul Project - Deposit and remove fungible", function () {
     await expect(balance).to.equal(0);
   });
 
+  it("Fail to deposit and remove if campaign does not exist", async function () {
+    const error = "Campaign does not exist";
+
+    const campaignId = 10;
+
+    await expect(
+      this.fuulProject.depositFungibleToken(campaignId, 0, {
+        value: this.amount,
+      })
+    ).to.be.revertedWith(error);
+
+    await expect(
+      this.fuulProject.removeFungibleBudget(campaignId, this.amount)
+    ).to.be.revertedWith(error);
+  });
+
   it("Fail to remove if not deactivated or cooldown is not over", async function () {
     // Remove before deactivating
 
     await expect(
-      this.fuulProject.removeFungibleBudget(
-        this.nativeCampaignTokenId,
-        this.amount
-      )
+      this.fuulProject.removeFungibleBudget(this.nativeCampaignId, this.amount)
     ).to.be.revertedWith("Campaign is active. Please deactivate it first");
 
     // Remove before cooldown is complete
-    await this.fuulProject.deactivateCampaign(this.nativeCampaignTokenId);
+    await this.fuulProject.deactivateCampaign(this.nativeCampaignId);
 
     await expect(
-      this.fuulProject.removeFungibleBudget(
-        this.nativeCampaignTokenId,
-        this.amount
-      )
+      this.fuulProject.removeFungibleBudget(this.nativeCampaignId, this.amount)
     ).to.be.revertedWith("Cooldown period not finished");
   });
 
@@ -260,17 +289,14 @@ describe("Fuul Project - Deposit and remove fungible", function () {
     );
 
     await expect(
-      this.fuulProject.depositFungibleToken(
-        this.erc20CampaignTokenId,
-        this.amount
-      )
+      this.fuulProject.depositFungibleToken(this.erc20CampaignId, this.amount)
     )
       .to.emit(this.fuulProject, "BudgetDeposited")
       .withArgs(
         this.user1.address,
         this.amount,
         this.token.address,
-        this.erc20CampaignTokenId,
+        this.erc20CampaignId,
         1,
         [],
         []
@@ -278,9 +304,7 @@ describe("Fuul Project - Deposit and remove fungible", function () {
 
     // Campaign info
 
-    const campaign = await this.fuulProject.campaignBalances(
-      this.erc20CampaignTokenId
-    );
+    const campaign = await this.fuulProject.campaigns(this.erc20CampaignId);
 
     expect(campaign.totalDeposited).to.equal(this.amount);
     expect(campaign.currentBudget).to.equal(this.amount);
@@ -300,12 +324,12 @@ describe("Fuul Project - Deposit and remove fungible", function () {
 
     // Deposit
     await this.fuulProject.depositFungibleToken(
-      this.erc20CampaignTokenId,
+      this.erc20CampaignId,
       this.amount
     );
 
     // Deactivate campaign
-    await this.fuulProject.deactivateCampaign(this.erc20CampaignTokenId);
+    await this.fuulProject.deactivateCampaign(this.erc20CampaignId);
 
     // Increase time
 
@@ -316,15 +340,13 @@ describe("Fuul Project - Deposit and remove fungible", function () {
 
     // Remove
     await this.fuulProject.removeFungibleBudget(
-      this.erc20CampaignTokenId,
+      this.erc20CampaignId,
       this.amount
     );
 
     // Campaign info
 
-    const campaign = await this.fuulProject.campaignBalances(
-      this.erc20CampaignTokenId
-    );
+    const campaign = await this.fuulProject.campaigns(this.erc20CampaignId);
 
     expect(campaign.totalDeposited).to.equal(this.amount);
     expect(campaign.currentBudget).to.equal(0);
@@ -343,13 +365,13 @@ describe("Fuul Project - Deposit and remove fungible", function () {
     await expect(
       this.fuulProject
         .connect(this.user2)
-        .depositFungibleToken(this.erc20CampaignTokenId, this.amount)
+        .depositFungibleToken(this.erc20CampaignId, this.amount)
     ).to.be.revertedWith(error);
 
     await expect(
       this.fuulProject
         .connect(this.user2)
-        .removeFungibleBudget(this.erc20CampaignTokenId, this.amount)
+        .removeFungibleBudget(this.erc20CampaignId, this.amount)
     ).to.be.revertedWith(error);
   });
 
@@ -357,17 +379,11 @@ describe("Fuul Project - Deposit and remove fungible", function () {
     await this.fuulManager.pauseAll();
 
     await expect(
-      this.fuulProject.depositFungibleToken(
-        this.erc20CampaignTokenId,
-        this.amount
-      )
+      this.fuulProject.depositFungibleToken(this.erc20CampaignId, this.amount)
     ).to.be.revertedWith("Manager paused all");
 
     await expect(
-      this.fuulProject.removeFungibleBudget(
-        this.erc20CampaignTokenId,
-        this.amount
-      )
+      this.fuulProject.removeFungibleBudget(this.erc20CampaignId, this.amount)
     ).to.be.revertedWith("Manager paused all");
   });
 });
@@ -384,7 +400,7 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     this.user2 = user2;
     this.adminRole = adminRole;
 
-    this.tokenURI = "tokenURI";
+    this.campaignURI = "campaignURI";
 
     // Add token
 
@@ -396,9 +412,12 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
       100
     );
 
-    await this.fuulProject.createCampaign(this.tokenURI, this.nft721.address);
+    await this.fuulProject.createCampaign(
+      this.campaignURI,
+      this.nft721.address
+    );
 
-    this.campaignTokenId = 1;
+    this.campaignId = 1;
 
     this.rewardTokenIds = [1, 2, 3, 4];
 
@@ -408,18 +427,14 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
 
   it("Should deposit correctly & set correct values", async function () {
     await expect(
-      this.fuulProject.depositNFTToken(
-        this.campaignTokenId,
-        this.rewardTokenIds,
-        []
-      )
+      this.fuulProject.depositNFTToken(this.campaignId, this.rewardTokenIds, [])
     )
       .to.emit(this.fuulProject, "BudgetDeposited")
       .withArgs(
         this.user1.address,
         this.rewardTokenIds.length,
         this.nft721.address,
-        this.campaignTokenId,
+        this.campaignId,
         this.tokenType,
         this.rewardTokenIds,
         []
@@ -427,9 +442,7 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
 
     // Campaign info
 
-    const campaign = await this.fuulProject.campaignBalances(
-      this.campaignTokenId
-    );
+    const campaign = await this.fuulProject.campaigns(this.campaignId);
 
     expect(campaign.totalDeposited).to.equal(this.rewardTokenIds.length);
     expect(campaign.currentBudget).to.equal(this.rewardTokenIds.length);
@@ -443,13 +456,13 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
   it("Should remove correctly & set correct values", async function () {
     // Deposit
     await this.fuulProject.depositNFTToken(
-      this.campaignTokenId,
+      this.campaignId,
       this.rewardTokenIds,
       []
     );
 
     // Deactivate campaign
-    await this.fuulProject.deactivateCampaign(this.campaignTokenId);
+    await this.fuulProject.deactivateCampaign(this.campaignId);
 
     // Increase time
 
@@ -460,16 +473,14 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
 
     // Remove
     await this.fuulProject.removeNFTBudget(
-      this.campaignTokenId,
+      this.campaignId,
       this.rewardTokenIds,
       []
     );
 
     // Campaign info
 
-    const campaign = await this.fuulProject.campaignBalances(
-      this.campaignTokenId
-    );
+    const campaign = await this.fuulProject.campaigns(this.campaignId);
 
     expect(campaign.totalDeposited).to.equal(this.rewardTokenIds.length);
     expect(campaign.currentBudget).to.equal(0);
@@ -480,26 +491,32 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     await expect(balance).to.equal(0);
   });
 
+  it("Fail to deposit and remove if campaign does not exist", async function () {
+    const error = "Campaign does not exist";
+
+    const campaignId = 10;
+
+    await expect(
+      this.fuulProject.depositNFTToken(campaignId, this.rewardTokenIds, [])
+    ).to.be.revertedWith(error);
+
+    await expect(
+      this.fuulProject.removeNFTBudget(campaignId, this.rewardTokenIds, [])
+    ).to.be.revertedWith(error);
+  });
+
   it("Fail to remove if not deactivated or cooldown is not over", async function () {
     // Remove before deactivating
 
     await expect(
-      this.fuulProject.removeNFTBudget(
-        this.campaignTokenId,
-        this.rewardTokenIds,
-        []
-      )
+      this.fuulProject.removeNFTBudget(this.campaignId, this.rewardTokenIds, [])
     ).to.be.revertedWith("Campaign is active. Please deactivate it first");
 
     // Remove before cooldown is complete
-    await this.fuulProject.deactivateCampaign(this.campaignTokenId);
+    await this.fuulProject.deactivateCampaign(this.campaignId);
 
     await expect(
-      this.fuulProject.removeNFTBudget(
-        this.campaignTokenId,
-        this.rewardTokenIds,
-        []
-      )
+      this.fuulProject.removeNFTBudget(this.campaignId, this.rewardTokenIds, [])
     ).to.be.revertedWith("Cooldown period not finished");
   });
 
@@ -511,13 +528,13 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     await expect(
       this.fuulProject
         .connect(this.user2)
-        .depositNFTToken(this.campaignTokenId, this.rewardTokenIds, [])
+        .depositNFTToken(this.campaignId, this.rewardTokenIds, [])
     ).to.be.revertedWith(error);
 
     await expect(
       this.fuulProject
         .connect(this.user2)
-        .removeNFTBudget(this.campaignTokenId, this.rewardTokenIds, [])
+        .removeNFTBudget(this.campaignId, this.rewardTokenIds, [])
     ).to.be.revertedWith(error);
   });
 
@@ -525,19 +542,11 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     await this.fuulManager.pauseAll();
 
     await expect(
-      this.fuulProject.depositNFTToken(
-        this.campaignTokenId,
-        this.rewardTokenIds,
-        []
-      )
+      this.fuulProject.depositNFTToken(this.campaignId, this.rewardTokenIds, [])
     ).to.be.revertedWith("Manager paused all");
 
     await expect(
-      this.fuulProject.removeNFTBudget(
-        this.campaignTokenId,
-        this.rewardTokenIds,
-        []
-      )
+      this.fuulProject.removeNFTBudget(this.campaignId, this.rewardTokenIds, [])
     ).to.be.revertedWith("Manager paused all");
   });
 });
@@ -554,7 +563,7 @@ describe("Fuul Project - Deposit and remove NFT 1155", function () {
     this.user2 = user2;
     this.adminRole = adminRole;
 
-    this.tokenURI = "tokenURI";
+    this.campaignURI = "campaignURI";
 
     // Add token
     this.tokenType = 3;
@@ -565,9 +574,12 @@ describe("Fuul Project - Deposit and remove NFT 1155", function () {
       100
     );
 
-    await this.fuulProject.createCampaign(this.tokenURI, this.nft1155.address);
+    await this.fuulProject.createCampaign(
+      this.campaignURI,
+      this.nft1155.address
+    );
 
-    this.campaignTokenId = 1;
+    this.campaignId = 1;
 
     this.rewardTokenIds = [1, 2, 3, 4];
 
@@ -584,7 +596,7 @@ describe("Fuul Project - Deposit and remove NFT 1155", function () {
   it("Should deposit correctly & set correct values", async function () {
     await expect(
       this.fuulProject.depositNFTToken(
-        this.campaignTokenId,
+        this.campaignId,
         this.rewardTokenIds,
         this.amounts
       )
@@ -594,7 +606,7 @@ describe("Fuul Project - Deposit and remove NFT 1155", function () {
         this.user1.address,
         this.tokenAmount,
         this.nft1155.address,
-        this.campaignTokenId,
+        this.campaignId,
         this.tokenType,
         this.rewardTokenIds,
         this.amounts
@@ -602,9 +614,7 @@ describe("Fuul Project - Deposit and remove NFT 1155", function () {
 
     // Campaign info
 
-    const campaign = await this.fuulProject.campaignBalances(
-      this.campaignTokenId
-    );
+    const campaign = await this.fuulProject.campaigns(this.campaignId);
 
     expect(campaign.totalDeposited).to.equal(this.tokenAmount);
     expect(campaign.currentBudget).to.equal(this.tokenAmount);
@@ -623,13 +633,13 @@ describe("Fuul Project - Deposit and remove NFT 1155", function () {
   it("Should remove correctly & set correct values", async function () {
     // Deposit
     await this.fuulProject.depositNFTToken(
-      this.campaignTokenId,
+      this.campaignId,
       this.rewardTokenIds,
       this.amounts
     );
 
     // Deactivate campaign
-    await this.fuulProject.deactivateCampaign(this.campaignTokenId);
+    await this.fuulProject.deactivateCampaign(this.campaignId);
 
     // Increase time
 
@@ -640,16 +650,14 @@ describe("Fuul Project - Deposit and remove NFT 1155", function () {
 
     // Remove
     await this.fuulProject.removeNFTBudget(
-      this.campaignTokenId,
+      this.campaignId,
       this.rewardTokenIds,
       this.amounts
     );
 
     // Campaign info
 
-    const campaign = await this.fuulProject.campaignBalances(
-      this.campaignTokenId
-    );
+    const campaign = await this.fuulProject.campaigns(this.campaignId);
 
     expect(campaign.totalDeposited).to.equal(this.tokenAmount);
     expect(campaign.currentBudget).to.equal(0);
@@ -669,18 +677,18 @@ describe("Fuul Project - Deposit and remove NFT 1155", function () {
 
     await expect(
       this.fuulProject.removeNFTBudget(
-        this.campaignTokenId,
+        this.campaignId,
         this.rewardTokenIds,
         this.amounts
       )
     ).to.be.revertedWith("Campaign is active. Please deactivate it first");
 
     // Remove before cooldown is complete
-    await this.fuulProject.deactivateCampaign(this.campaignTokenId);
+    await this.fuulProject.deactivateCampaign(this.campaignId);
 
     await expect(
       this.fuulProject.removeNFTBudget(
-        this.campaignTokenId,
+        this.campaignId,
         this.rewardTokenIds,
         this.amounts
       )
@@ -699,7 +707,7 @@ describe("Fuul Project - Claim", function () {
     const voucher = {
       voucherId: "1",
       projectAddress: this.fuulProject.address,
-      campaignTokenId: 1,
+      campaignId: 1,
       currency: ethers.constants.AddressZero,
       tokenType: 0,
       account: this.fuulProject.address,

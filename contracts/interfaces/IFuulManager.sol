@@ -15,7 +15,7 @@ interface IFuulManager {
     struct ClaimVoucher {
         string voucherId;
         address projectAddress;
-        uint256 campaignTokenId;
+        uint256 campaignId;
         address currency;
         TokenType tokenType;
         address account;

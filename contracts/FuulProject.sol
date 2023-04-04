@@ -3,7 +3,6 @@ pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -21,7 +20,6 @@ import "./interfaces/IFuulProject.sol";
 contract FuulProject is
     IFuulProject,
     AccessControlEnumerable,
-    ERC721URIStorage,
     ERC721Holder,
     ERC1155Holder,
     ReentrancyGuard
@@ -34,23 +32,24 @@ contract FuulProject is
       ║          STRUCTS            ║
       ╚═════════════════════════════╝*/
 
-    struct CampaignBalance {
+    struct Campaign {
         uint256 totalDeposited;
         uint256 currentBudget;
         address currency;
         uint256 deactivatedAt;
+        string campaignURI;
     }
 
     /*╔═════════════════════════════╗
       ║          VARIABLES          ║
       ╚═════════════════════════════╝*/
 
-    Counters.Counter private _campaignTokenIdTracker;
+    Counters.Counter private _campaignIdTracker;
 
     address public fuulFactory;
     address public projectEventSigner;
 
-    mapping(uint256 => CampaignBalance) public campaignBalances; //  campaignTokenId => Campaign balance
+    mapping(uint256 => Campaign) public campaigns; //  campaignId => Campaign
     mapping(address => mapping(address => uint256)) public amountClaimed; // Address => currency => amount claimed
 
     uint256[] private emptyArray;
@@ -59,7 +58,7 @@ contract FuulProject is
       ║         CONSTRUCTOR         ║
       ╚═════════════════════════════╝*/
 
-    constructor() ERC721("FuulV1Project", "FP") {
+    constructor() {
         fuulFactory = address(0);
     }
 
@@ -93,44 +92,51 @@ contract FuulProject is
       ║          CAMPAIGNS          ║
       ╚═════════════════════════════╝*/
 
+    function _campaignExists(uint256 campaignId) internal view returns (bool) {
+        return campaignId > 0 && campaignId <= campaignsCreated();
+    }
+
     function campaignsCreated() public view returns (uint256) {
-        return _campaignTokenIdTracker.current();
+        return _campaignIdTracker.current();
     }
 
     function createCampaign(
-        string memory _tokenURI,
+        string memory _campaignURI,
         address currency
     ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(bytes(_campaignURI).length > 0, "Campaign URI cannot be empty");
+
         require(
             fuulManagerInstance().isCurrencyTokenAccepted(currency),
             "Token address is not accepted as currency"
         );
-        // Mint NFT
-        uint256 campaignTokenId = campaignsCreated() + 1;
-        _mint(address(this), campaignTokenId);
-        _setTokenURI(campaignTokenId, _tokenURI);
-        _campaignTokenIdTracker.increment();
+        uint256 campaignId = campaignsCreated() + 1;
+        _campaignIdTracker.increment();
 
         // Create campaign object
-        campaignBalances[campaignTokenId] = CampaignBalance({
+        campaigns[campaignId] = Campaign({
             totalDeposited: 0,
             currentBudget: 0,
             currency: currency,
-            deactivatedAt: 0
+            deactivatedAt: 0,
+            campaignURI: _campaignURI
         });
 
         emit CampaignCreated(
             msg.sender,
             currency,
-            campaignTokenId,
-            fuulManagerInstance().getTokenType(currency)
+            campaignId,
+            fuulManagerInstance().getTokenType(currency),
+            _campaignURI
         );
     }
 
     function reactivateCampaign(
-        uint256 campaignTokenId
+        uint256 campaignId
     ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
-        CampaignBalance storage campaign = campaignBalances[campaignTokenId];
+        require(_campaignExists(campaignId), "Campaign does not exist");
+
+        Campaign storage campaign = campaigns[campaignId];
 
         require(campaign.deactivatedAt > 0, "Campaign is active");
 
@@ -138,26 +144,34 @@ contract FuulProject is
     }
 
     function deactivateCampaign(
-        uint256 campaignTokenId
+        uint256 campaignId
     ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
-        CampaignBalance storage campaign = campaignBalances[campaignTokenId];
+        require(_campaignExists(campaignId), "Campaign does not exist");
+
+        Campaign storage campaign = campaigns[campaignId];
 
         require(campaign.deactivatedAt == 0, "Campaign is not active");
 
         campaign.deactivatedAt = block.timestamp;
     }
 
-    function tokenURI(
-        uint256 campaignTokenId
-    ) public view override(ERC721URIStorage) returns (string memory) {
-        return super.tokenURI(campaignTokenId);
+    function campaignURI(
+        uint256 campaignId
+    ) public view returns (string memory) {
+        return campaigns[campaignId].campaignURI;
     }
 
-    function setTokenURI(
-        uint256 _campaignTokenId,
-        string memory _tokenURI
+    function setCampaignURI(
+        uint256 _campaignId,
+        string memory _campaignURI
     ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
-        _setTokenURI(_campaignTokenId, _tokenURI);
+        require(_campaignExists(_campaignId), "Campaign does not exist");
+
+        Campaign storage campaign = campaigns[_campaignId];
+
+        campaign.campaignURI = _campaignURI;
+
+        emit CampaignMetadataUpdated(_campaignId, _campaignURI);
     }
 
     /*╔═════════════════════════════╗
@@ -165,7 +179,7 @@ contract FuulProject is
       ╚═════════════════════════════╝*/
 
     function depositFungibleToken(
-        uint256 campaignTokenId,
+        uint256 campaignId,
         uint256 amount
     )
         external
@@ -174,7 +188,9 @@ contract FuulProject is
         whenFundsNotFreezed
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        CampaignBalance storage campaign = campaignBalances[campaignTokenId];
+        require(_campaignExists(campaignId), "Campaign does not exist");
+
+        Campaign storage campaign = campaigns[campaignId];
 
         address currency = campaign.currency;
 
@@ -183,11 +199,11 @@ contract FuulProject is
         );
 
         require(campaign.deactivatedAt == 0, "Campaign is not active");
-        // require(
-        //     tokenType == IFuulManager.TokenType.NATIVE ||
-        //         tokenType == IFuulManager.TokenType.ERC_20,
-        //     "Currency is not a fungible token"
-        // );
+        require(
+            tokenType == IFuulManager.TokenType.NATIVE ||
+                tokenType == IFuulManager.TokenType.ERC_20,
+            "Currency is not a fungible token"
+        );
 
         uint256 depositedAmount;
 
@@ -211,7 +227,7 @@ contract FuulProject is
             msg.sender,
             depositedAmount,
             currency,
-            campaignTokenId,
+            campaignId,
             tokenType,
             emptyArray,
             emptyArray
@@ -219,11 +235,13 @@ contract FuulProject is
     }
 
     function depositNFTToken(
-        uint256 campaignTokenId,
+        uint256 campaignId,
         uint256[] memory rewardTokenIds,
         uint256[] memory amounts
     ) external nonReentrant whenFundsNotFreezed onlyRole(DEFAULT_ADMIN_ROLE) {
-        CampaignBalance storage campaign = campaignBalances[campaignTokenId];
+        require(_campaignExists(campaignId), "Campaign does not exist");
+
+        Campaign storage campaign = campaigns[campaignId];
         address currency = campaign.currency;
 
         IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
@@ -232,11 +250,11 @@ contract FuulProject is
 
         require(campaign.deactivatedAt == 0, "Campaign is not active");
 
-        // require(
-        //     tokenType == IFuulManager.TokenType.ERC_721 ||
-        //         tokenType == IFuulManager.TokenType.ERC_1155,
-        //     "Currency is not an NFT token"
-        // );
+        require(
+            tokenType == IFuulManager.TokenType.ERC_721 ||
+                tokenType == IFuulManager.TokenType.ERC_1155,
+            "Currency is not an NFT token"
+        );
 
         uint256 depositedAmount;
         uint256[] memory tokenAmounts;
@@ -275,7 +293,7 @@ contract FuulProject is
             msg.sender,
             depositedAmount,
             currency,
-            campaignTokenId,
+            campaignId,
             tokenType,
             rewardTokenIds,
             tokenAmounts
@@ -297,10 +315,12 @@ contract FuulProject is
     }
 
     function removeFungibleBudget(
-        uint256 campaignTokenId,
+        uint256 campaignId,
         uint256 amount
     ) external onlyRole(DEFAULT_ADMIN_ROLE) whenFundsNotFreezed nonReentrant {
-        CampaignBalance storage campaign = campaignBalances[campaignTokenId];
+        require(_campaignExists(campaignId), "Campaign does not exist");
+
+        Campaign storage campaign = campaigns[campaignId];
 
         address currency = campaign.currency;
 
@@ -308,11 +328,11 @@ contract FuulProject is
             currency
         );
 
-        // require(
-        //     tokenType == IFuulManager.TokenType.NATIVE ||
-        //         tokenType == IFuulManager.TokenType.ERC_20,
-        //     "Currency is not a fungible token"
-        // );
+        require(
+            tokenType == IFuulManager.TokenType.NATIVE ||
+                tokenType == IFuulManager.TokenType.ERC_20,
+            "Currency is not a fungible token"
+        );
 
         require(
             block.timestamp > getBudgetCooldownPeriod(campaign.deactivatedAt),
@@ -337,7 +357,7 @@ contract FuulProject is
             msg.sender,
             amount,
             currency,
-            campaignTokenId,
+            campaignId,
             tokenType,
             emptyArray,
             emptyArray
@@ -345,11 +365,13 @@ contract FuulProject is
     }
 
     function removeNFTBudget(
-        uint256 campaignTokenId,
+        uint256 campaignId,
         uint256[] memory rewardTokenIds,
         uint256[] memory amounts
     ) external onlyRole(DEFAULT_ADMIN_ROLE) whenFundsNotFreezed nonReentrant {
-        CampaignBalance storage campaign = campaignBalances[campaignTokenId];
+        require(_campaignExists(campaignId), "Campaign does not exist");
+
+        Campaign storage campaign = campaigns[campaignId];
 
         require(
             block.timestamp > getBudgetCooldownPeriod(campaign.deactivatedAt),
@@ -362,11 +384,11 @@ contract FuulProject is
             currency
         );
 
-        // require(
-        //     tokenType == IFuulManager.TokenType.ERC_721 ||
-        //         tokenType == IFuulManager.TokenType.ERC_1155,
-        //     "Currency is not an NFT token"
-        // );
+        require(
+            tokenType == IFuulManager.TokenType.ERC_721 ||
+                tokenType == IFuulManager.TokenType.ERC_1155,
+            "Currency is not an NFT token"
+        );
 
         uint256 removeAmount;
 
@@ -400,7 +422,7 @@ contract FuulProject is
             msg.sender,
             removeAmount,
             currency,
-            campaignTokenId,
+            campaignId,
             tokenType,
             rewardTokenIds,
             amounts
@@ -415,9 +437,9 @@ contract FuulProject is
             "Only Fuul manager can claim"
         );
 
-        CampaignBalance storage campaign = campaignBalances[
-            voucher.campaignTokenId
-        ];
+        require(_campaignExists(voucher.campaignId), "Campaign does not exist");
+
+        Campaign storage campaign = campaigns[voucher.campaignId];
 
         uint256 voucherAmount = voucher.amount;
         address currency = campaign.currency;
@@ -466,7 +488,7 @@ contract FuulProject is
 
         emit Claimed(
             voucher.voucherId,
-            voucher.campaignTokenId,
+            voucher.campaignId,
             voucher.account,
             currency,
             tokenAmount,
@@ -605,32 +627,13 @@ contract FuulProject is
       ║          OVERRIDES          ║
       ╚═════════════════════════════╝*/
 
-    function _burn(
-        uint256 campaignTokenId
-    ) internal override(ERC721URIStorage) {
-        super._burn(campaignTokenId);
-    }
-
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 firstTokenId,
-        uint256 batchSize
-    ) internal virtual override(ERC721) {
-        require(
-            to == address(0) || from == address(0),
-            "Err: token can only be burned or minted"
-        );
-        super._beforeTokenTransfer(from, to, firstTokenId, batchSize);
-    }
-
     function supportsInterface(
         bytes4 interfaceId
     )
         public
         view
         virtual
-        override(AccessControlEnumerable, ERC721, ERC1155Receiver)
+        override(AccessControlEnumerable, ERC1155Receiver)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
