@@ -41,13 +41,6 @@ contract FuulProject is
         uint256 deactivatedAt;
     }
 
-    enum TokenType {
-        NATIVE,
-        ERC_20,
-        ERC_721,
-        ERC_1155
-    }
-
     /*╔═════════════════════════════╗
       ║          VARIABLES          ║
       ╚═════════════════════════════╝*/
@@ -61,13 +54,6 @@ contract FuulProject is
     mapping(address => mapping(address => uint256)) public amountClaimed; // Address => currency => amount claimed
 
     uint256[] private emptyArray;
-
-    /*╔═════════════════════════════╗
-      ║           EVENTS            ║
-      ╚═════════════════════════════╝*/
-
-    // uint256[] tokenIds: used in ERC721 and ERC1155
-    // uint256[] amounts: used in ERC1155
 
     /*╔═════════════════════════════╗
       ║         CONSTRUCTOR         ║
@@ -103,12 +89,6 @@ contract FuulProject is
         return IFuulManager(fuulManagerAddress());
     }
 
-    function isCurrencyAccepted(
-        address currency
-    ) public view returns (bool isAccepted) {
-        return fuulManagerInstance().isCurrencyTokenAccepted(currency);
-    }
-
     /*╔═════════════════════════════╗
       ║          CAMPAIGNS          ║
       ╚═════════════════════════════╝*/
@@ -122,7 +102,7 @@ contract FuulProject is
         address currency
     ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
         require(
-            isCurrencyAccepted(currency),
+            fuulManagerInstance().isCurrencyTokenAccepted(currency),
             "Token address is not accepted as currency"
         );
         // Mint NFT
@@ -203,11 +183,11 @@ contract FuulProject is
         );
 
         require(campaign.deactivatedAt == 0, "Campaign is not active");
-        require(
-            tokenType == IFuulManager.TokenType.NATIVE ||
-                tokenType == IFuulManager.TokenType.ERC_20,
-            "Currency is not a fungible token"
-        );
+        // require(
+        //     tokenType == IFuulManager.TokenType.NATIVE ||
+        //         tokenType == IFuulManager.TokenType.ERC_20,
+        //     "Currency is not a fungible token"
+        // );
 
         uint256 depositedAmount;
 
@@ -215,7 +195,7 @@ contract FuulProject is
             require(msg.value > 0, "msg.value should be greater than 0");
             depositedAmount = msg.value;
         } else if (tokenType == IFuulManager.TokenType.ERC_20) {
-            IERC20(campaign.currency).safeTransferFrom(
+            IERC20(currency).safeTransferFrom(
                 msg.sender,
                 address(this),
                 amount
@@ -252,23 +232,22 @@ contract FuulProject is
 
         require(campaign.deactivatedAt == 0, "Campaign is not active");
 
-        require(
-            tokenType == IFuulManager.TokenType.ERC_721 ||
-                tokenType == IFuulManager.TokenType.ERC_1155,
-            "Currency is not an NFT token"
-        );
+        // require(
+        //     tokenType == IFuulManager.TokenType.ERC_721 ||
+        //         tokenType == IFuulManager.TokenType.ERC_1155,
+        //     "Currency is not an NFT token"
+        // );
 
         uint256 depositedAmount;
         uint256[] memory tokenAmounts;
 
         if (tokenType == IFuulManager.TokenType.ERC_721) {
             for (uint256 i = 0; i < rewardTokenIds.length; i++) {
-                uint256 sendTokenId = rewardTokenIds[i];
                 _transferERC721Tokens(
                     currency,
                     msg.sender,
                     address(this),
-                    sendTokenId
+                    rewardTokenIds[i]
                 );
             }
 
@@ -322,15 +301,18 @@ contract FuulProject is
         uint256 amount
     ) external onlyRole(DEFAULT_ADMIN_ROLE) whenFundsNotFreezed nonReentrant {
         CampaignBalance storage campaign = campaignBalances[campaignTokenId];
+
+        address currency = campaign.currency;
+
         IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
-            campaign.currency
+            currency
         );
 
-        require(
-            tokenType == IFuulManager.TokenType.NATIVE ||
-                tokenType == IFuulManager.TokenType.ERC_20,
-            "Currency is not a fungible token"
-        );
+        // require(
+        //     tokenType == IFuulManager.TokenType.NATIVE ||
+        //         tokenType == IFuulManager.TokenType.ERC_20,
+        //     "Currency is not a fungible token"
+        // );
 
         require(
             block.timestamp > getBudgetCooldownPeriod(campaign.deactivatedAt),
@@ -346,17 +328,15 @@ contract FuulProject is
 
             payable(msg.sender).sendValue(amount);
         } else if (tokenType == IFuulManager.TokenType.ERC_20) {
-            uint256 balance = IERC20(campaign.currency).balanceOf(
-                address(this)
-            );
+            uint256 balance = IERC20(currency).balanceOf(address(this));
             require(amount <= balance, "Amount exceeds balance");
-            IERC20(campaign.currency).safeTransfer(msg.sender, amount);
+            IERC20(currency).safeTransfer(msg.sender, amount);
         }
 
         emit BudgetRemoved(
             msg.sender,
             amount,
-            campaign.currency,
+            currency,
             campaignTokenId,
             tokenType,
             emptyArray,
@@ -376,33 +356,34 @@ contract FuulProject is
             "Cooldown period not finished"
         );
 
+        address currency = campaign.currency;
+
         IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
-            campaign.currency
+            currency
         );
 
-        require(
-            tokenType == IFuulManager.TokenType.ERC_721 ||
-                tokenType == IFuulManager.TokenType.ERC_1155,
-            "Currency is not an NFT token"
-        );
+        // require(
+        //     tokenType == IFuulManager.TokenType.ERC_721 ||
+        //         tokenType == IFuulManager.TokenType.ERC_1155,
+        //     "Currency is not an NFT token"
+        // );
 
         uint256 removeAmount;
 
         if (tokenType == IFuulManager.TokenType.ERC_721) {
             for (uint256 i = 0; i < rewardTokenIds.length; i++) {
-                uint256 sendTokenId = rewardTokenIds[i];
                 _transferERC721Tokens(
-                    campaign.currency,
+                    currency,
                     address(this),
                     msg.sender,
-                    sendTokenId
+                    rewardTokenIds[i]
                 );
             }
 
             removeAmount = rewardTokenIds.length;
         } else if (tokenType == IFuulManager.TokenType.ERC_1155) {
             _transferERC1155Tokens(
-                campaign.currency,
+                currency,
                 address(this),
                 msg.sender,
                 rewardTokenIds,
@@ -418,7 +399,7 @@ contract FuulProject is
         emit BudgetRemoved(
             msg.sender,
             removeAmount,
-            campaign.currency,
+            currency,
             campaignTokenId,
             tokenType,
             rewardTokenIds,
@@ -438,41 +419,40 @@ contract FuulProject is
             voucher.campaignTokenId
         ];
 
+        uint256 voucherAmount = voucher.amount;
+        address currency = campaign.currency;
+
         uint256 tokenAmount;
 
         if (voucher.tokenType == IFuulManager.TokenType.NATIVE) {
-            tokenAmount = voucher.amount;
+            tokenAmount = voucherAmount;
 
             require(address(this).balance > 0, "Contract has no balance");
-            payable(voucher.account).sendValue(voucher.amount);
+            payable(voucher.account).sendValue(voucherAmount);
         } else if (voucher.tokenType == IFuulManager.TokenType.ERC_20) {
-            tokenAmount = voucher.amount;
+            tokenAmount = voucherAmount;
 
             require(
-                IERC20(voucher.currency).balanceOf(address(this)) > 0,
+                IERC20(currency).balanceOf(address(this)) > 0,
                 "Contract has no balance"
             );
-            IERC20(voucher.currency).safeTransfer(
-                voucher.account,
-                voucher.amount
-            );
+            IERC20(currency).safeTransfer(voucher.account, voucherAmount);
         } else if (voucher.tokenType == IFuulManager.TokenType.ERC_721) {
             tokenAmount = voucher.rewardTokenIds.length;
 
             for (uint256 i = 0; i < voucher.rewardTokenIds.length; i++) {
-                uint256 sendTokenId = voucher.rewardTokenIds[i];
                 _transferERC721Tokens(
-                    voucher.currency,
+                    currency,
                     address(this),
                     voucher.account,
-                    sendTokenId
+                    voucher.rewardTokenIds[i]
                 );
             }
         } else if (voucher.tokenType == IFuulManager.TokenType.ERC_1155) {
             tokenAmount = _getSumFromArray(voucher.amounts);
 
             _transferERC1155Tokens(
-                voucher.currency,
+                currency,
                 address(this),
                 voucher.account,
                 voucher.rewardTokenIds,
@@ -488,6 +468,7 @@ contract FuulProject is
             voucher.voucherId,
             voucher.campaignTokenId,
             voucher.account,
+            currency,
             tokenAmount,
             voucher.rewardTokenIds,
             voucher.amounts
@@ -539,8 +520,12 @@ contract FuulProject is
 
         if (tokenType == IFuulManager.TokenType.ERC_721) {
             for (uint256 i = 0; i < rewardTokenIds.length; i++) {
-                uint256 sendTokenId = rewardTokenIds[i];
-                _transferERC721Tokens(currency, address(this), to, sendTokenId);
+                _transferERC721Tokens(
+                    currency,
+                    address(this),
+                    to,
+                    rewardTokenIds[i]
+                );
             }
         } else if (tokenType == IFuulManager.TokenType.ERC_1155) {
             _transferERC1155Tokens(

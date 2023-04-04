@@ -206,7 +206,7 @@ describe("Fuul Project - Deposit and remove fungible", function () {
     // Increase time
 
     const campaignBudgetCooldown =
-      await this.fuulProject.getCampaignBudgetCooldown();
+      await this.fuulManager.campaignBudgetCooldown();
 
     await time.increase(campaignBudgetCooldown.toNumber() + 1);
 
@@ -310,7 +310,7 @@ describe("Fuul Project - Deposit and remove fungible", function () {
     // Increase time
 
     const campaignBudgetCooldown =
-      await this.fuulProject.getCampaignBudgetCooldown();
+      await this.fuulManager.campaignBudgetCooldown();
 
     await time.increase(campaignBudgetCooldown.toNumber() + 1);
 
@@ -454,7 +454,7 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     // Increase time
 
     const campaignBudgetCooldown =
-      await this.fuulProject.getCampaignBudgetCooldown();
+      await this.fuulManager.campaignBudgetCooldown();
 
     await time.increase(campaignBudgetCooldown.toNumber() + 1);
 
@@ -634,7 +634,7 @@ describe("Fuul Project - Deposit and remove NFT 1155", function () {
     // Increase time
 
     const campaignBudgetCooldown =
-      await this.fuulProject.getCampaignBudgetCooldown();
+      await this.fuulManager.campaignBudgetCooldown();
 
     await time.increase(campaignBudgetCooldown.toNumber() + 1);
 

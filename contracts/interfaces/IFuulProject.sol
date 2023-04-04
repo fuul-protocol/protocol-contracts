@@ -42,6 +42,7 @@ interface IFuulProject {
         string voucherId,
         uint256 campaignTokenId,
         address indexed account,
+        address currency,
         uint256 amount,
         uint256[] rewardTokenIds,
         uint256[] amounts
@@ -73,8 +74,6 @@ interface IFuulProject {
     function fuulManagerAddress() external view returns (address);
 
     function fuulManagerInstance() external view returns (IFuulManager);
-
-    function isCurrencyAccepted(address currency) external view returns (bool);
 
     /*╔═════════════════════════════╗
       ║         CAMPAIGNS           ║
