@@ -224,8 +224,7 @@ contract FuulProject is
             require(msg.value > 0, "msg.value should be greater than 0");
             depositedAmount = msg.value;
         } else if (tokenType == IFuulManager.TokenType.ERC_20) {
-            _transferERC20Tokens(
-                campaign.currency,
+            IERC20(campaign.currency).safeTransferFrom(
                 msg.sender,
                 address(this),
                 amount
@@ -314,87 +313,6 @@ contract FuulProject is
     }
 
     /*╔═════════════════════════════╗
-      ║    INTERNAL REMOVE FUNDS    ║
-      ╚═════════════════════════════╝*/
-
-    function _removeFungibleFunds(
-        uint256 campaignTokenId,
-        uint256 amount,
-        IFuulManager.TokenType tokenType
-    ) internal whenFundsNotFreezed {
-        CampaignBalance storage campaign = campaignBalances[campaignTokenId];
-
-        address currency = campaign.currency;
-
-        require(
-            tokenType == IFuulManager.TokenType.NATIVE ||
-                tokenType == IFuulManager.TokenType.ERC_20,
-            "Currency is not a fungible token"
-        );
-
-        // Update campaign budget - By underflow it indirectly checks that amount <= campaign.currentBudget
-        campaign.currentBudget -= amount;
-
-        if (tokenType == IFuulManager.TokenType.NATIVE) {
-            uint256 balance = address(this).balance;
-            require(amount <= balance, "Amount exceeds balance");
-
-            payable(msg.sender).sendValue(amount);
-        } else if (tokenType == IFuulManager.TokenType.ERC_20) {
-            uint256 balance = IERC20(currency).balanceOf(address(this));
-            require(amount <= balance, "Amount exceeds balance");
-            IERC20(currency).safeTransfer(msg.sender, amount);
-        }
-    }
-
-    function _removeNFTFunds(
-        uint256 campaignTokenId,
-        uint256[] memory rewardTokenIds,
-        uint256[] memory amounts,
-        IFuulManager.TokenType tokenType
-    ) internal nonReentrant whenFundsNotFreezed returns (uint256) {
-        CampaignBalance storage campaign = campaignBalances[campaignTokenId];
-        address currency = campaign.currency;
-
-        require(
-            tokenType == IFuulManager.TokenType.ERC_721 ||
-                tokenType == IFuulManager.TokenType.ERC_1155,
-            "Currency is not an NFT token"
-        );
-
-        uint256 removeAmount;
-
-        if (tokenType == IFuulManager.TokenType.ERC_721) {
-            for (uint256 i = 0; i < rewardTokenIds.length; i++) {
-                uint256 sendTokenId = rewardTokenIds[i];
-                _transferERC721Tokens(
-                    currency,
-                    address(this),
-                    msg.sender,
-                    sendTokenId
-                );
-            }
-
-            removeAmount = rewardTokenIds.length;
-        } else if (tokenType == IFuulManager.TokenType.ERC_1155) {
-            _transferERC1155Tokens(
-                currency,
-                address(this),
-                msg.sender,
-                rewardTokenIds,
-                amounts
-            );
-
-            removeAmount = _getSumFromArray(amounts);
-        }
-
-        // Update campaign budget - By underflow it indirectly checks that amount <= campaign.currentBudget
-        campaign.currentBudget -= removeAmount;
-
-        return removeAmount;
-    }
-
-    /*╔═════════════════════════════╗
       ║        REMOVE BUDGET        ║
       ╚═════════════════════════════╝*/
 
@@ -411,19 +329,38 @@ contract FuulProject is
     function removeFungibleBudget(
         uint256 campaignTokenId,
         uint256 amount
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) whenFundsNotFreezed {
-        CampaignBalance memory campaign = campaignBalances[campaignTokenId];
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) whenFundsNotFreezed nonReentrant {
+        CampaignBalance storage campaign = campaignBalances[campaignTokenId];
+        IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
+            campaign.currency
+        );
+
+        require(
+            tokenType == IFuulManager.TokenType.NATIVE ||
+                tokenType == IFuulManager.TokenType.ERC_20,
+            "Currency is not a fungible token"
+        );
 
         require(
             block.timestamp > getBudgetCooldownPeriod(campaign.deactivatedAt),
             "Cooldown period not finished"
         );
 
-        IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
-            campaign.currency
-        );
+        // Update campaign budget - By underflow it indirectly checks that amount <= campaign.currentBudget
+        campaign.currentBudget -= amount;
 
-        _removeFungibleFunds(campaignTokenId, amount, tokenType);
+        if (tokenType == IFuulManager.TokenType.NATIVE) {
+            uint256 balance = address(this).balance;
+            require(amount <= balance, "Amount exceeds balance");
+
+            payable(msg.sender).sendValue(amount);
+        } else if (tokenType == IFuulManager.TokenType.ERC_20) {
+            uint256 balance = IERC20(campaign.currency).balanceOf(
+                address(this)
+            );
+            require(amount <= balance, "Amount exceeds balance");
+            IERC20(campaign.currency).safeTransfer(msg.sender, amount);
+        }
 
         emit BudgetRemoved(
             msg.sender,
@@ -440,8 +377,8 @@ contract FuulProject is
         uint256 campaignTokenId,
         uint256[] memory rewardTokenIds,
         uint256[] memory amounts
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) whenFundsNotFreezed {
-        CampaignBalance memory campaign = campaignBalances[campaignTokenId];
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) whenFundsNotFreezed nonReentrant {
+        CampaignBalance storage campaign = campaignBalances[campaignTokenId];
 
         require(
             block.timestamp > getBudgetCooldownPeriod(campaign.deactivatedAt),
@@ -452,12 +389,40 @@ contract FuulProject is
             campaign.currency
         );
 
-        uint256 removeAmount = _removeNFTFunds(
-            campaignTokenId,
-            rewardTokenIds,
-            amounts,
-            tokenType
+        require(
+            tokenType == IFuulManager.TokenType.ERC_721 ||
+                tokenType == IFuulManager.TokenType.ERC_1155,
+            "Currency is not an NFT token"
         );
+
+        uint256 removeAmount;
+
+        if (tokenType == IFuulManager.TokenType.ERC_721) {
+            for (uint256 i = 0; i < rewardTokenIds.length; i++) {
+                uint256 sendTokenId = rewardTokenIds[i];
+                _transferERC721Tokens(
+                    campaign.currency,
+                    address(this),
+                    msg.sender,
+                    sendTokenId
+                );
+            }
+
+            removeAmount = rewardTokenIds.length;
+        } else if (tokenType == IFuulManager.TokenType.ERC_1155) {
+            _transferERC1155Tokens(
+                campaign.currency,
+                address(this),
+                msg.sender,
+                rewardTokenIds,
+                amounts
+            );
+
+            removeAmount = _getSumFromArray(amounts);
+        }
+
+        // Update campaign budget - By underflow it indirectly checks that amount <= campaign.currentBudget
+        campaign.currentBudget -= removeAmount;
 
         emit BudgetRemoved(
             msg.sender,
@@ -600,22 +565,6 @@ contract FuulProject is
     /*╔═════════════════════════════╗
       ║   INTERNAL TRANSFER TOKENS  ║
       ╚═════════════════════════════╝*/
-
-    function _transferERC20Tokens(
-        address tokenAddress,
-        address senderAddress,
-        address receiverAddress,
-        uint256 amount
-    ) internal {
-        require(tokenAddress != address(0), "No zero address");
-
-        // Transfer from does not allow to send more funds than balance
-        IERC20(tokenAddress).safeTransferFrom(
-            senderAddress,
-            receiverAddress,
-            amount
-        );
-    }
 
     function _transferERC721Tokens(
         address tokenAddress,
