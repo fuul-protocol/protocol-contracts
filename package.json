@@ -1,0 +1,33 @@
+{
+  "name": "nfts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.8",
+    "@nomicfoundation/hardhat-toolbox": "^1.0.2",
+    "@nomiclabs/hardhat-waffle": "^2.0.3",
+    "@openzeppelin/contracts": "^4.8.2",
+    "@rainbow-me/rainbowkit": "^0.8.0",
+    "chai": "^4.3.7",
+    "dotenv": "^16.0.2",
+    "hardhat": "^2.12.4",
+    "hardhat-abi-exporter": "^2.10.1",
+    "hardhat-contract-sizer": "^2.8.0",
+    "hardhat-gas-reporter": "^1.0.8",
+    "usehooks-ts": "^2.9.1",
+    "wagmi": "^0.9.2"
+  },
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.1.0",
+    "@nomiclabs/hardhat-etherscan": "^3.1.5",
+    "ethereum-waffle": "^3.4.4",
+    "ethers": "^5.7.2"
+  }
+}
