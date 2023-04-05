@@ -38,6 +38,7 @@ contract FuulProject is
         address currency;
         uint256 deactivatedAt;
         string campaignURI;
+        IFuulManager.TokenType tokenType;
     }
 
     /*╔═════════════════════════════╗
@@ -135,8 +136,13 @@ contract FuulProject is
             revert TokenCurrencyNotAccepted(currency);
         }
 
-        uint256 campaignId = campaignsCreated() + 1;
         _campaignIdTracker.increment();
+
+        uint256 campaignId = campaignsCreated();
+
+        IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
+            currency
+        );
 
         // Create campaign object
         campaigns[campaignId] = Campaign({
@@ -144,14 +150,15 @@ contract FuulProject is
             currentBudget: 0,
             currency: currency,
             deactivatedAt: 0,
-            campaignURI: _campaignURI
+            campaignURI: _campaignURI,
+            tokenType: tokenType
         });
 
         emit CampaignCreated(
             msg.sender,
             currency,
             campaignId,
-            fuulManagerInstance().getTokenType(currency),
+            tokenType,
             _campaignURI
         );
     }
@@ -223,9 +230,11 @@ contract FuulProject is
 
         address currency = campaign.currency;
 
-        IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
-            currency
-        );
+        if (!fuulManagerInstance().isCurrencyTokenAccepted(currency)) {
+            revert TokenCurrencyNotAccepted(currency);
+        }
+
+        IFuulManager.TokenType tokenType = campaign.tokenType;
 
         if (campaign.deactivatedAt > 0) {
             revert CampaignNotActive(campaignId);
@@ -287,9 +296,11 @@ contract FuulProject is
         Campaign storage campaign = campaigns[campaignId];
         address currency = campaign.currency;
 
-        IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
-            currency
-        );
+        if (!fuulManagerInstance().isCurrencyTokenAccepted(currency)) {
+            revert TokenCurrencyNotAccepted(currency);
+        }
+
+        IFuulManager.TokenType tokenType = campaign.tokenType;
 
         if (campaign.deactivatedAt > 0) {
             revert CampaignNotActive(campaignId);
@@ -368,9 +379,7 @@ contract FuulProject is
 
         address currency = campaign.currency;
 
-        IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
-            currency
-        );
+        IFuulManager.TokenType tokenType = campaign.tokenType;
 
         // Commented to optimize contract size
 
@@ -451,9 +460,7 @@ contract FuulProject is
 
         address currency = campaign.currency;
 
-        IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
-            currency
-        );
+        IFuulManager.TokenType tokenType = campaign.tokenType;
 
         // Commented to optimize contract size
 

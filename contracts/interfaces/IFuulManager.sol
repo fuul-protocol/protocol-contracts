@@ -43,6 +43,7 @@ interface IFuulManager {
     error Unauthorized(address sender, address requiredSender);
     error ClaimingFreqNotFinished();
     error OverTheLimit(uint256 amount, uint256 limit);
+    error UnequalLengths(uint256 lengthOne, uint256 lengthTwo);
 
     /*╔═════════════════════════════╗
       ║       PUBLIC VARIABLES      ║
@@ -91,7 +92,6 @@ interface IFuulManager {
 
     function addCurrencyToken(
         address tokenAddress,
-        TokenType tokenType,
         uint256 claimLimitPerCooldown
     ) external;
 

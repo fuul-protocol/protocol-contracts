@@ -9,6 +9,11 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import "./interfaces/IFuulProject.sol";
 import "./interfaces/IFuulManager.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/interfaces/IERC165.sol";
+import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
 contract FuulManager is
     IFuulManager,
@@ -17,6 +22,8 @@ contract FuulManager is
     Pausable,
     EIP712
 {
+    using ERC165Checker for address;
+
     struct CurrencyToken {
         TokenType tokenType;
         uint256 claimLimitPerCooldown;
@@ -47,6 +54,12 @@ contract FuulManager is
 
     mapping(string => bool) public voucherRedeemed;
 
+    bytes4 public constant IID_IERC1155 = type(IERC1155).interfaceId;
+    bytes4 public constant IID_IERC721 = type(IERC721).interfaceId;
+    bytes4 public constant IID_IERC20 = type(IERC20).interfaceId;
+
+    address public testTokenAddress;
+
     /*╔═════════════════════════════╗
       ║         CONSTRUCTOR         ║
       ╚═════════════════════════════╝*/
@@ -61,12 +74,10 @@ contract FuulManager is
 
         _setupRole(SIGNER_ROLE, _signer);
 
-        _addCurrencyToken(
-            acceptedERC20CurrencyToken,
-            TokenType(1),
-            initialTokenLimit
-        );
-        _addCurrencyToken(address(0), TokenType(0), initialZeroTokenLimit);
+        testTokenAddress = acceptedERC20CurrencyToken;
+
+        _addCurrencyToken(acceptedERC20CurrencyToken, initialTokenLimit);
+        _addCurrencyToken(address(0), initialZeroTokenLimit);
     }
 
     /*╔═════════════════════════════╗
@@ -127,10 +138,9 @@ contract FuulManager is
 
     function addCurrencyToken(
         address tokenAddress,
-        TokenType tokenType,
         uint256 claimLimitPerCooldown
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _addCurrencyToken(tokenAddress, tokenType, claimLimitPerCooldown);
+        _addCurrencyToken(tokenAddress, claimLimitPerCooldown);
     }
 
     function removeCurrencyToken(
@@ -144,6 +154,8 @@ contract FuulManager is
 
         currency.claimLimitPerCooldown = 0;
         currency.claimCooldownPeriodStarted = 0;
+        // Projects will not be able to create new campaigns or deposit with the currency token
+        // We keep the tokenType because campaigns using this currency will still be able to claim it
     }
 
     function setCurrencyTokenLimit(
@@ -201,13 +213,29 @@ contract FuulManager is
     }
 
     /*╔═════════════════════════════╗
-      ║      CLAIM FROM CAMPAIGN    ║
+      ║           CLAIM             ║
       ╚═════════════════════════════╝*/
 
-    function claimFromCampaign(
+    function claim(
+        ClaimVoucher[] calldata vouchers,
+        bytes[] calldata signatures
+    ) internal whenNotPaused nonReentrant {
+        uint256 vouchersLength = vouchers.length;
+        uint256 signaturesLength = signatures.length;
+
+        if (vouchersLength != signaturesLength) {
+            revert UnequalLengths(vouchersLength, signaturesLength);
+        }
+
+        for (uint256 i = 0; i < vouchersLength; i++) {
+            _claimFromCampaign(vouchers[i], signatures[i]);
+        }
+    }
+
+    function _claimFromCampaign(
         ClaimVoucher calldata voucher,
         bytes calldata signature
-    ) external whenNotPaused nonReentrant {
+    ) internal {
         if (!_verify(_hash(voucher), signature)) {
             revert InvalidSignature();
         }
@@ -323,17 +351,52 @@ contract FuulManager is
       ║      INTERNAL ADD TOKEN     ║
       ╚═════════════════════════════╝*/
 
+    function isERC20(address tokenAddress) internal view returns (bool) {
+        IERC20 token = IERC20(tokenAddress);
+        try token.totalSupply() {
+            try token.allowance(msg.sender, address(this)) {
+                return true;
+            } catch {}
+        } catch {}
+        return false;
+    }
+
+    function isContract(address _addr) internal view returns (bool) {
+        uint32 size;
+        assembly {
+            size := extcodesize(_addr)
+        }
+        return (size > 0);
+    }
+
     function _addCurrencyToken(
         address tokenAddress,
-        TokenType tokenType,
         uint256 claimLimitPerCooldown
     ) internal {
+        if (tokenAddress != address(0) && !isContract(tokenAddress)) {
+            revert InvalidAddressArgument(tokenAddress);
+        }
+
         if (isCurrencyTokenAccepted(tokenAddress)) {
             revert TokenCurrencyAlreadyAccepted(tokenAddress);
         }
 
         if (claimLimitPerCooldown == 0) {
             revert InvalidUintArgument(claimLimitPerCooldown);
+        }
+
+        TokenType tokenType;
+
+        if (tokenAddress == address(0)) {
+            tokenType = TokenType(0);
+        } else if (isERC20(tokenAddress)) {
+            tokenType = TokenType(1);
+        } else if (tokenAddress.supportsInterface(IID_IERC721)) {
+            tokenType = TokenType(2);
+        } else if (tokenAddress.supportsInterface(IID_IERC1155)) {
+            tokenType = TokenType(3);
+        } else {
+            revert InvalidAddressArgument(tokenAddress);
         }
 
         currencyTokens[tokenAddress] = CurrencyToken({

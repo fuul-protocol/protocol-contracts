@@ -78,7 +78,17 @@ interface IFuulProject {
 
     function campaigns(
         uint256 tokenId
-    ) external view returns (uint256, uint256, address, uint256, string memory);
+    )
+        external
+        view
+        returns (
+            uint256,
+            uint256,
+            address,
+            uint256,
+            string memory,
+            IFuulManager.TokenType
+        );
 
     /*╔═════════════════════════════╗
       ║     FROM OTHER CONTRACTS    ║

@@ -68,6 +68,17 @@ const setupTest = async function (deployProject = true) {
     limitAmount
   );
 
+  // const isERC721 = await fuulManager.isERC721(nft721.address);
+  // const noERC721 = await fuulManager.isERC721(nft1155.address);
+
+  // const isERC1155 = await fuulManager.isERC1155(nft1155.address);
+  // const noERC1155 = await fuulManager.isERC1155(nft721.address);
+
+  // console.log("721", isERC721);
+  // console.log("1155", isERC1155);
+  // console.log("no 721", noERC721);
+  // console.log("no 1155", noERC1155);
+
   // Deploy Factory
 
   const fuulFactory = await deployFactory(fuulManager.address);

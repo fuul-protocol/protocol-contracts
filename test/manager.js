@@ -85,25 +85,23 @@ describe("Fuul Manager - Remove variables management", function () {
 
 describe("Fuul Manager - Token currency management", function () {
   beforeEach(async function () {
-    const { fuulManager, token, user1, user2, adminRole } = await setupTest();
+    const { fuulManager, nft721, token, user1, user2, adminRole } =
+      await setupTest();
 
     this.fuulManager = fuulManager;
+    this.nft721 = nft721;
     this.token = token;
     this.user1 = user1;
     this.user2 = user2;
     this.adminRole = adminRole;
 
-    this.newCurrency = this.user2.address;
-    this.tokenType = 1;
+    this.newCurrency = this.nft721.address;
+    this.tokenType = 2;
     this.limit = ethers.utils.parseEther("100");
   });
 
   it("Should add new currency", async function () {
-    await this.fuulManager.addCurrencyToken(
-      this.newCurrency,
-      this.tokenType,
-      this.limit
-    );
+    await this.fuulManager.addCurrencyToken(this.newCurrency, this.limit);
 
     const currency = await this.fuulManager.currencyTokens(this.newCurrency);
 
@@ -132,15 +130,6 @@ describe("Fuul Manager - Token currency management", function () {
     expect(currency.claimCooldownPeriodStarted).to.equal(0);
   });
 
-  // it("Should set new currency type", async function () {
-  //   const tokenType = 2;
-  //   await this.fuulManager.setCurrencyTokenType(this.token.address, tokenType);
-
-  //   const currency = await this.fuulManager.currencyTokens(this.token.address);
-
-  //   expect(currency.tokenType).to.equal(tokenType);
-  // });
-
   it("Should set new currency limit", async function () {
     const limit = 2;
     await this.fuulManager.setCurrencyTokenLimit(this.token.address, limit);
@@ -150,7 +139,7 @@ describe("Fuul Manager - Token currency management", function () {
     expect(currency.claimLimitPerCooldown).to.equal(limit);
   });
 
-  it("Should fail to add, remove, set token type and set limit for a currency if not admin role", async function () {
+  it("Should fail to add, remove and set limit for a currency if not admin role", async function () {
     const error = `AccessControl: account ${this.user2.address.toLowerCase()} is missing role ${
       this.adminRole
     }`;
@@ -159,16 +148,8 @@ describe("Fuul Manager - Token currency management", function () {
     await expect(
       this.fuulManager
         .connect(this.user2)
-        .addCurrencyToken(this.newCurrency, this.tokenType, this.limit)
+        .addCurrencyToken(this.newCurrency, this.limit)
     ).to.be.revertedWith(error);
-
-    // Set token type
-
-    // await expect(
-    //   this.fuulManager
-    //     .connect(this.user2)
-    //     .setCurrencyTokenType(this.newCurrency, this.tokenType)
-    // ).to.be.revertedWith(error);
 
     // Set token limit
 
@@ -190,11 +171,7 @@ describe("Fuul Manager - Token currency management", function () {
     // Token already accepted
 
     await expect(
-      this.fuulManager.addCurrencyToken(
-        this.token.address,
-        this.tokenType,
-        this.limit
-      )
+      this.fuulManager.addCurrencyToken(this.token.address, this.limit)
     )
       .to.be.revertedWithCustomError(
         this.fuulManager,
@@ -204,11 +181,16 @@ describe("Fuul Manager - Token currency management", function () {
 
     // Limit = 0
 
-    await expect(
-      this.fuulManager.addCurrencyToken(this.newCurrency, this.tokenType, 0)
-    )
+    await expect(this.fuulManager.addCurrencyToken(this.newCurrency, 0))
       .to.be.revertedWithCustomError(this.fuulManager, "InvalidUintArgument")
       .withArgs(0);
+
+    // EOA Address
+    await expect(
+      this.fuulManager.addCurrencyToken(this.user2.address, this.limit)
+    )
+      .to.be.revertedWithCustomError(this.fuulManager, "InvalidAddressArgument")
+      .withArgs(this.user2.address);
   });
 
   it("Should fail to remove currency and not accepted", async function () {
@@ -219,29 +201,6 @@ describe("Fuul Manager - Token currency management", function () {
       )
       .withArgs(this.user2.address);
   });
-
-  // it("Should fail to set new token type if incorrect arguments are passed", async function () {
-  //   // Token not accepted
-
-  //   await expect(
-  //     this.fuulManager.setCurrencyTokenType(this.user2.address, this.tokenType)
-  //   )
-  //     .to.be.revertedWithCustomError(
-  //       this.fuulManager,
-  //       "TokenCurrencyNotAccepted"
-  //     )
-  //     .withArgs(this.user2.address);
-
-  //   // Same token type value
-  //   await expect(
-  //     this.fuulManager.setCurrencyTokenType(this.token.address, this.tokenType)
-  //   )
-  //     .to.be.revertedWithCustomError(
-  //       this.fuulManager,
-  //       "InvalidTokenTypeArgument"
-  //     )
-  //     .withArgs(this.tokenType);
-  // });
 
   it("Should fail to set new token limit if incorrect arguments are passed", async function () {
     // Token not accepted
@@ -378,6 +337,72 @@ describe("Fuul Manager - Emergency withdraw", function () {
     expect(await this.provider.getBalance(this.fuulProject.address)).to.equal(
       0
     );
+  });
+
+  it("Should emergency withdraw 721 NFTs", async function () {
+    await this.fuulManager.addCurrencyToken(this.nft721.address, 100);
+
+    for (let tokenId of this.tokenIds) {
+      // Transfer token to contract
+      await this.nft721.transferFrom(
+        this.user1.address,
+        this.fuulProject.address,
+        tokenId
+      );
+      expect(await this.nft721.ownerOf(tokenId)).to.equal(
+        this.fuulProject.address
+      );
+    }
+
+    await this.fuulManager.emergencyWithdrawNFTsFromProject(
+      this.user1.address,
+      this.fuulProject.address,
+      this.nft721.address,
+      this.tokenIds,
+      []
+    );
+
+    for (let tokenId of this.tokenIds) {
+      expect(await this.nft721.ownerOf(tokenId)).to.equal(this.user1.address);
+    }
+  });
+
+  it("Should emergency withdraw 1155 NFTs", async function () {
+    await this.fuulManager.addCurrencyToken(this.nft1155.address, 100);
+
+    await this.nft1155.safeBatchTransferFrom(
+      this.user1.address,
+      this.fuulProject.address,
+      this.tokenIds,
+      this.amounts,
+      []
+    );
+
+    for (i = 0; i < this.tokenIds.length; i++) {
+      let tokenId = this.tokenIds[i];
+      let amount = this.amounts[i];
+
+      expect(
+        await this.nft1155.balanceOf(this.fuulProject.address, tokenId)
+      ).to.equal(amount);
+    }
+
+    await this.fuulManager.emergencyWithdrawNFTsFromProject(
+      this.user2.address,
+      this.fuulProject.address,
+      this.nft1155.address,
+      this.tokenIds,
+      this.amounts
+    );
+
+    for (i = 0; i < this.tokenIds.length; i++) {
+      let tokenId = this.tokenIds[i];
+      let amount = this.amounts[i];
+
+      expect(
+        await this.nft1155.balanceOf(this.user2.address, tokenId)
+      ).to.equal(amount);
+    }
   });
 
   it("Should fail to emergency remove fungible and NFTs if not admin role", async function () {
