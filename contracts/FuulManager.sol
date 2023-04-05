@@ -143,6 +143,7 @@ contract FuulManager is
         }
 
         currency.claimLimitPerCooldown = 0;
+        currency.claimCooldownPeriodStarted = 0;
     }
 
     function setCurrencyTokenLimit(
