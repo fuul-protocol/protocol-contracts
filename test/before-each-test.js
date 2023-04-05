@@ -78,7 +78,7 @@ const setupTest = async function (deployProject = true) {
 
   if (deployProject) {
     const signer = this.user2.address;
-    await fuulFactory.createFuulProject(signer);
+    await fuulFactory.createFuulProject(user1.address, signer);
     const addressDeployed = await fuulFactory.projects(1);
 
     const FuulProject = await ethers.getContractFactory("FuulProject");

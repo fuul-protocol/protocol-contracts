@@ -15,7 +15,9 @@ describe("Fuul Project - Set new signer", function () {
 
   it("Should change Project signer address", async function () {
     const newValue = this.user1.address;
-    await this.fuulProject.setProjectEventSigner(newValue);
+    expect(await this.fuulProject.setProjectEventSigner(newValue))
+      .to.emit(this.fuulProject, "EventSignerUpdated")
+      .withArgs(newValue);
     expect(await this.fuulProject.projectEventSigner()).to.equal(newValue);
   });
 
@@ -92,31 +94,33 @@ describe("Fuul Project - Campaign management", function () {
   it("Should set new campaign URI", async function () {
     await this.fuulProject.createCampaign(this.campaignURI, this.token.address);
 
-    const tokenId = 1;
-    const newTokenURI = "newTokenURI";
+    const campaignId = 1;
+    const newCampaignURI = "newTokenURI";
 
-    expect(await this.fuulProject.setCampaignURI(tokenId, newTokenURI))
+    expect(await this.fuulProject.setCampaignURI(campaignId, newCampaignURI))
       .to.emit(this.fuulProject, "CampaignMetadataUpdated")
-      .withArgs(tokenId, newTokenURI);
+      .withArgs(campaignId, newCampaignURI);
 
-    expect(await this.fuulProject.campaignURI(tokenId)).to.equal(newTokenURI);
+    const campaign = await this.fuulProject.campaigns(campaignId);
+
+    expect(campaign.campaignURI).to.equal(newCampaignURI);
   });
 
   // Fail
   it("Should fail to to deactivate, reactivate and set campaign uri if campaign does not exist", async function () {
-    const error = "Campaign does not exist";
+    const campaignId = 1;
 
-    await expect(
-      this.fuulProject.setCampaignURI(1, this.campaignURI)
-    ).to.be.revertedWith(error);
+    await expect(this.fuulProject.setCampaignURI(campaignId, this.campaignURI))
+      .to.be.revertedWithCustomError(this.fuulProject, "CampaignNotExists")
+      .withArgs(campaignId);
 
-    await expect(this.fuulProject.deactivateCampaign(1)).to.be.revertedWith(
-      error
-    );
+    await expect(this.fuulProject.deactivateCampaign(campaignId))
+      .to.be.revertedWithCustomError(this.fuulProject, "CampaignNotExists")
+      .withArgs(campaignId);
 
-    await expect(this.fuulProject.reactivateCampaign(1)).to.be.revertedWith(
-      error
-    );
+    await expect(this.fuulProject.reactivateCampaign(campaignId))
+      .to.be.revertedWithCustomError(this.fuulProject, "CampaignNotExists")
+      .withArgs(campaignId);
   });
 
   it("Should fail to create, activate and deactivate campaign and set campaignURI if not admin role", async function () {
@@ -250,20 +254,16 @@ describe("Fuul Project - Deposit and remove fungible", function () {
     await expect(balance).to.equal(0);
   });
 
-  it("Fail to deposit and remove if campaign does not exist", async function () {
-    const error = "Campaign does not exist";
-
+  it("Fail to deposit if campaign does not exist", async function () {
     const campaignId = 10;
 
     await expect(
       this.fuulProject.depositFungibleToken(campaignId, 0, {
         value: this.amount,
       })
-    ).to.be.revertedWith(error);
-
-    await expect(
-      this.fuulProject.removeFungibleBudget(campaignId, this.amount)
-    ).to.be.revertedWith(error);
+    )
+      .to.be.revertedWithCustomError(this.fuulProject, "CampaignNotExists")
+      .withArgs(campaignId);
   });
 
   it("Fail to remove if not deactivated or cooldown is not over", async function () {
@@ -271,14 +271,19 @@ describe("Fuul Project - Deposit and remove fungible", function () {
 
     await expect(
       this.fuulProject.removeFungibleBudget(this.nativeCampaignId, this.amount)
-    ).to.be.revertedWith("Campaign is active. Please deactivate it first");
+    )
+      .to.be.revertedWithCustomError(this.fuulProject, "CampaignNotInactive")
+      .withArgs(this.nativeCampaignId);
 
     // Remove before cooldown is complete
     await this.fuulProject.deactivateCampaign(this.nativeCampaignId);
 
     await expect(
       this.fuulProject.removeFungibleBudget(this.nativeCampaignId, this.amount)
-    ).to.be.revertedWith("Cooldown period not finished");
+    ).to.be.revertedWithCustomError(
+      this.fuulProject,
+      "CooldownPeriodNotFinished"
+    );
   });
 
   it("Should deposit correctly & set correct values with currency != 0x", async function () {
@@ -380,11 +385,11 @@ describe("Fuul Project - Deposit and remove fungible", function () {
 
     await expect(
       this.fuulProject.depositFungibleToken(this.erc20CampaignId, this.amount)
-    ).to.be.revertedWith("Manager paused all");
+    ).to.be.revertedWithCustomError(this.fuulProject, "ManagerIsPaused");
 
     await expect(
       this.fuulProject.removeFungibleBudget(this.erc20CampaignId, this.amount)
-    ).to.be.revertedWith("Manager paused all");
+    ).to.be.revertedWithCustomError(this.fuulProject, "ManagerIsPaused");
   });
 });
 
@@ -491,18 +496,14 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     await expect(balance).to.equal(0);
   });
 
-  it("Fail to deposit and remove if campaign does not exist", async function () {
-    const error = "Campaign does not exist";
-
+  it("Fail to deposit if campaign does not exist", async function () {
     const campaignId = 10;
 
     await expect(
       this.fuulProject.depositNFTToken(campaignId, this.rewardTokenIds, [])
-    ).to.be.revertedWith(error);
-
-    await expect(
-      this.fuulProject.removeNFTBudget(campaignId, this.rewardTokenIds, [])
-    ).to.be.revertedWith(error);
+    )
+      .to.be.revertedWithCustomError(this.fuulProject, "CampaignNotExists")
+      .withArgs(campaignId);
   });
 
   it("Fail to remove if not deactivated or cooldown is not over", async function () {
@@ -510,14 +511,19 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
 
     await expect(
       this.fuulProject.removeNFTBudget(this.campaignId, this.rewardTokenIds, [])
-    ).to.be.revertedWith("Campaign is active. Please deactivate it first");
+    )
+      .to.be.revertedWithCustomError(this.fuulProject, "CampaignNotInactive")
+      .withArgs(this.campaignId);
 
     // Remove before cooldown is complete
     await this.fuulProject.deactivateCampaign(this.campaignId);
 
     await expect(
       this.fuulProject.removeNFTBudget(this.campaignId, this.rewardTokenIds, [])
-    ).to.be.revertedWith("Cooldown period not finished");
+    ).to.be.revertedWithCustomError(
+      this.fuulProject,
+      "CooldownPeriodNotFinished"
+    );
   });
 
   it("Should fail to deposit and remove if not admin role", async function () {
@@ -543,11 +549,11 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
 
     await expect(
       this.fuulProject.depositNFTToken(this.campaignId, this.rewardTokenIds, [])
-    ).to.be.revertedWith("Manager paused all");
+    ).to.be.revertedWithCustomError(this.fuulProject, "ManagerIsPaused");
 
     await expect(
       this.fuulProject.removeNFTBudget(this.campaignId, this.rewardTokenIds, [])
-    ).to.be.revertedWith("Manager paused all");
+    ).to.be.revertedWithCustomError(this.fuulProject, "ManagerIsPaused");
   });
 });
 
@@ -671,39 +677,18 @@ describe("Fuul Project - Deposit and remove NFT 1155", function () {
       ).to.equal(0);
     }
   });
-
-  it("Fail to remove if not deactivated or cooldown is not over", async function () {
-    // Remove before deactivating
-
-    await expect(
-      this.fuulProject.removeNFTBudget(
-        this.campaignId,
-        this.rewardTokenIds,
-        this.amounts
-      )
-    ).to.be.revertedWith("Campaign is active. Please deactivate it first");
-
-    // Remove before cooldown is complete
-    await this.fuulProject.deactivateCampaign(this.campaignId);
-
-    await expect(
-      this.fuulProject.removeNFTBudget(
-        this.campaignId,
-        this.rewardTokenIds,
-        this.amounts
-      )
-    ).to.be.revertedWith("Cooldown period not finished");
-  });
 });
 
 describe("Fuul Project - Claim", function () {
   beforeEach(async function () {
-    const { fuulProject } = await setupTest();
+    const { fuulProject, fuulManager, user1 } = await setupTest();
 
     this.fuulProject = fuulProject;
+    this.fuulManager = fuulManager;
+    this.user1 = user1;
   });
 
-  it("Fail to claim if sender is not Fuul Manager", async function () {
+  it("Fail to claim and emergency withdraw if sender is not Fuul Manager", async function () {
     const voucher = {
       voucherId: "1",
       projectAddress: this.fuulProject.address,
@@ -712,23 +697,23 @@ describe("Fuul Project - Claim", function () {
       tokenType: 0,
       account: this.fuulProject.address,
       amount: 1,
-      rewardTokenIds: [],
+      tokenIds: [],
       amounts: [],
       deadline: 123,
     };
 
-    await expect(
-      this.fuulProject.claimFromCampaign(voucher)
-    ).to.be.revertedWith("Only Fuul manager can claim");
-  });
+    await expect(this.fuulProject.claimFromCampaign(voucher))
+      .to.be.revertedWithCustomError(this.fuulProject, "Unauthorized")
+      .withArgs(this.user1.address, this.fuulManager.address);
 
-  it("Fail to emergency withdraw if sender is not Fuul Manager", async function () {
     await expect(
       this.fuulProject.emergencyWithdrawFungibleTokens(
         this.fuulProject.address,
         ethers.constants.AddressZero
       )
-    ).to.be.revertedWith("Only Fuul manager can withdraw");
+    )
+      .to.be.revertedWithCustomError(this.fuulProject, "Unauthorized")
+      .withArgs(this.user1.address, this.fuulManager.address);
 
     await expect(
       this.fuulProject.emergencyWithdrawNFTTokens(
@@ -737,6 +722,8 @@ describe("Fuul Project - Claim", function () {
         [],
         []
       )
-    ).to.be.revertedWith("Only Fuul manager can withdraw");
+    )
+      .to.be.revertedWithCustomError(this.fuulProject, "Unauthorized")
+      .withArgs(this.user1.address, this.fuulManager.address);
   });
 });

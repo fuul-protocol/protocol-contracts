@@ -20,10 +20,29 @@ interface IFuulManager {
         TokenType tokenType;
         address account;
         uint256 amount;
-        uint256[] rewardTokenIds; // used for ERC721 and ERC1155
+        uint256[] tokenIds; // used for ERC721 and ERC1155
         uint256[] amounts; // used for ERC1155
         uint256 deadline;
     }
+
+    /*╔═════════════════════════════╗
+      ║           ERRORS            ║
+      ╚═════════════════════════════╝*/
+
+    error InvalidUintArgument(uint256 value);
+    error InvalidAddressArgument(address value);
+    error InvalidTokenTypeArgument(TokenType value);
+
+    error TokenCurrencyAlreadyAccepted(address tokenAddress);
+    error TokenCurrencyNotAccepted(address tokenAddress);
+
+    // Voucher
+    error InvalidSignature();
+    error ClaimedVoucher(string voucherId);
+    error VoucherExpired(uint256 deadline, uint256 now);
+    error Unauthorized(address sender, address requiredSender);
+    error ClaimingFreqNotFinished();
+    error OverTheLimit(uint256 amount, uint256 limit);
 
     /*╔═════════════════════════════╗
       ║       PUBLIC VARIABLES      ║

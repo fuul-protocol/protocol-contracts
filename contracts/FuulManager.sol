@@ -82,10 +82,9 @@ contract FuulManager is
     function setClaimFrequency(
         uint256 _period
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(
-            claimFrequency != _period,
-            "Frequency period cannot be the same as current"
-        );
+        if (_period == claimFrequency) {
+            revert InvalidUintArgument(_period);
+        }
 
         claimFrequency = _period;
     }
@@ -93,10 +92,9 @@ contract FuulManager is
     function setClaimCooldown(
         uint256 _period
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(
-            claimCooldown != _period,
-            "Claim cooldown period cannot be the same as current"
-        );
+        if (_period == claimCooldown) {
+            revert InvalidUintArgument(_period);
+        }
 
         claimCooldown = _period;
     }
@@ -104,10 +102,9 @@ contract FuulManager is
     function setCampaignBudgetCooldown(
         uint256 _period
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(
-            campaignBudgetCooldown != _period,
-            "Campaign budget cooldown period cannot be the same as current"
-        );
+        if (_period == campaignBudgetCooldown) {
+            revert InvalidUintArgument(_period);
+        }
 
         campaignBudgetCooldown = _period;
     }
@@ -119,16 +116,13 @@ contract FuulManager is
     function getTokenType(
         address tokenAddress
     ) public view returns (TokenType tokenType) {
-        CurrencyToken memory currency = currencyTokens[tokenAddress];
-        return currency.tokenType;
+        return currencyTokens[tokenAddress].tokenType;
     }
 
     function isCurrencyTokenAccepted(
         address tokenAddress
     ) public view returns (bool isAccepted) {
-        CurrencyToken memory currency = currencyTokens[tokenAddress];
-
-        return currency.claimLimitPerCooldown > 0;
+        return currencyTokens[tokenAddress].claimLimitPerCooldown > 0;
     }
 
     function addCurrencyToken(
@@ -144,7 +138,9 @@ contract FuulManager is
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         CurrencyToken storage currency = currencyTokens[tokenAddress];
 
-        require(currency.claimLimitPerCooldown > 0, "Token is not accepted");
+        if (currency.claimLimitPerCooldown == 0) {
+            revert TokenCurrencyNotAccepted(tokenAddress);
+        }
 
         currency.claimLimitPerCooldown = 0;
     }
@@ -155,13 +151,13 @@ contract FuulManager is
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         CurrencyToken storage currency = currencyTokens[tokenAddress];
 
-        require(currency.claimLimitPerCooldown > 0, "Token is not accepted");
-        require(limit > 0, "Limit should be greater than zero");
+        if (limit == 0 || limit == currency.claimLimitPerCooldown) {
+            revert InvalidUintArgument(limit);
+        }
 
-        require(
-            limit != currency.claimLimitPerCooldown,
-            "Limit cannot be the same as current"
-        );
+        if (currency.claimLimitPerCooldown == 0) {
+            revert TokenCurrencyNotAccepted(tokenAddress);
+        }
 
         currency.claimLimitPerCooldown = limit;
     }
@@ -172,11 +168,13 @@ contract FuulManager is
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         CurrencyToken storage currency = currencyTokens[tokenAddress];
 
-        require(currency.claimLimitPerCooldown > 0, "Token is not accepted");
-        require(
-            tokenType != currency.tokenType,
-            "Token type cannot be the same as current"
-        );
+        if (currency.claimLimitPerCooldown == 0) {
+            revert TokenCurrencyNotAccepted(tokenAddress);
+        }
+
+        if (tokenType == currency.tokenType) {
+            revert InvalidTokenTypeArgument(tokenType);
+        }
 
         currency.tokenType = tokenType;
     }
@@ -205,30 +203,34 @@ contract FuulManager is
         ClaimVoucher calldata voucher,
         bytes calldata signature
     ) external whenNotPaused nonReentrant {
-        require(_verify(_hash(voucher), signature), "Invalid signature");
+        if (!_verify(_hash(voucher), signature)) {
+            revert InvalidSignature();
+        }
 
         address currency = voucher.currency;
 
         // Valid voucher
-        require(
-            !voucherRedeemed[voucher.voucherId],
-            "Voucher Id already claimed"
-        );
-        require(voucher.deadline > block.timestamp, "Voucher expired");
+        if (voucherRedeemed[voucher.voucherId]) {
+            revert ClaimedVoucher(voucher.voucherId);
+        }
 
-        require(
-            voucher.account == msg.sender,
-            "Sender is not voucher claimable account"
-        );
+        if (voucher.deadline < block.timestamp) {
+            revert VoucherExpired(voucher.deadline, block.timestamp);
+        }
+
+        if (voucher.account != msg.sender) {
+            revert Unauthorized(msg.sender, voucher.account);
+        }
 
         // Frequency
         UserCurrencyClaim storage userClaim = usersClaims[msg.sender][currency];
 
-        require(
-            block.timestamp > userClaim.lastClaimedAt + claimFrequency ||
-                userClaim.lastClaimedAt == 0,
-            "Claiming frequency period not finished"
-        );
+        if (
+            userClaim.lastClaimedAt > 0 &&
+            userClaim.lastClaimedAt + claimFrequency > block.timestamp
+        ) {
+            revert ClaimingFreqNotFinished();
+        }
 
         CurrencyToken memory currencyInfo = currencyTokens[currency];
 
@@ -238,22 +240,32 @@ contract FuulManager is
 
         // Limit
 
-        require(
-            tokenAmount <= currencyInfo.claimLimitPerCooldown,
-            "Amount is over the limit"
-        );
+        if (tokenAmount > currencyInfo.claimLimitPerCooldown) {
+            revert OverTheLimit(
+                tokenAmount,
+                currencyInfo.claimLimitPerCooldown
+            );
+        }
 
         if (
             currencyInfo.claimCooldownPeriodStarted + claimCooldown >
             block.timestamp
         ) {
-            require(
-                currencyInfo.cumulativeClaimPerCooldown + tokenAmount <=
-                    currencyInfo.claimLimitPerCooldown,
-                "Period limit reached"
-            );
+            // If cooldown not ended -> check that the limit is not reached and then sum amount to cumulative
+
+            if (
+                currencyInfo.cumulativeClaimPerCooldown + tokenAmount >
+                currencyInfo.claimLimitPerCooldown
+            ) {
+                revert OverTheLimit(
+                    currencyInfo.cumulativeClaimPerCooldown + tokenAmount,
+                    currencyInfo.claimLimitPerCooldown
+                );
+            }
+
             currencyInfo.cumulativeClaimPerCooldown += tokenAmount;
         } else {
+            // If cooldown ended -> set new values for cumulative and time (amount limit is checked before)
             currencyInfo.cumulativeClaimPerCooldown = tokenAmount;
             currencyInfo.claimCooldownPeriodStarted = block.timestamp;
         }
@@ -291,13 +303,13 @@ contract FuulManager is
         address to,
         address projectAddress,
         address currency,
-        uint256[] memory rewardTokenIds,
+        uint256[] memory tokenIds,
         uint256[] memory amounts
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         IFuulProject(projectAddress).emergencyWithdrawNFTTokens(
             to,
             currency,
-            rewardTokenIds,
+            tokenIds,
             amounts
         );
     }
@@ -311,11 +323,13 @@ contract FuulManager is
         TokenType tokenType,
         uint256 claimLimitPerCooldown
     ) internal {
-        require(
-            !isCurrencyTokenAccepted(tokenAddress),
-            "Token is already accepted"
-        );
-        require(claimLimitPerCooldown > 0, "Limit should be greater than zero");
+        if (isCurrencyTokenAccepted(tokenAddress)) {
+            revert TokenCurrencyAlreadyAccepted(tokenAddress);
+        }
+
+        if (claimLimitPerCooldown == 0) {
+            revert InvalidUintArgument(claimLimitPerCooldown);
+        }
 
         currencyTokens[tokenAddress] = CurrencyToken({
             tokenType: tokenType,
@@ -342,7 +356,7 @@ contract FuulManager is
                         keccak256(bytes(voucher.voucherId)),
                         voucher.campaignId,
                         voucher.account,
-                        keccak256(abi.encodePacked(voucher.rewardTokenIds)),
+                        keccak256(abi.encodePacked(voucher.tokenIds)),
                         keccak256(abi.encodePacked(voucher.amounts)),
                         voucher.deadline
                     )

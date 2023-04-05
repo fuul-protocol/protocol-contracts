@@ -27,9 +27,12 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     }
 
-    function createFuulProject(address _projectEventSigner) external {
+    function createFuulProject(
+        address _projectAdmin,
+        address _projectEventSigner
+    ) external {
         address clone = Clones.clone(fuulProjectImplementation);
-        FuulProject(clone).initialize(_projectEventSigner);
+        FuulProject(clone).initialize(_projectAdmin, _projectEventSigner);
 
         _projectTracker.increment();
         projects[projectsCreated()] = address(clone);
@@ -44,10 +47,9 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
     function setFuulManager(
         address _fuulManager
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(
-            _fuulManager != fuulManager,
-            "Address cannot be the same as current"
-        );
+        if (_fuulManager == fuulManager) {
+            revert SameAddressValue(_fuulManager);
+        }
         fuulManager = _fuulManager;
     }
 }

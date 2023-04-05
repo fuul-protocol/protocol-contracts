@@ -50,9 +50,36 @@ contract FuulProject is
     address public projectEventSigner;
 
     mapping(uint256 => Campaign) public campaigns; //  campaignId => Campaign
-    mapping(address => mapping(address => uint256)) public amountClaimed; // Address => currency => amount claimed
 
     uint256[] private emptyArray;
+
+    /*╔═════════════════════════════╗
+      ║           MODIFIER          ║
+      ╚═════════════════════════════╝*/
+
+    modifier campaignExists(uint256 _campaignId) {
+        if (_campaignId == 0 || _campaignId > campaignsCreated()) {
+            revert CampaignNotExists(_campaignId);
+        }
+        _;
+    }
+
+    modifier onlyFuulManager() {
+        if (msg.sender != fuulManagerAddress()) {
+            revert Unauthorized({
+                sender: msg.sender,
+                requiredSender: fuulManagerAddress()
+            });
+        }
+        _;
+    }
+
+    modifier whenFundsNotFreezed() {
+        if (fuulManagerInstance().isPaused()) {
+            revert ManagerIsPaused();
+        }
+        _;
+    }
 
     /*╔═════════════════════════════╗
       ║         CONSTRUCTOR         ║
@@ -63,22 +90,20 @@ contract FuulProject is
     }
 
     // called once by the factory at time of deployment
-    function initialize(address _projectEventSigner) external {
-        require(fuulFactory == address(0), "FuulV1: FORBIDDEN"); // sufficient check
+    function initialize(
+        address projectAdmin,
+        address _projectEventSigner
+    ) external {
+        require(fuulFactory == address(0), "FuulV1: FORBIDDEN");
         fuulFactory = msg.sender;
         projectEventSigner = _projectEventSigner;
 
-        _setupRole(DEFAULT_ADMIN_ROLE, tx.origin);
+        _setupRole(DEFAULT_ADMIN_ROLE, projectAdmin);
     }
 
     /*╔═════════════════════════════╗
       ║     FROM OTHER CONTRACTS    ║
       ╚═════════════════════════════╝*/
-
-    modifier whenFundsNotFreezed() {
-        require(!fuulManagerInstance().isPaused(), "Manager paused all");
-        _;
-    }
 
     function fuulManagerAddress() public view returns (address) {
         return IFuulFactory(fuulFactory).fuulManager();
@@ -92,10 +117,6 @@ contract FuulProject is
       ║          CAMPAIGNS          ║
       ╚═════════════════════════════╝*/
 
-    function _campaignExists(uint256 campaignId) internal view returns (bool) {
-        return campaignId > 0 && campaignId <= campaignsCreated();
-    }
-
     function campaignsCreated() public view returns (uint256) {
         return _campaignIdTracker.current();
     }
@@ -104,12 +125,14 @@ contract FuulProject is
         string memory _campaignURI,
         address currency
     ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(bytes(_campaignURI).length > 0, "Campaign URI cannot be empty");
+        if (bytes(_campaignURI).length == 0) {
+            revert EmptyCampaignURI(_campaignURI);
+        }
 
-        require(
-            fuulManagerInstance().isCurrencyTokenAccepted(currency),
-            "Token address is not accepted as currency"
-        );
+        if (!fuulManagerInstance().isCurrencyTokenAccepted(currency)) {
+            revert TokenCurrencyNotAccepted(currency);
+        }
+
         uint256 campaignId = campaignsCreated() + 1;
         _campaignIdTracker.increment();
 
@@ -133,43 +156,48 @@ contract FuulProject is
 
     function reactivateCampaign(
         uint256 campaignId
-    ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(_campaignExists(campaignId), "Campaign does not exist");
-
+    )
+        external
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        campaignExists(campaignId)
+    {
         Campaign storage campaign = campaigns[campaignId];
 
-        require(campaign.deactivatedAt > 0, "Campaign is active");
+        if (campaign.deactivatedAt == 0) {
+            revert CampaignNotInactive(campaignId);
+        }
 
         campaign.deactivatedAt = 0;
     }
 
     function deactivateCampaign(
         uint256 campaignId
-    ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(_campaignExists(campaignId), "Campaign does not exist");
-
+    )
+        external
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        campaignExists(campaignId)
+    {
         Campaign storage campaign = campaigns[campaignId];
 
-        require(campaign.deactivatedAt == 0, "Campaign is not active");
+        if (campaign.deactivatedAt > 0) {
+            revert CampaignNotActive(campaignId);
+        }
 
         campaign.deactivatedAt = block.timestamp;
-    }
-
-    function campaignURI(
-        uint256 campaignId
-    ) public view returns (string memory) {
-        return campaigns[campaignId].campaignURI;
     }
 
     function setCampaignURI(
         uint256 _campaignId,
         string memory _campaignURI
-    ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(_campaignExists(_campaignId), "Campaign does not exist");
-
-        Campaign storage campaign = campaigns[_campaignId];
-
-        campaign.campaignURI = _campaignURI;
+    )
+        external
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        campaignExists(_campaignId)
+    {
+        campaigns[_campaignId].campaignURI = _campaignURI;
 
         emit CampaignMetadataUpdated(_campaignId, _campaignURI);
     }
@@ -187,9 +215,8 @@ contract FuulProject is
         nonReentrant
         whenFundsNotFreezed
         onlyRole(DEFAULT_ADMIN_ROLE)
+        campaignExists(campaignId)
     {
-        require(_campaignExists(campaignId), "Campaign does not exist");
-
         Campaign storage campaign = campaigns[campaignId];
 
         address currency = campaign.currency;
@@ -198,19 +225,29 @@ contract FuulProject is
             currency
         );
 
-        require(campaign.deactivatedAt == 0, "Campaign is not active");
-        require(
-            tokenType == IFuulManager.TokenType.NATIVE ||
-                tokenType == IFuulManager.TokenType.ERC_20,
-            "Currency is not a fungible token"
-        );
+        if (campaign.deactivatedAt > 0) {
+            revert CampaignNotActive(campaignId);
+        }
+        // Commented to optimize contract size
+
+        // require(
+        //     tokenType == IFuulManager.TokenType.NATIVE ||
+        //         tokenType == IFuulManager.TokenType.ERC_20,
+        //     "Currency is not a fungible token"
+        // );
 
         uint256 depositedAmount;
 
         if (tokenType == IFuulManager.TokenType.NATIVE) {
-            require(msg.value > 0, "msg.value should be greater than 0");
+            if (msg.value == 0) {
+                revert IncorrectBalance(msg.value);
+            }
             depositedAmount = msg.value;
         } else if (tokenType == IFuulManager.TokenType.ERC_20) {
+            if (msg.value > 0) {
+                revert IncorrectBalance(msg.value);
+            }
+
             IERC20(currency).safeTransferFrom(
                 msg.sender,
                 address(this),
@@ -236,11 +273,15 @@ contract FuulProject is
 
     function depositNFTToken(
         uint256 campaignId,
-        uint256[] memory rewardTokenIds,
+        uint256[] memory tokenIds,
         uint256[] memory amounts
-    ) external nonReentrant whenFundsNotFreezed onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(_campaignExists(campaignId), "Campaign does not exist");
-
+    )
+        external
+        nonReentrant
+        whenFundsNotFreezed
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        campaignExists(campaignId)
+    {
         Campaign storage campaign = campaigns[campaignId];
         address currency = campaign.currency;
 
@@ -248,28 +289,31 @@ contract FuulProject is
             currency
         );
 
-        require(campaign.deactivatedAt == 0, "Campaign is not active");
+        if (campaign.deactivatedAt > 0) {
+            revert CampaignNotActive(campaignId);
+        }
+        // Commented to optimize contract size
 
-        require(
-            tokenType == IFuulManager.TokenType.ERC_721 ||
-                tokenType == IFuulManager.TokenType.ERC_1155,
-            "Currency is not an NFT token"
-        );
+        // require(
+        //     tokenType == IFuulManager.TokenType.ERC_721 ||
+        //         tokenType == IFuulManager.TokenType.ERC_1155,
+        //     "Currency is not an NFT token"
+        // );
 
         uint256 depositedAmount;
         uint256[] memory tokenAmounts;
 
         if (tokenType == IFuulManager.TokenType.ERC_721) {
-            for (uint256 i = 0; i < rewardTokenIds.length; i++) {
+            for (uint256 i = 0; i < tokenIds.length; i++) {
                 _transferERC721Tokens(
                     currency,
                     msg.sender,
                     address(this),
-                    rewardTokenIds[i]
+                    tokenIds[i]
                 );
             }
 
-            depositedAmount = rewardTokenIds.length;
+            depositedAmount = tokenIds.length;
 
             tokenAmounts = emptyArray;
         } else if (tokenType == IFuulManager.TokenType.ERC_1155) {
@@ -277,7 +321,7 @@ contract FuulProject is
                 currency,
                 msg.sender,
                 address(this),
-                rewardTokenIds,
+                tokenIds,
                 amounts
             );
 
@@ -295,7 +339,7 @@ contract FuulProject is
             currency,
             campaignId,
             tokenType,
-            rewardTokenIds,
+            tokenIds,
             tokenAmounts
         );
     }
@@ -307,10 +351,6 @@ contract FuulProject is
     function getBudgetCooldownPeriod(
         uint256 deactivatedAt
     ) public view returns (uint256) {
-        require(
-            deactivatedAt > 0,
-            "Campaign is active. Please deactivate it first"
-        );
         return deactivatedAt + fuulManagerInstance().campaignBudgetCooldown();
     }
 
@@ -318,9 +358,11 @@ contract FuulProject is
         uint256 campaignId,
         uint256 amount
     ) external onlyRole(DEFAULT_ADMIN_ROLE) whenFundsNotFreezed nonReentrant {
-        require(_campaignExists(campaignId), "Campaign does not exist");
-
         Campaign storage campaign = campaigns[campaignId];
+
+        if (campaign.deactivatedAt == 0) {
+            revert CampaignNotInactive(campaignId);
+        }
 
         address currency = campaign.currency;
 
@@ -328,28 +370,47 @@ contract FuulProject is
             currency
         );
 
-        require(
-            tokenType == IFuulManager.TokenType.NATIVE ||
-                tokenType == IFuulManager.TokenType.ERC_20,
-            "Currency is not a fungible token"
+        // Commented to optimize contract size
+
+        // require(
+        //     tokenType == IFuulManager.TokenType.NATIVE ||
+        //         tokenType == IFuulManager.TokenType.ERC_20,
+        //     "Currency is not a fungible token"
+        // );
+        uint256 cooldownPeriod = getBudgetCooldownPeriod(
+            campaign.deactivatedAt
         );
 
-        require(
-            block.timestamp > getBudgetCooldownPeriod(campaign.deactivatedAt),
-            "Cooldown period not finished"
-        );
+        if (block.timestamp < cooldownPeriod) {
+            revert CooldownPeriodNotFinished({
+                now: block.timestamp,
+                required: cooldownPeriod
+            });
+        }
 
         // Update campaign budget - By underflow it indirectly checks that amount <= campaign.currentBudget
         campaign.currentBudget -= amount;
 
         if (tokenType == IFuulManager.TokenType.NATIVE) {
-            uint256 balance = address(this).balance;
-            require(amount <= balance, "Amount exceeds balance");
+            // Commented to optimize contract size
+            // uint256 balance = address(this).balance;
+
+            // if (amount > balance)
+            //     revert InsufficientBalance({
+            //         available: balance,
+            //         required: amount
+            //     });
 
             payable(msg.sender).sendValue(amount);
         } else if (tokenType == IFuulManager.TokenType.ERC_20) {
-            uint256 balance = IERC20(currency).balanceOf(address(this));
-            require(amount <= balance, "Amount exceeds balance");
+            // Commented to optimize contract size
+
+            // uint256 balance = IERC20(currency).balanceOf(address(this));
+            // if (amount > balance)
+            //     revert InsufficientBalance({
+            //         available: balance,
+            //         required: amount
+            //     });
             IERC20(currency).safeTransfer(msg.sender, amount);
         }
 
@@ -366,17 +427,25 @@ contract FuulProject is
 
     function removeNFTBudget(
         uint256 campaignId,
-        uint256[] memory rewardTokenIds,
+        uint256[] memory tokenIds,
         uint256[] memory amounts
     ) external onlyRole(DEFAULT_ADMIN_ROLE) whenFundsNotFreezed nonReentrant {
-        require(_campaignExists(campaignId), "Campaign does not exist");
-
         Campaign storage campaign = campaigns[campaignId];
 
-        require(
-            block.timestamp > getBudgetCooldownPeriod(campaign.deactivatedAt),
-            "Cooldown period not finished"
+        if (campaign.deactivatedAt == 0) {
+            revert CampaignNotInactive(campaignId);
+        }
+
+        uint256 cooldownPeriod = getBudgetCooldownPeriod(
+            campaign.deactivatedAt
         );
+
+        if (block.timestamp < cooldownPeriod) {
+            revert CooldownPeriodNotFinished({
+                now: block.timestamp,
+                required: cooldownPeriod
+            });
+        }
 
         address currency = campaign.currency;
 
@@ -384,31 +453,33 @@ contract FuulProject is
             currency
         );
 
-        require(
-            tokenType == IFuulManager.TokenType.ERC_721 ||
-                tokenType == IFuulManager.TokenType.ERC_1155,
-            "Currency is not an NFT token"
-        );
+        // Commented to optimize contract size
+
+        // require(
+        //     tokenType == IFuulManager.TokenType.ERC_721 ||
+        //         tokenType == IFuulManager.TokenType.ERC_1155,
+        //     "Currency is not an NFT token"
+        // );
 
         uint256 removeAmount;
 
         if (tokenType == IFuulManager.TokenType.ERC_721) {
-            for (uint256 i = 0; i < rewardTokenIds.length; i++) {
+            for (uint256 i = 0; i < tokenIds.length; i++) {
                 _transferERC721Tokens(
                     currency,
                     address(this),
                     msg.sender,
-                    rewardTokenIds[i]
+                    tokenIds[i]
                 );
             }
 
-            removeAmount = rewardTokenIds.length;
+            removeAmount = tokenIds.length;
         } else if (tokenType == IFuulManager.TokenType.ERC_1155) {
             _transferERC1155Tokens(
                 currency,
                 address(this),
                 msg.sender,
-                rewardTokenIds,
+                tokenIds,
                 amounts
             );
 
@@ -424,21 +495,14 @@ contract FuulProject is
             currency,
             campaignId,
             tokenType,
-            rewardTokenIds,
+            tokenIds,
             amounts
         );
     }
 
     function claimFromCampaign(
         IFuulManager.ClaimVoucher calldata voucher
-    ) external returns (uint256 amount) {
-        require(
-            msg.sender == fuulManagerAddress(),
-            "Only Fuul manager can claim"
-        );
-
-        require(_campaignExists(voucher.campaignId), "Campaign does not exist");
-
+    ) external onlyFuulManager returns (uint256 amount) {
         Campaign storage campaign = campaigns[voucher.campaignId];
 
         uint256 voucherAmount = voucher.amount;
@@ -449,25 +513,20 @@ contract FuulProject is
         if (voucher.tokenType == IFuulManager.TokenType.NATIVE) {
             tokenAmount = voucherAmount;
 
-            require(address(this).balance > 0, "Contract has no balance");
             payable(voucher.account).sendValue(voucherAmount);
         } else if (voucher.tokenType == IFuulManager.TokenType.ERC_20) {
             tokenAmount = voucherAmount;
 
-            require(
-                IERC20(currency).balanceOf(address(this)) > 0,
-                "Contract has no balance"
-            );
             IERC20(currency).safeTransfer(voucher.account, voucherAmount);
         } else if (voucher.tokenType == IFuulManager.TokenType.ERC_721) {
-            tokenAmount = voucher.rewardTokenIds.length;
+            tokenAmount = voucher.tokenIds.length;
 
-            for (uint256 i = 0; i < voucher.rewardTokenIds.length; i++) {
+            for (uint256 i = 0; i < voucher.tokenIds.length; i++) {
                 _transferERC721Tokens(
                     currency,
                     address(this),
                     voucher.account,
-                    voucher.rewardTokenIds[i]
+                    voucher.tokenIds[i]
                 );
             }
         } else if (voucher.tokenType == IFuulManager.TokenType.ERC_1155) {
@@ -477,7 +536,7 @@ contract FuulProject is
                 currency,
                 address(this),
                 voucher.account,
-                voucher.rewardTokenIds,
+                voucher.tokenIds,
                 voucher.amounts
             );
         }
@@ -492,7 +551,7 @@ contract FuulProject is
             voucher.account,
             currency,
             tokenAmount,
-            voucher.rewardTokenIds,
+            voucher.tokenIds,
             voucher.amounts
         );
 
@@ -506,55 +565,44 @@ contract FuulProject is
     function emergencyWithdrawFungibleTokens(
         address to,
         address currency
-    ) external {
-        require(
-            msg.sender == fuulManagerAddress(),
-            "Only Fuul manager can withdraw"
-        );
-
+    ) external onlyFuulManager {
         if (currency == address(0)) {
-            uint256 balance = address(this).balance;
-            require(balance > 0, "Contract has no balance");
+            // uint256 balance = address(this).balance;
+            // require(balance > 0, "Contract has no balance");
 
-            payable(msg.sender).sendValue(balance);
+            payable(msg.sender).sendValue(address(this).balance);
         } else {
-            uint256 balance = IERC20(currency).balanceOf(address(this));
+            // uint256 balance = IERC20(currency).balanceOf(address(this));
 
-            require(balance > 0, "Contract has no balance");
+            // require(balance > 0, "Contract has no balance");
 
-            IERC20(currency).safeTransfer(to, balance);
+            IERC20(currency).safeTransfer(
+                to,
+                IERC20(currency).balanceOf(address(this))
+            );
         }
     }
 
     function emergencyWithdrawNFTTokens(
         address to,
         address currency,
-        uint256[] memory rewardTokenIds,
+        uint256[] memory tokenIds,
         uint256[] memory amounts
-    ) external {
-        require(
-            msg.sender == fuulManagerAddress(),
-            "Only Fuul manager can withdraw"
-        );
+    ) external onlyFuulManager {
         IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
             currency
         );
 
         if (tokenType == IFuulManager.TokenType.ERC_721) {
-            for (uint256 i = 0; i < rewardTokenIds.length; i++) {
-                _transferERC721Tokens(
-                    currency,
-                    address(this),
-                    to,
-                    rewardTokenIds[i]
-                );
+            for (uint256 i = 0; i < tokenIds.length; i++) {
+                _transferERC721Tokens(currency, address(this), to, tokenIds[i]);
             }
         } else if (tokenType == IFuulManager.TokenType.ERC_1155) {
             _transferERC1155Tokens(
                 currency,
                 address(this),
                 to,
-                rewardTokenIds,
+                tokenIds,
                 amounts
             );
         }
@@ -570,7 +618,9 @@ contract FuulProject is
         address receiverAddress,
         uint256 tokenId
     ) internal {
-        require(tokenAddress != address(0), "No zero address");
+        if (tokenAddress == address(0)) {
+            revert ZeroAddress();
+        }
 
         // Transfer from does not allow to send more funds than balance
         IERC721(tokenAddress).safeTransferFrom(
@@ -587,8 +637,9 @@ contract FuulProject is
         uint256[] memory tokenIds,
         uint256[] memory amounts
     ) internal {
-        require(tokenAddress != address(0), "No zero address");
-
+        if (tokenAddress == address(0)) {
+            revert ZeroAddress();
+        }
         // Transfer from does not allow to send more funds than balance
         IERC1155(tokenAddress).safeBatchTransferFrom(
             senderAddress,
@@ -606,11 +657,14 @@ contract FuulProject is
     function setProjectEventSigner(
         address _projectEventSigner
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(
-            _projectEventSigner != projectEventSigner,
-            "Address cannot be the same as current"
-        );
+        // Commented to optimize contract size
+
+        // if (_projectEventSigner == projectEventSigner) {
+        //     revert SameValue(_projectEventSigner);
+        // }
+
         projectEventSigner = _projectEventSigner;
+        emit EventSignerUpdated(_projectEventSigner);
     }
 
     function _getSumFromArray(

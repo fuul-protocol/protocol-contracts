@@ -13,6 +13,8 @@ interface IFuulProject {
 
     event CampaignMetadataUpdated(uint256 campaignId, string campaignURI);
 
+    event EventSignerUpdated(address newSigner);
+
     event CampaignCreated(
         address indexed account,
         address currency,
@@ -52,12 +54,29 @@ interface IFuulProject {
     );
 
     /*╔═════════════════════════════╗
+      ║           ERRORS            ║
+      ╚═════════════════════════════╝*/
+
+    error Unauthorized(address sender, address requiredSender);
+    error ManagerIsPaused();
+    error CampaignNotExists(uint256 campaignId);
+    error EmptyCampaignURI(string campaignURI);
+    error TokenCurrencyNotAccepted(address tokenAddress);
+
+    error CampaignNotInactive(uint256 campaignId);
+    error CampaignNotActive(uint256 campaignId);
+    // error InsufficientBalance(uint256 available, uint256 required);
+    error IncorrectBalance(uint256 amount);
+    error CooldownPeriodNotFinished(uint256 now, uint256 required);
+    error ZeroAddress();
+
+    // error SameValue(address value);
+
+    /*╔═════════════════════════════╗
       ║       PUBLIC VARIABLES      ║
       ╚═════════════════════════════╝*/
 
     function projectEventSigner() external view returns (address);
-
-    // Opt out signature
 
     function setProjectEventSigner(address _signer) external;
 
@@ -66,11 +85,6 @@ interface IFuulProject {
     function campaigns(
         uint256 tokenId
     ) external view returns (uint256, uint256, address, uint256, string memory);
-
-    function amountClaimed(
-        address user,
-        address currency
-    ) external view returns (uint256 amount);
 
     /*╔═════════════════════════════╗
       ║     FROM OTHER CONTRACTS    ║
@@ -91,8 +105,6 @@ interface IFuulProject {
     function reactivateCampaign(uint256 tokenId) external;
 
     function deactivateCampaign(uint256 tokenId) external;
-
-    function campaignURI(uint256 tokenId) external view returns (string memory);
 
     function setCampaignURI(uint256 _tokenId, string memory _tokenURI) external;
 
