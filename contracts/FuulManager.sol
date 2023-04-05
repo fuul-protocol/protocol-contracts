@@ -163,22 +163,26 @@ contract FuulManager is
         currency.claimLimitPerCooldown = limit;
     }
 
-    function setCurrencyTokenType(
-        address tokenAddress,
-        TokenType tokenType
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        CurrencyToken storage currency = currencyTokens[tokenAddress];
+    // Commenting this function
+    // The only case it will be used if there was a mistake when adding the token.
+    // In that case the token could be removed and readded
 
-        if (currency.claimLimitPerCooldown == 0) {
-            revert TokenCurrencyNotAccepted(tokenAddress);
-        }
+    // function setCurrencyTokenType(
+    //     address tokenAddress,
+    //     TokenType tokenType
+    // ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    //     CurrencyToken storage currency = currencyTokens[tokenAddress];
 
-        if (tokenType == currency.tokenType) {
-            revert InvalidTokenTypeArgument(tokenType);
-        }
+    //     if (currency.claimLimitPerCooldown == 0) {
+    //         revert TokenCurrencyNotAccepted(tokenAddress);
+    //     }
 
-        currency.tokenType = tokenType;
-    }
+    //     if (tokenType == currency.tokenType) {
+    //         revert InvalidTokenTypeArgument(tokenType);
+    //     }
+
+    //     currency.tokenType = tokenType;
+    // }
 
     /*╔═════════════════════════════╗
       ║            PAUSE            ║

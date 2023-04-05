@@ -102,10 +102,10 @@ interface IFuulManager {
         uint256 limit
     ) external;
 
-    function setCurrencyTokenType(
-        address tokenAddress,
-        TokenType tokenType
-    ) external;
+    // function setCurrencyTokenType(
+    //     address tokenAddress,
+    //     TokenType tokenType
+    // ) external;
 
     /*╔═════════════════════════════╗
       ║            PAUSE            ║
