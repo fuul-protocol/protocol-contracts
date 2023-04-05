@@ -38,6 +38,7 @@ contract FuulProject is
         address currency;
         uint256 deactivatedAt;
         string campaignURI;
+        IFuulManager.TokenType tokenType;
     }
 
     /*╔═════════════════════════════╗
@@ -46,8 +47,10 @@ contract FuulProject is
 
     Counters.Counter private _campaignIdTracker;
 
+    bytes32 public constant EVENTS_SIGNER_ROLE =
+        keccak256("EVENTS_SIGNER_ROLE");
+
     address public fuulFactory;
-    address public projectEventSigner;
 
     mapping(uint256 => Campaign) public campaigns; //  campaignId => Campaign
 
@@ -96,9 +99,9 @@ contract FuulProject is
     ) external {
         require(fuulFactory == address(0), "FuulV1: FORBIDDEN");
         fuulFactory = msg.sender;
-        projectEventSigner = _projectEventSigner;
 
         _setupRole(DEFAULT_ADMIN_ROLE, projectAdmin);
+        _setupRole(EVENTS_SIGNER_ROLE, _projectEventSigner);
     }
 
     /*╔═════════════════════════════╗
@@ -136,20 +139,25 @@ contract FuulProject is
         uint256 campaignId = campaignsCreated() + 1;
         _campaignIdTracker.increment();
 
+        IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
+            currency
+        );
+
         // Create campaign object
         campaigns[campaignId] = Campaign({
             totalDeposited: 0,
             currentBudget: 0,
             currency: currency,
             deactivatedAt: 0,
-            campaignURI: _campaignURI
+            campaignURI: _campaignURI,
+            tokenType: tokenType
         });
 
         emit CampaignCreated(
             msg.sender,
             currency,
             campaignId,
-            fuulManagerInstance().getTokenType(currency),
+            tokenType,
             _campaignURI
         );
     }
@@ -221,9 +229,7 @@ contract FuulProject is
 
         address currency = campaign.currency;
 
-        IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
-            currency
-        );
+        IFuulManager.TokenType tokenType = campaign.tokenType;
 
         if (campaign.deactivatedAt > 0) {
             revert CampaignNotActive(campaignId);
@@ -285,9 +291,7 @@ contract FuulProject is
         Campaign storage campaign = campaigns[campaignId];
         address currency = campaign.currency;
 
-        IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
-            currency
-        );
+        IFuulManager.TokenType tokenType = campaign.tokenType;
 
         if (campaign.deactivatedAt > 0) {
             revert CampaignNotActive(campaignId);
@@ -366,9 +370,7 @@ contract FuulProject is
 
         address currency = campaign.currency;
 
-        IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
-            currency
-        );
+        IFuulManager.TokenType tokenType = campaign.tokenType;
 
         // Commented to optimize contract size
 
@@ -449,9 +451,7 @@ contract FuulProject is
 
         address currency = campaign.currency;
 
-        IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
-            currency
-        );
+        IFuulManager.TokenType tokenType = campaign.tokenType;
 
         // Commented to optimize contract size
 
@@ -570,7 +570,7 @@ contract FuulProject is
             // uint256 balance = address(this).balance;
             // require(balance > 0, "Contract has no balance");
 
-            payable(msg.sender).sendValue(address(this).balance);
+            payable(to).sendValue(address(this).balance);
         } else {
             // uint256 balance = IERC20(currency).balanceOf(address(this));
 
@@ -653,19 +653,6 @@ contract FuulProject is
     /*╔═════════════════════════════╗
       ║            OTHER            ║
       ╚═════════════════════════════╝*/
-
-    function setProjectEventSigner(
-        address _projectEventSigner
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        // Commented to optimize contract size
-
-        // if (_projectEventSigner == projectEventSigner) {
-        //     revert SameValue(_projectEventSigner);
-        // }
-
-        projectEventSigner = _projectEventSigner;
-        emit EventSignerUpdated(_projectEventSigner);
-    }
 
     function _getSumFromArray(
         uint256[] memory amounts

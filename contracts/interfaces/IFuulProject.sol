@@ -13,8 +13,6 @@ interface IFuulProject {
 
     event CampaignMetadataUpdated(uint256 campaignId, string campaignURI);
 
-    event EventSignerUpdated(address newSigner);
-
     event CampaignCreated(
         address indexed account,
         address currency,
@@ -76,15 +74,21 @@ interface IFuulProject {
       ║       PUBLIC VARIABLES      ║
       ╚═════════════════════════════╝*/
 
-    function projectEventSigner() external view returns (address);
-
-    function setProjectEventSigner(address _signer) external;
-
     function fuulFactory() external view returns (address);
 
     function campaigns(
         uint256 tokenId
-    ) external view returns (uint256, uint256, address, uint256, string memory);
+    )
+        external
+        view
+        returns (
+            uint256,
+            uint256,
+            address,
+            uint256,
+            string memory,
+            IFuulManager.TokenType tokenType
+        );
 
     /*╔═════════════════════════════╗
       ║     FROM OTHER CONTRACTS    ║
