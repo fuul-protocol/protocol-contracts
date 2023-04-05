@@ -510,7 +510,8 @@ contract FuulProject is
     }
 
     function claimFromCampaign(
-        IFuulManager.ClaimVoucher calldata voucher
+        IFuulManager.ClaimVoucher calldata voucher,
+        IFuulManager.TokenType tokenType
     ) external onlyFuulManager returns (uint256 amount) {
         Campaign storage campaign = campaigns[voucher.campaignId];
 
@@ -519,15 +520,15 @@ contract FuulProject is
 
         uint256 tokenAmount;
 
-        if (voucher.tokenType == IFuulManager.TokenType.NATIVE) {
+        if (tokenType == IFuulManager.TokenType.NATIVE) {
             tokenAmount = voucherAmount;
 
             payable(voucher.account).sendValue(voucherAmount);
-        } else if (voucher.tokenType == IFuulManager.TokenType.ERC_20) {
+        } else if (tokenType == IFuulManager.TokenType.ERC_20) {
             tokenAmount = voucherAmount;
 
             IERC20(currency).safeTransfer(voucher.account, voucherAmount);
-        } else if (voucher.tokenType == IFuulManager.TokenType.ERC_721) {
+        } else if (tokenType == IFuulManager.TokenType.ERC_721) {
             tokenAmount = voucher.tokenIds.length;
 
             for (uint256 i = 0; i < voucher.tokenIds.length; i++) {
@@ -538,7 +539,7 @@ contract FuulProject is
                     voucher.tokenIds[i]
                 );
             }
-        } else if (voucher.tokenType == IFuulManager.TokenType.ERC_1155) {
+        } else if (tokenType == IFuulManager.TokenType.ERC_1155) {
             tokenAmount = _getSumFromArray(voucher.amounts);
 
             _transferERC1155Tokens(
@@ -564,7 +565,7 @@ contract FuulProject is
             voucher.amounts
         );
 
-        return amount;
+        return tokenAmount;
     }
 
     /*╔═════════════════════════════╗

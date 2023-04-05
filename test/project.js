@@ -389,7 +389,7 @@
 
 //     this.campaignId = 1;
 
-//     this.rewardTokenIds = [1, 2, 3, 4];
+//     this.tokenIds = [1, 2, 3, 4];
 
 //     // Approve
 //     await this.nft721.setApprovalForAll(this.fuulProject.address, true);
@@ -397,16 +397,16 @@
 
 //   it("Should deposit correctly & set correct values", async function () {
 //     await expect(
-//       this.fuulProject.depositNFTToken(this.campaignId, this.rewardTokenIds, [])
+//       this.fuulProject.depositNFTToken(this.campaignId, this.tokenIds, [])
 //     )
 //       .to.emit(this.fuulProject, "BudgetDeposited")
 //       .withArgs(
 //         this.user1.address,
-//         this.rewardTokenIds.length,
+//         this.tokenIds.length,
 //         this.nft721.address,
 //         this.campaignId,
 //         this.tokenType,
-//         this.rewardTokenIds,
+//         this.tokenIds,
 //         []
 //       );
 
@@ -414,20 +414,20 @@
 
 //     const campaign = await this.fuulProject.campaigns(this.campaignId);
 
-//     expect(campaign.totalDeposited).to.equal(this.rewardTokenIds.length);
-//     expect(campaign.currentBudget).to.equal(this.rewardTokenIds.length);
+//     expect(campaign.totalDeposited).to.equal(this.tokenIds.length);
+//     expect(campaign.currentBudget).to.equal(this.tokenIds.length);
 
 //     // Balance
 //     const balance = await this.nft721.balanceOf(this.fuulProject.address);
 
-//     await expect(balance).to.equal(this.rewardTokenIds.length);
+//     await expect(balance).to.equal(this.tokenIds.length);
 //   });
 
 //   it("Should remove correctly & set correct values", async function () {
 //     // Deposit
 //     await this.fuulProject.depositNFTToken(
 //       this.campaignId,
-//       this.rewardTokenIds,
+//       this.tokenIds,
 //       []
 //     );
 
@@ -444,7 +444,7 @@
 //     // Remove
 //     await this.fuulProject.removeNFTBudget(
 //       this.campaignId,
-//       this.rewardTokenIds,
+//       this.tokenIds,
 //       []
 //     );
 
@@ -452,7 +452,7 @@
 
 //     const campaign = await this.fuulProject.campaigns(this.campaignId);
 
-//     expect(campaign.totalDeposited).to.equal(this.rewardTokenIds.length);
+//     expect(campaign.totalDeposited).to.equal(this.tokenIds.length);
 //     expect(campaign.currentBudget).to.equal(0);
 
 //     // Balance
@@ -465,7 +465,7 @@
 //     const campaignId = 10;
 
 //     await expect(
-//       this.fuulProject.depositNFTToken(campaignId, this.rewardTokenIds, [])
+//       this.fuulProject.depositNFTToken(campaignId, this.tokenIds, [])
 //     )
 //       .to.be.revertedWithCustomError(this.fuulProject, "CampaignNotExists")
 //       .withArgs(campaignId);
@@ -475,7 +475,7 @@
 //     // Remove before deactivating
 
 //     await expect(
-//       this.fuulProject.removeNFTBudget(this.campaignId, this.rewardTokenIds, [])
+//       this.fuulProject.removeNFTBudget(this.campaignId, this.tokenIds, [])
 //     )
 //       .to.be.revertedWithCustomError(this.fuulProject, "CampaignNotInactive")
 //       .withArgs(this.campaignId);
@@ -484,7 +484,7 @@
 //     await this.fuulProject.deactivateCampaign(this.campaignId);
 
 //     await expect(
-//       this.fuulProject.removeNFTBudget(this.campaignId, this.rewardTokenIds, [])
+//       this.fuulProject.removeNFTBudget(this.campaignId, this.tokenIds, [])
 //     ).to.be.revertedWithCustomError(
 //       this.fuulProject,
 //       "CooldownPeriodNotFinished"
@@ -499,13 +499,13 @@
 //     await expect(
 //       this.fuulProject
 //         .connect(this.user2)
-//         .depositNFTToken(this.campaignId, this.rewardTokenIds, [])
+//         .depositNFTToken(this.campaignId, this.tokenIds, [])
 //     ).to.be.revertedWith(error);
 
 //     await expect(
 //       this.fuulProject
 //         .connect(this.user2)
-//         .removeNFTBudget(this.campaignId, this.rewardTokenIds, [])
+//         .removeNFTBudget(this.campaignId, this.tokenIds, [])
 //     ).to.be.revertedWith(error);
 //   });
 
@@ -513,11 +513,11 @@
 //     await this.fuulManager.pauseAll();
 
 //     await expect(
-//       this.fuulProject.depositNFTToken(this.campaignId, this.rewardTokenIds, [])
+//       this.fuulProject.depositNFTToken(this.campaignId, this.tokenIds, [])
 //     ).to.be.revertedWithCustomError(this.fuulProject, "ManagerIsPaused");
 
 //     await expect(
-//       this.fuulProject.removeNFTBudget(this.campaignId, this.rewardTokenIds, [])
+//       this.fuulProject.removeNFTBudget(this.campaignId, this.tokenIds, [])
 //     ).to.be.revertedWithCustomError(this.fuulProject, "ManagerIsPaused");
 //   });
 // });
@@ -549,7 +549,7 @@
 
 //     this.campaignId = 1;
 
-//     this.rewardTokenIds = [1, 2, 3, 4];
+//     this.tokenIds = [1, 2, 3, 4];
 
 //     this.amounts = [1, 2, 1, 2];
 
@@ -565,7 +565,7 @@
 //     await expect(
 //       this.fuulProject.depositNFTToken(
 //         this.campaignId,
-//         this.rewardTokenIds,
+//         this.tokenIds,
 //         this.amounts
 //       )
 //     )
@@ -576,7 +576,7 @@
 //         this.nft1155.address,
 //         this.campaignId,
 //         this.tokenType,
-//         this.rewardTokenIds,
+//         this.tokenIds,
 //         this.amounts
 //       );
 
@@ -588,8 +588,8 @@
 //     expect(campaign.currentBudget).to.equal(this.tokenAmount);
 
 //     // Balance
-//     for (i = 0; i < this.rewardTokenIds.length; i++) {
-//       let tokenId = this.rewardTokenIds[i];
+//     for (i = 0; i < this.tokenIds.length; i++) {
+//       let tokenId = this.tokenIds[i];
 //       let amount = this.amounts[i];
 
 //       expect(
@@ -602,7 +602,7 @@
 //     // Deposit
 //     await this.fuulProject.depositNFTToken(
 //       this.campaignId,
-//       this.rewardTokenIds,
+//       this.tokenIds,
 //       this.amounts
 //     );
 
@@ -619,7 +619,7 @@
 //     // Remove
 //     await this.fuulProject.removeNFTBudget(
 //       this.campaignId,
-//       this.rewardTokenIds,
+//       this.tokenIds,
 //       this.amounts
 //     );
 
@@ -631,8 +631,8 @@
 //     expect(campaign.currentBudget).to.equal(0);
 
 //     // Balance
-//     for (i = 0; i < this.rewardTokenIds.length; i++) {
-//       let tokenId = this.rewardTokenIds[i];
+//     for (i = 0; i < this.tokenIds.length; i++) {
+//       let tokenId = this.tokenIds[i];
 
 //       expect(
 //         await this.nft1155.balanceOf(this.fuulProject.address, tokenId)

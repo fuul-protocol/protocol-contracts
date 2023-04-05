@@ -219,7 +219,7 @@ contract FuulManager is
     function claim(
         ClaimVoucher[] calldata vouchers,
         bytes[] calldata signatures
-    ) internal whenNotPaused nonReentrant {
+    ) external whenNotPaused nonReentrant {
         uint256 vouchersLength = vouchers.length;
         uint256 signaturesLength = signatures.length;
 
@@ -265,11 +265,11 @@ contract FuulManager is
             revert ClaimingFreqNotFinished();
         }
 
-        CurrencyToken memory currencyInfo = currencyTokens[currency];
+        CurrencyToken storage currencyInfo = currencyTokens[currency];
 
         // Send
         uint256 tokenAmount = IFuulProject(voucher.projectAddress)
-            .claimFromCampaign(voucher);
+            .claimFromCampaign(voucher, getTokenType(currency));
 
         // Limit
 
@@ -419,11 +419,14 @@ contract FuulManager is
                 keccak256(
                     abi.encode(
                         keccak256(
-                            "ClaimVoucher(string voucherId,uint256 campaignId,address account,uint256[] tokenIds,uint256[] amounts,uint256 deadline)"
+                            "ClaimVoucher(string voucherId,address projectAddress,uint256 campaignId,address currency,address account,uint256 amount,uint256[] tokenIds,uint256[] amounts,uint256 deadline)"
                         ),
                         keccak256(bytes(voucher.voucherId)),
+                        voucher.projectAddress,
                         voucher.campaignId,
+                        voucher.currency,
                         voucher.account,
+                        voucher.amount,
                         keccak256(abi.encodePacked(voucher.tokenIds)),
                         keccak256(abi.encodePacked(voucher.amounts)),
                         voucher.deadline

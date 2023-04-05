@@ -17,7 +17,6 @@ interface IFuulManager {
         address projectAddress;
         uint256 campaignId;
         address currency;
-        TokenType tokenType;
         address account;
         uint256 amount;
         uint256[] tokenIds; // used for ERC721 and ERC1155

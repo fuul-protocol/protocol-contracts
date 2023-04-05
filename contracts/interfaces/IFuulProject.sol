@@ -151,7 +151,8 @@ interface IFuulProject {
       ╚═════════════════════════════╝*/
 
     function claimFromCampaign(
-        IFuulManager.ClaimVoucher calldata voucher
+        IFuulManager.ClaimVoucher calldata voucher,
+        IFuulManager.TokenType tokenType
     ) external returns (uint256);
 
     /*╔═════════════════════════════╗
