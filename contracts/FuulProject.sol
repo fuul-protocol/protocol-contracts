@@ -38,7 +38,6 @@ contract FuulProject is
         address currency;
         uint256 deactivatedAt;
         string campaignURI;
-        IFuulManager.TokenType tokenType;
     }
 
     /*╔═════════════════════════════╗
@@ -139,25 +138,20 @@ contract FuulProject is
         uint256 campaignId = campaignsCreated() + 1;
         _campaignIdTracker.increment();
 
-        IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
-            currency
-        );
-
         // Create campaign object
         campaigns[campaignId] = Campaign({
             totalDeposited: 0,
             currentBudget: 0,
             currency: currency,
             deactivatedAt: 0,
-            campaignURI: _campaignURI,
-            tokenType: tokenType
+            campaignURI: _campaignURI
         });
 
         emit CampaignCreated(
             msg.sender,
             currency,
             campaignId,
-            tokenType,
+            fuulManagerInstance().getTokenType(currency),
             _campaignURI
         );
     }
@@ -229,7 +223,9 @@ contract FuulProject is
 
         address currency = campaign.currency;
 
-        IFuulManager.TokenType tokenType = campaign.tokenType;
+        IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
+            currency
+        );
 
         if (campaign.deactivatedAt > 0) {
             revert CampaignNotActive(campaignId);
@@ -291,7 +287,9 @@ contract FuulProject is
         Campaign storage campaign = campaigns[campaignId];
         address currency = campaign.currency;
 
-        IFuulManager.TokenType tokenType = campaign.tokenType;
+        IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
+            currency
+        );
 
         if (campaign.deactivatedAt > 0) {
             revert CampaignNotActive(campaignId);
@@ -370,7 +368,9 @@ contract FuulProject is
 
         address currency = campaign.currency;
 
-        IFuulManager.TokenType tokenType = campaign.tokenType;
+        IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
+            currency
+        );
 
         // Commented to optimize contract size
 
@@ -451,7 +451,9 @@ contract FuulProject is
 
         address currency = campaign.currency;
 
-        IFuulManager.TokenType tokenType = campaign.tokenType;
+        IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
+            currency
+        );
 
         // Commented to optimize contract size
 
