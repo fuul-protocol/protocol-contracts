@@ -42,7 +42,6 @@ interface IFuulProject {
     );
 
     event Claimed(
-        string voucherId,
         uint256 campaignTokenId,
         address indexed account,
         address currency,
@@ -89,6 +88,11 @@ interface IFuulProject {
             string memory,
             IFuulManager.TokenType
         );
+
+    function usersEarnings(
+        address account,
+        uint256 campaignId
+    ) external view returns (uint256, uint256);
 
     /*╔═════════════════════════════╗
       ║     FROM OTHER CONTRACTS    ║
@@ -147,13 +151,25 @@ interface IFuulProject {
     ) external;
 
     /*╔═════════════════════════════╗
+      ║          ATTRIBUTE          ║
+      ╚═════════════════════════════╝*/
+
+    function attributeTransactions(
+        uint256[] calldata campaignIds,
+        address[] calldata receivers,
+        uint256[] calldata amounts
+    ) external;
+
+    /*╔═════════════════════════════╗
       ║            CLAIM            ║
       ╚═════════════════════════════╝*/
 
     function claimFromCampaign(
-        IFuulManager.ClaimVoucher calldata voucher,
-        IFuulManager.TokenType tokenType
-    ) external returns (uint256);
+        uint256 campaignId,
+        address receiver,
+        uint256[] memory tokenIds,
+        uint256[] memory amounts
+    ) external returns (uint256, address);
 
     /*╔═════════════════════════════╗
       ║          EMERGENCY          ║

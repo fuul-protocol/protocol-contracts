@@ -31,24 +31,14 @@ contract FuulManager is
         uint256 claimCooldownPeriodStarted;
     }
 
-    struct FuulProjectFungibleCurrencies {
-        address deployedAddress;
-        address[] currencies;
-    }
-
-    bytes32 public constant SIGNER_ROLE = keccak256("SIGNER_ROLE");
+    bytes32 public constant ATTRIBUTOR_ROLE = keccak256("ATTRIBUTOR_ROLE");
 
     uint256 public campaignBudgetCooldown = 30 days;
     uint256 public claimCooldown = 1 days;
-    uint256 public claimFrequency = 1 days;
 
     mapping(address => mapping(address => uint256)) public usersClaims; // Address => currency => total claimed
 
-    mapping(address => uint256) public usersLastClaimedAt; // Address => timestamp last claimed
-
     mapping(address => CurrencyToken) public currencyTokens;
-
-    mapping(string => bool) public voucherRedeemed;
 
     bytes4 public constant IID_IERC1155 = type(IERC1155).interfaceId;
     bytes4 public constant IID_IERC721 = type(IERC721).interfaceId;
@@ -59,14 +49,14 @@ contract FuulManager is
       ╚═════════════════════════════╝*/
 
     constructor(
-        address _signer,
+        address _attributor,
         address acceptedERC20CurrencyToken,
         uint256 initialTokenLimit,
         uint256 initialZeroTokenLimit
     ) EIP712("FuulManager", "1.0.0") {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
-        _setupRole(SIGNER_ROLE, _signer);
+        _setupRole(ATTRIBUTOR_ROLE, _attributor);
 
         _addCurrencyToken(acceptedERC20CurrencyToken, initialTokenLimit);
         _addCurrencyToken(address(0), initialZeroTokenLimit);
@@ -80,16 +70,6 @@ contract FuulManager is
         uint256 claimCooldownPeriodStarted
     ) public view returns (uint256) {
         return claimCooldownPeriodStarted + claimCooldown;
-    }
-
-    function setClaimFrequency(
-        uint256 _period
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_period == claimFrequency) {
-            revert InvalidUintArgument(_period);
-        }
-
-        claimFrequency = _period;
     }
 
     function setClaimCooldown(
@@ -184,102 +164,81 @@ contract FuulManager is
     }
 
     /*╔═════════════════════════════╗
+      ║       UPDATE BALANCES       ║
+      ╚═════════════════════════════╝*/
+
+    function attributeTransactions(
+        AttributeCheck[] calldata attributeChecks
+    ) external whenNotPaused nonReentrant onlyRole(ATTRIBUTOR_ROLE) {
+        for (uint256 i = 0; i < attributeChecks.length; i++) {
+            AttributeCheck memory attributeCheck = attributeChecks[i];
+
+            IFuulProject(attributeCheck.projectAddress).attributeTransactions(
+                attributeCheck.campaignIds,
+                attributeCheck.receivers,
+                attributeCheck.amounts
+            );
+        }
+    }
+
+    /*╔═════════════════════════════╗
       ║           CLAIM             ║
       ╚═════════════════════════════╝*/
 
     function claim(
-        ClaimVoucher[] calldata vouchers,
-        bytes[] calldata signatures
+        ClaimCheck[] calldata claimChecks
     ) external whenNotPaused nonReentrant {
-        uint256 vouchersLength = vouchers.length;
-        uint256 signaturesLength = signatures.length;
+        for (uint256 i = 0; i < claimChecks.length; i++) {
+            ClaimCheck memory claimCheck = claimChecks[i];
 
-        if (vouchersLength != signaturesLength) {
-            revert UnequalLengths(vouchersLength, signaturesLength);
-        }
+            // Send
+            uint tokenAmount;
+            address currency;
+            (tokenAmount, currency) = IFuulProject(claimCheck.projectAddress)
+                .claimFromCampaign(
+                    claimCheck.campaignId,
+                    msg.sender,
+                    claimCheck.tokenIds,
+                    claimCheck.amounts
+                );
 
-        // Frequency
-        uint256 lastClaimedAt = usersLastClaimedAt[msg.sender];
+            CurrencyToken storage currencyInfo = currencyTokens[currency];
 
-        if (
-            lastClaimedAt > 0 &&
-            lastClaimedAt + claimFrequency > block.timestamp
-        ) {
-            revert ClaimingFreqNotFinished();
-        }
+            // Limit
 
-        for (uint256 i = 0; i < vouchersLength; i++) {
-            _claimFromCampaign(vouchers[i], signatures[i]);
-        }
-
-        usersLastClaimedAt[msg.sender] = block.timestamp;
-    }
-
-    function _claimFromCampaign(
-        ClaimVoucher calldata voucher,
-        bytes calldata signature
-    ) internal {
-        if (!_verify(_hash(voucher), signature)) {
-            revert InvalidSignature();
-        }
-
-        address currency = voucher.currency;
-
-        // Valid voucher
-        if (voucherRedeemed[voucher.voucherId]) {
-            revert ClaimedVoucher(voucher.voucherId);
-        }
-
-        if (voucher.deadline < block.timestamp) {
-            revert VoucherExpired(voucher.deadline, block.timestamp);
-        }
-
-        if (voucher.account != msg.sender) {
-            revert Unauthorized(msg.sender, voucher.account);
-        }
-
-        CurrencyToken storage currencyInfo = currencyTokens[currency];
-
-        // Send
-        uint256 tokenAmount = IFuulProject(voucher.projectAddress)
-            .claimFromCampaign(voucher, getTokenType(currency));
-
-        // Limit
-
-        if (tokenAmount > currencyInfo.claimLimitPerCooldown) {
-            revert OverTheLimit(
-                tokenAmount,
-                currencyInfo.claimLimitPerCooldown
-            );
-        }
-
-        if (
-            currencyInfo.claimCooldownPeriodStarted + claimCooldown >
-            block.timestamp
-        ) {
-            // If cooldown not ended -> check that the limit is not reached and then sum amount to cumulative
-
-            if (
-                currencyInfo.cumulativeClaimPerCooldown + tokenAmount >
-                currencyInfo.claimLimitPerCooldown
-            ) {
+            if (tokenAmount > currencyInfo.claimLimitPerCooldown) {
                 revert OverTheLimit(
-                    currencyInfo.cumulativeClaimPerCooldown + tokenAmount,
+                    tokenAmount,
                     currencyInfo.claimLimitPerCooldown
                 );
             }
 
-            currencyInfo.cumulativeClaimPerCooldown += tokenAmount;
-        } else {
-            // If cooldown ended -> set new values for cumulative and time (amount limit is checked before)
-            currencyInfo.cumulativeClaimPerCooldown = tokenAmount;
-            currencyInfo.claimCooldownPeriodStarted = block.timestamp;
+            if (
+                currencyInfo.claimCooldownPeriodStarted + claimCooldown >
+                block.timestamp
+            ) {
+                // If cooldown not ended -> check that the limit is not reached and then sum amount to cumulative
+
+                if (
+                    currencyInfo.cumulativeClaimPerCooldown + tokenAmount >
+                    currencyInfo.claimLimitPerCooldown
+                ) {
+                    revert OverTheLimit(
+                        currencyInfo.cumulativeClaimPerCooldown + tokenAmount,
+                        currencyInfo.claimLimitPerCooldown
+                    );
+                }
+
+                currencyInfo.cumulativeClaimPerCooldown += tokenAmount;
+            } else {
+                // If cooldown ended -> set new values for cumulative and time (amount limit is checked before)
+                currencyInfo.cumulativeClaimPerCooldown = tokenAmount;
+                currencyInfo.claimCooldownPeriodStarted = block.timestamp;
+            }
+
+            // Update values
+            usersClaims[msg.sender][currency] += tokenAmount;
         }
-
-        // Update values
-        voucherRedeemed[voucher.voucherId] = true;
-
-        usersClaims[msg.sender][currency] += tokenAmount;
     }
 
     /*╔═════════════════════════════╗
@@ -377,40 +336,5 @@ contract FuulManager is
             cumulativeClaimPerCooldown: 0,
             claimCooldownPeriodStarted: block.timestamp
         });
-    }
-
-    /*╔═════════════════════════════╗
-      ║      INTERNAL VOUCHER       ║
-      ╚═════════════════════════════╝*/
-
-    function _hash(
-        ClaimVoucher memory voucher
-    ) internal view returns (bytes32) {
-        return
-            _hashTypedDataV4(
-                keccak256(
-                    abi.encode(
-                        keccak256(
-                            "ClaimVoucher(string voucherId,address projectAddress,uint256 campaignId,address currency,address account,uint256 amount,uint256[] tokenIds,uint256[] amounts,uint256 deadline)"
-                        ),
-                        keccak256(bytes(voucher.voucherId)),
-                        voucher.projectAddress,
-                        voucher.campaignId,
-                        voucher.currency,
-                        voucher.account,
-                        voucher.amount,
-                        keccak256(abi.encodePacked(voucher.tokenIds)),
-                        keccak256(abi.encodePacked(voucher.amounts)),
-                        voucher.deadline
-                    )
-                )
-            );
-    }
-
-    function _verify(
-        bytes32 digest,
-        bytes memory signature
-    ) internal view returns (bool) {
-        return hasRole(SIGNER_ROLE, ECDSA.recover(digest, signature));
     }
 }
