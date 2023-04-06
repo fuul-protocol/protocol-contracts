@@ -57,7 +57,9 @@ interface IFuulManager {
     function usersClaims(
         address user,
         address currency
-    ) external view returns (uint256, uint256);
+    ) external view returns (uint256);
+
+    function usersLastClaimedAt(address user) external view returns (uint256);
 
     /*╔═════════════════════════════╗
       ║       REMOVE VARIABLES      ║

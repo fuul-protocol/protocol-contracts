@@ -36,19 +36,15 @@ contract FuulManager is
         address[] currencies;
     }
 
-    struct UserCurrencyClaim {
-        uint256 totalAmountClaimed;
-        uint256 lastClaimedAt;
-    }
-
     bytes32 public constant SIGNER_ROLE = keccak256("SIGNER_ROLE");
 
     uint256 public campaignBudgetCooldown = 30 days;
     uint256 public claimCooldown = 1 days;
-    uint256 public claimFrequency;
+    uint256 public claimFrequency = 1 days;
 
-    mapping(address => mapping(address => UserCurrencyClaim))
-        public usersClaims; // Address => currency => UserCurrencyClaim
+    mapping(address => mapping(address => uint256)) public usersClaims; // Address => currency => total claimed
+
+    mapping(address => uint256) public usersLastClaimedAt; // Address => timestamp last claimed
 
     mapping(address => CurrencyToken) public currencyTokens;
 
@@ -57,8 +53,6 @@ contract FuulManager is
     bytes4 public constant IID_IERC1155 = type(IERC1155).interfaceId;
     bytes4 public constant IID_IERC721 = type(IERC721).interfaceId;
     bytes4 public constant IID_IERC20 = type(IERC20).interfaceId;
-
-    address public testTokenAddress;
 
     /*╔═════════════════════════════╗
       ║         CONSTRUCTOR         ║
@@ -73,8 +67,6 @@ contract FuulManager is
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
         _setupRole(SIGNER_ROLE, _signer);
-
-        testTokenAddress = acceptedERC20CurrencyToken;
 
         _addCurrencyToken(acceptedERC20CurrencyToken, initialTokenLimit);
         _addCurrencyToken(address(0), initialZeroTokenLimit);
@@ -175,27 +167,6 @@ contract FuulManager is
         currency.claimLimitPerCooldown = limit;
     }
 
-    // Commenting this function
-    // The only case it will be used if there was a mistake when adding the token.
-    // In that case the token could be removed and readded
-
-    // function setCurrencyTokenType(
-    //     address tokenAddress,
-    //     TokenType tokenType
-    // ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-    //     CurrencyToken storage currency = currencyTokens[tokenAddress];
-
-    //     if (currency.claimLimitPerCooldown == 0) {
-    //         revert TokenCurrencyNotAccepted(tokenAddress);
-    //     }
-
-    //     if (tokenType == currency.tokenType) {
-    //         revert InvalidTokenTypeArgument(tokenType);
-    //     }
-
-    //     currency.tokenType = tokenType;
-    // }
-
     /*╔═════════════════════════════╗
       ║            PAUSE            ║
       ╚═════════════════════════════╝*/
@@ -227,9 +198,21 @@ contract FuulManager is
             revert UnequalLengths(vouchersLength, signaturesLength);
         }
 
+        // Frequency
+        uint256 lastClaimedAt = usersLastClaimedAt[msg.sender];
+
+        if (
+            lastClaimedAt > 0 &&
+            lastClaimedAt + claimFrequency > block.timestamp
+        ) {
+            revert ClaimingFreqNotFinished();
+        }
+
         for (uint256 i = 0; i < vouchersLength; i++) {
             _claimFromCampaign(vouchers[i], signatures[i]);
         }
+
+        usersLastClaimedAt[msg.sender] = block.timestamp;
     }
 
     function _claimFromCampaign(
@@ -253,16 +236,6 @@ contract FuulManager is
 
         if (voucher.account != msg.sender) {
             revert Unauthorized(msg.sender, voucher.account);
-        }
-
-        // Frequency
-        UserCurrencyClaim storage userClaim = usersClaims[msg.sender][currency];
-
-        if (
-            userClaim.lastClaimedAt > 0 &&
-            userClaim.lastClaimedAt + claimFrequency > block.timestamp
-        ) {
-            revert ClaimingFreqNotFinished();
         }
 
         CurrencyToken storage currencyInfo = currencyTokens[currency];
@@ -306,8 +279,7 @@ contract FuulManager is
         // Update values
         voucherRedeemed[voucher.voucherId] = true;
 
-        userClaim.lastClaimedAt = block.timestamp;
-        userClaim.totalAmountClaimed += tokenAmount;
+        usersClaims[msg.sender][currency] += tokenAmount;
     }
 
     /*╔═════════════════════════════╗

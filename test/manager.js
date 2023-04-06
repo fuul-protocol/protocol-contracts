@@ -552,6 +552,16 @@ describe("Fuul Manager - Claim", function () {
       projectAddress: this.fuulProject.address,
     };
 
+    this.erc20Voucher = {
+      ...this.voucher,
+      voucherId: "f4c2fabc-ad62-11ed-afa1-0242ac120006",
+      campaignId: this.erc20CampaignId,
+      currency: this.token.address,
+      amount: this.amount,
+      tokenIds: [],
+      amounts: [],
+    };
+
     this.domain = {
       name: "FuulManager",
       version: "1.0.0",
@@ -572,26 +582,16 @@ describe("Fuul Manager - Claim", function () {
         { name: "deadline", type: "uint256" },
       ],
     };
+
+    this.erc20Signature = await this.user1._signTypedData(
+      this.domain,
+      this.types,
+      this.erc20Voucher
+    );
   });
 
   it("Should claim from different campaigns & currencies and set correct values", async function () {
     // Make vouchers and signatures
-
-    const erc20Voucher = {
-      ...this.voucher,
-      voucherId: "f4c2fabc-ad62-11ed-afa1-0242ac120006",
-      campaignId: this.erc20CampaignId,
-      currency: this.token.address,
-      amount: this.amount,
-      tokenIds: [],
-      amounts: [],
-    };
-
-    const erc20Signature = await this.user1._signTypedData(
-      this.domain,
-      this.types,
-      erc20Voucher
-    );
 
     const nativeVoucher = {
       ...this.voucher,
@@ -643,14 +643,14 @@ describe("Fuul Manager - Claim", function () {
 
     const vouchers = [
       nativeVoucher,
-      erc20Voucher,
+      this.erc20Voucher,
       erc721Voucher,
       erc1155Voucher,
     ];
 
     const signatures = [
       nativeSignature,
-      erc20Signature,
+      this.erc20Signature,
       erc721Signature,
       erc1155Signature,
     ];
@@ -746,34 +746,36 @@ describe("Fuul Manager - Claim", function () {
     );
 
     // User claims
-
-    erc20UserClaim = await this.fuulManager.usersClaims(
-      this.user2.address,
-      this.token.address
+    const lastClaimed = await this.fuulManager.usersLastClaimedAt(
+      this.user2.address
     );
-    expect(erc20UserClaim.totalAmountClaimed).to.equal(this.amount);
-    expect(Number(erc20UserClaim.lastClaimedAt)).to.be.greaterThan(0);
 
-    nativeUserClaim = await this.fuulManager.usersClaims(
-      this.user2.address,
-      ethers.constants.AddressZero
-    );
-    expect(nativeUserClaim.totalAmountClaimed).to.equal(this.amount);
-    expect(Number(nativeUserClaim.lastClaimedAt)).to.be.greaterThan(0);
+    expect(Number(lastClaimed)).to.be.greaterThan(0);
 
-    nft721UserClaim = await this.fuulManager.usersClaims(
-      this.user2.address,
-      this.nft721.address
-    );
-    expect(nft721UserClaim.totalAmountClaimed).to.equal(this.tokenIds.length);
-    expect(Number(nft721UserClaim.lastClaimedAt)).to.be.greaterThan(0);
+    expect(
+      await this.fuulManager.usersClaims(this.user2.address, this.token.address)
+    ).to.equal(this.amount);
 
-    nft1155UserClaim = await this.fuulManager.usersClaims(
-      this.user2.address,
-      this.nft1155.address
-    );
-    expect(nft1155UserClaim.totalAmountClaimed).to.equal(this.tokenAmount);
-    expect(Number(nft1155UserClaim.lastClaimedAt)).to.be.greaterThan(0);
+    expect(
+      await this.fuulManager.usersClaims(
+        this.user2.address,
+        ethers.constants.AddressZero
+      )
+    ).to.equal(this.amount);
+
+    expect(
+      await this.fuulManager.usersClaims(
+        this.user2.address,
+        this.nft721.address
+      )
+    ).to.equal(this.tokenIds.length);
+
+    expect(
+      await this.fuulManager.usersClaims(
+        this.user2.address,
+        this.nft1155.address
+      )
+    ).to.equal(this.tokenAmount);
   });
 
   it("Should claim from different projects", async function () {
@@ -877,11 +879,144 @@ describe("Fuul Manager - Claim", function () {
 
     // User claims
 
-    erc20UserClaim = await this.fuulManager.usersClaims(
-      this.user2.address,
-      this.token.address
+    // User claims
+    const lastClaimed = await this.fuulManager.usersLastClaimedAt(
+      this.user2.address
     );
-    expect(erc20UserClaim.totalAmountClaimed).to.equal(balance);
-    expect(Number(erc20UserClaim.lastClaimedAt)).to.be.greaterThan(0);
+
+    expect(Number(lastClaimed)).to.be.greaterThan(0);
+
+    expect(
+      await this.fuulManager.usersClaims(this.user2.address, this.token.address)
+    ).to.equal(balance);
+  });
+
+  it("Should fail to claim with the same voucher id", async function () {
+    const vouchers = [this.erc20Voucher, this.erc20Voucher];
+    const signatures = [this.erc20Signature, this.erc20Signature];
+
+    await expect(
+      this.fuulManager.connect(this.user2).claim(vouchers, signatures)
+    )
+      .to.be.revertedWithCustomError(this.fuulManager, "ClaimedVoucher")
+      .withArgs(this.erc20Voucher.voucherId);
+  });
+
+  // it("Should fail to claim if amount is over the daily limit in two transactions", async function () {
+  //   await this.fuulVault
+  //     .connect(this.user2)
+  //     .claim(this.validVoucher, this.validSignature);
+
+  //   const newAmount =
+  //     ethers.utils.formatEther(this.limitAmount) -
+  //     ethers.utils.formatEther(this.validVoucher.amount) +
+  //     0.1;
+
+  //   const newVoucher = { ...this.validVoucher };
+
+  //   newVoucher.voucherId = "f4c2fabc-ad62-11ed-afa1-0242ac120055";
+  //   newVoucher.amount = ethers.utils.parseEther(newAmount.toString());
+  //   newVoucher.account = this.user3.address;
+
+  //   const newSignature = await this.user1._signTypedData(
+  //     this.domain,
+  //     this.types,
+  //     newVoucher
+  //   );
+
+  //   await expect(
+  //     this.fuulVault.connect(this.user3).claim(newVoucher, newSignature)
+  //   ).to.be.revertedWith(
+  //     "Period limit reached. Call nextClaimPeriodStart(currency) for more info"
+  //   );
+  // });
+
+  // it("Should fail to claim if amount is over the daily limit in one transaction", async function () {
+  //   const overTheLimit = this.limitAmount + 1;
+
+  //   const newVoucher = { ...this.validVoucher };
+
+  //   newVoucher.amount = overTheLimit;
+
+  //   const newSignature = await this.user1._signTypedData(
+  //     this.domain,
+  //     this.types,
+  //     newVoucher
+  //   );
+
+  //   await expect(
+  //     this.fuulVault.connect(this.user2).claim(newVoucher, newSignature)
+  //   ).to.be.revertedWith("Amount is over the limit");
+  // });
+
+  it("Should fail to claim when vouchers and signatures have different lengths", async function () {
+    await expect(
+      this.fuulManager
+        .connect(this.user2)
+        .claim([this.erc20Voucher, this.erc20Voucher], [this.erc20Signature])
+    )
+      .to.be.revertedWithCustomError(this.fuulManager, "UnequalLengths")
+      .withArgs(2, 1);
+  });
+
+  it("Should fail to claim when voucher is expired", async function () {
+    const voucher = {
+      ...this.erc20Voucher,
+    };
+
+    voucher.deadline = 0;
+
+    const signature = await this.user1._signTypedData(
+      this.domain,
+      this.types,
+      voucher
+    );
+
+    await expect(
+      this.fuulManager.connect(this.user2).claim([voucher], [signature])
+    ).to.be.revertedWithCustomError(this.fuulManager, "VoucherExpired");
+  });
+
+  it("Should fail to claim when address is not sender", async function () {
+    await expect(
+      this.fuulManager
+        .connect(this.user1)
+        .claim([this.erc20Voucher], [this.erc20Signature])
+    )
+      .to.be.revertedWithCustomError(this.fuulManager, "Unauthorized")
+      .withArgs(this.user1.address, this.user2.address);
+  });
+
+  it("Should fail to claim if claiming period is not finished", async function () {
+    await this.fuulManager
+      .connect(this.user2)
+      .claim([this.erc20Voucher], [this.erc20Signature]);
+
+    const newVoucher = { ...this.erc20Voucher };
+
+    newVoucher.voucherId = "2496919a-ad63-11ed-afa1-0242ac1200123";
+
+    const newSignature = await this.user1._signTypedData(
+      this.domain,
+      this.types,
+      newVoucher
+    );
+
+    await expect(
+      this.fuulManager.connect(this.user2).claim([newVoucher], [newSignature])
+    ).to.be.revertedWithCustomError(
+      this.fuulManager,
+      "ClaimingFreqNotFinished"
+    );
+  });
+
+  it("Should fail to claim if contract is paused", async function () {
+    await this.fuulManager.pauseAll();
+
+    await expect(
+      this.fuulManager
+        .connect(this.user2)
+        .claim([this.erc20Voucher], [this.erc20Signature])
+    ).to.be.revertedWith("Pausable: paused");
   });
 });
