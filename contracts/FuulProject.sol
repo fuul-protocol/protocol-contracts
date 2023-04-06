@@ -509,6 +509,10 @@ contract FuulProject is
         );
     }
 
+    /*╔═════════════════════════════╗
+      ║           CLAIM             ║
+      ╚═════════════════════════════╝*/
+
     function claimFromCampaign(
         IFuulManager.ClaimVoucher calldata voucher,
         IFuulManager.TokenType tokenType

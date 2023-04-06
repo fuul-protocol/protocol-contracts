@@ -18,7 +18,11 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
 
     mapping(uint256 => address) public projects;
 
-    event ProjectCreated(address deployedAddress, address eventSigner);
+    event ProjectCreated(
+        uint256 projectId,
+        address deployedAddress,
+        address eventSigner
+    );
 
     constructor(address _fuulManager) {
         fuulManager = _fuulManager;
@@ -35,9 +39,16 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
         FuulProject(clone).initialize(_projectAdmin, _projectEventSigner);
 
         _projectTracker.increment();
+
+        // Is it convenient to do project Ids increasingly or should they be random generated?
+
         projects[projectsCreated()] = address(clone);
 
-        emit ProjectCreated(address(clone), _projectEventSigner);
+        emit ProjectCreated(
+            projectsCreated(),
+            address(clone),
+            _projectEventSigner
+        );
     }
 
     function projectsCreated() public view returns (uint256) {
