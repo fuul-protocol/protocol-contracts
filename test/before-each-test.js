@@ -60,7 +60,7 @@ const setupTest = async function (deployProject = true) {
 
   // Deploy Manager
 
-  const limitAmount = ethers.utils.parseEther("10000000");
+  const limitAmount = ethers.utils.parseEther("100000");
 
   const fuulManager = await deployManager(
     user1.address,

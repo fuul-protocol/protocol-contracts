@@ -446,8 +446,8 @@ describe("Fuul Manager - Claim", function () {
       nft1155,
       user1,
       user2,
-      adminRole,
       provider,
+      limitAmount,
     } = await setupTest();
 
     this.fuulManager = fuulManager;
@@ -458,7 +458,7 @@ describe("Fuul Manager - Claim", function () {
     this.nft1155 = nft1155;
     this.user1 = user1;
     this.user2 = user2;
-    this.adminRole = adminRole;
+    this.limitAmount = limitAmount;
     this.provider = provider;
     this.network = await provider.getNetwork();
     this.chainId = this.network.chainId;
@@ -902,52 +902,65 @@ describe("Fuul Manager - Claim", function () {
       .withArgs(this.erc20Voucher.voucherId);
   });
 
-  // it("Should fail to claim if amount is over the daily limit in two transactions", async function () {
-  //   await this.fuulVault
-  //     .connect(this.user2)
-  //     .claim(this.validVoucher, this.validSignature);
+  it("Should fail to claim if amount is over the daily limit in same tx but 2 vouchers", async function () {
+    await this.fuulProject.depositFungibleToken(
+      this.erc20CampaignId,
+      this.limitAmount
+    );
+    const newAmount =
+      ethers.utils.formatEther(this.limitAmount) -
+      ethers.utils.formatEther(this.erc20Voucher.amount) +
+      0.1;
 
-  //   const newAmount =
-  //     ethers.utils.formatEther(this.limitAmount) -
-  //     ethers.utils.formatEther(this.validVoucher.amount) +
-  //     0.1;
+    const newVoucher = { ...this.erc20Voucher };
 
-  //   const newVoucher = { ...this.validVoucher };
+    newVoucher.voucherId = "f4c2fabc-ad62-11ed-afa1-0242ac120055";
+    newVoucher.amount = ethers.utils.parseEther(newAmount.toString());
 
-  //   newVoucher.voucherId = "f4c2fabc-ad62-11ed-afa1-0242ac120055";
-  //   newVoucher.amount = ethers.utils.parseEther(newAmount.toString());
-  //   newVoucher.account = this.user3.address;
+    const newSignature = await this.user1._signTypedData(
+      this.domain,
+      this.types,
+      newVoucher
+    );
 
-  //   const newSignature = await this.user1._signTypedData(
-  //     this.domain,
-  //     this.types,
-  //     newVoucher
-  //   );
+    await expect(
+      this.fuulManager
+        .connect(this.user2)
+        .claim(
+          [this.erc20Voucher, newVoucher],
+          [this.erc20Signature, newSignature]
+        )
+    ).to.be.revertedWithCustomError(this.fuulManager, "OverTheLimit");
+  });
 
-  //   await expect(
-  //     this.fuulVault.connect(this.user3).claim(newVoucher, newSignature)
-  //   ).to.be.revertedWith(
-  //     "Period limit reached. Call nextClaimPeriodStart(currency) for more info"
-  //   );
-  // });
+  it("Should fail to claim if amount is over the daily limit in one transaction", async function () {
+    await this.fuulProject.depositFungibleToken(
+      this.erc20CampaignId,
+      this.limitAmount
+    );
 
-  // it("Should fail to claim if amount is over the daily limit in one transaction", async function () {
-  //   const overTheLimit = this.limitAmount + 1;
+    const limitEth = ethers.utils.formatEther(this.limitAmount.toString());
 
-  //   const newVoucher = { ...this.validVoucher };
+    const overTheLimitEth = Number(limitEth) + 0.1;
 
-  //   newVoucher.amount = overTheLimit;
+    const overTheLimit = ethers.utils.parseEther(overTheLimitEth.toString());
 
-  //   const newSignature = await this.user1._signTypedData(
-  //     this.domain,
-  //     this.types,
-  //     newVoucher
-  //   );
+    const newVoucher = { ...this.erc20Voucher };
 
-  //   await expect(
-  //     this.fuulVault.connect(this.user2).claim(newVoucher, newSignature)
-  //   ).to.be.revertedWith("Amount is over the limit");
-  // });
+    newVoucher.amount = overTheLimit;
+
+    const newSignature = await this.user1._signTypedData(
+      this.domain,
+      this.types,
+      newVoucher
+    );
+
+    await expect(
+      this.fuulManager.connect(this.user2).claim([newVoucher], [newSignature])
+    )
+      .to.be.revertedWithCustomError(this.fuulManager, "OverTheLimit")
+      .withArgs(overTheLimit, this.limitAmount);
+  });
 
   it("Should fail to claim when vouchers and signatures have different lengths", async function () {
     await expect(
