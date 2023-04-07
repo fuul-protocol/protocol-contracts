@@ -17,6 +17,8 @@ import "./interfaces/IFuulManager.sol";
 import "./interfaces/IFuulFactory.sol";
 import "./interfaces/IFuulProject.sol";
 
+// Key recovery? Fuul manager (or any other address) allowed to add new ADMINs -> time delay in the middle
+
 contract FuulProject is
     IFuulProject,
     AccessControlEnumerable,
@@ -41,6 +43,11 @@ contract FuulProject is
         IFuulManager.TokenType tokenType;
     }
 
+    struct UserEarnings {
+        uint256 totalEarnings;
+        uint256 availableToClaim;
+    }
+
     /*╔═════════════════════════════╗
       ║          VARIABLES          ║
       ╚═════════════════════════════╝*/
@@ -53,6 +60,8 @@ contract FuulProject is
     address public fuulFactory;
 
     mapping(uint256 => Campaign) public campaigns; //  campaignId => Campaign
+
+    mapping(address => mapping(uint256 => UserEarnings)) public usersEarnings; // Address => campaign => UserEarnings
 
     uint256[] private emptyArray;
 
@@ -510,66 +519,116 @@ contract FuulProject is
     }
 
     /*╔═════════════════════════════╗
-      ║           CLAIM             ║
+      ║         ATTRIBUTION         ║
       ╚═════════════════════════════╝*/
 
-    function claimFromCampaign(
-        IFuulManager.ClaimVoucher calldata voucher,
-        IFuulManager.TokenType tokenType
-    ) external onlyFuulManager returns (uint256 amount) {
-        Campaign storage campaign = campaigns[voucher.campaignId];
+    function attributeTransactions(
+        uint256[] calldata campaignIds,
+        address[] calldata receivers,
+        uint256[] calldata amounts
+    ) external onlyFuulManager nonReentrant {
+        if (campaignIds.length != receivers.length) {
+            revert IFuulManager.UnequalLengths(
+                campaignIds.length,
+                receivers.length
+            );
+        }
 
-        uint256 voucherAmount = voucher.amount;
+        if (campaignIds.length != amounts.length) {
+            revert IFuulManager.UnequalLengths(
+                campaignIds.length,
+                amounts.length
+            );
+        }
+
+        for (uint256 i = 0; i < campaignIds.length; i++) {
+            uint256 campaignId = campaignIds[i];
+            uint256 amount = amounts[i];
+
+            campaigns[campaignId].currentBudget -= amount;
+
+            UserEarnings storage user = usersEarnings[receivers[i]][campaignId];
+
+            user.totalEarnings += amount;
+            user.availableToClaim += amount;
+        }
+    }
+
+    function claimFromCampaign(
+        uint256 campaignId,
+        address receiver,
+        uint256[] memory tokenIds,
+        uint256[] memory amounts
+    )
+        external
+        onlyFuulManager
+        nonReentrant
+        returns (uint256 claimAmount, address claimCurrency)
+    {
+        UserEarnings storage user = usersEarnings[receiver][campaignId];
+
+        Campaign storage campaign = campaigns[campaignId];
+
+        uint256 availableAmount = user.availableToClaim;
+
+        if (availableAmount == 0) {
+            revert IncorrectBalance(availableAmount);
+        }
+
+        IFuulManager.TokenType tokenType = campaign.tokenType;
         address currency = campaign.currency;
 
         uint256 tokenAmount;
 
         if (tokenType == IFuulManager.TokenType.NATIVE) {
-            tokenAmount = voucherAmount;
+            tokenAmount = availableAmount;
 
-            payable(voucher.account).sendValue(voucherAmount);
+            payable(receiver).sendValue(tokenAmount);
         } else if (tokenType == IFuulManager.TokenType.ERC_20) {
-            tokenAmount = voucherAmount;
+            tokenAmount = availableAmount;
 
-            IERC20(currency).safeTransfer(voucher.account, voucherAmount);
+            IERC20(currency).safeTransfer(receiver, tokenAmount);
         } else if (tokenType == IFuulManager.TokenType.ERC_721) {
-            tokenAmount = voucher.tokenIds.length;
+            tokenAmount = tokenIds.length;
 
-            for (uint256 i = 0; i < voucher.tokenIds.length; i++) {
+            // Check that tokenAmount is less than availableAmount?
+
+            for (uint256 i = 0; i < tokenIds.length; i++) {
                 _transferERC721Tokens(
                     currency,
                     address(this),
-                    voucher.account,
-                    voucher.tokenIds[i]
+                    receiver,
+                    tokenIds[i]
                 );
             }
         } else if (tokenType == IFuulManager.TokenType.ERC_1155) {
-            tokenAmount = _getSumFromArray(voucher.amounts);
+            tokenAmount = _getSumFromArray(amounts);
+
+            // Check that tokenAmount is less than availableAmount?
 
             _transferERC1155Tokens(
                 currency,
                 address(this),
-                voucher.account,
-                voucher.tokenIds,
-                voucher.amounts
+                receiver,
+                tokenIds,
+                amounts
             );
         }
 
-        // Update campaign budget
+        // Update user budget
 
-        campaign.currentBudget -= tokenAmount;
+        user.availableToClaim -= tokenAmount;
 
         emit Claimed(
-            voucher.voucherId,
-            voucher.campaignId,
-            voucher.account,
+            campaignId,
+            receiver,
             currency,
             tokenAmount,
-            voucher.tokenIds,
-            voucher.amounts
+            tokenIds,
+            amounts
         );
 
-        return tokenAmount;
+        return (tokenAmount, currency);
     }
 
     /*╔═════════════════════════════╗

@@ -12,18 +12,24 @@ interface IFuulManager {
         ERC_1155
     }
 
-    struct ClaimVoucher {
-        string voucherId;
+    struct ClaimCheck {
         address projectAddress;
         uint256 campaignId;
-        address currency;
-        address account;
-        uint256 amount;
-        uint256[] tokenIds; // used for ERC721 and ERC1155
-        uint256[] amounts; // used for ERC1155
-        uint256 deadline;
+        uint256[] tokenIds;
+        uint256[] amounts;
     }
 
+    struct AttributeCheck {
+        address projectAddress;
+        uint256[] campaignIds;
+        address[] receivers;
+        uint256[] amounts;
+    }
+
+    struct FuulProjectFungibleCurrencies {
+        address deployedAddress;
+        address[] currencies;
+    }
     /*╔═════════════════════════════╗
       ║           ERRORS            ║
       ╚═════════════════════════════╝*/
@@ -40,7 +46,6 @@ interface IFuulManager {
     error ClaimedVoucher(string voucherId);
     error VoucherExpired(uint256 deadline, uint256 now);
     error Unauthorized(address sender, address requiredSender);
-    error ClaimingFreqNotFinished();
     error OverTheLimit(uint256 amount, uint256 limit);
     error UnequalLengths(uint256 lengthOne, uint256 lengthTwo);
 
@@ -52,14 +57,10 @@ interface IFuulManager {
 
     function claimCooldown() external view returns (uint256 period);
 
-    function claimFrequency() external view returns (uint256 period);
-
     function usersClaims(
         address user,
         address currency
     ) external view returns (uint256);
-
-    function usersLastClaimedAt(address user) external view returns (uint256);
 
     /*╔═════════════════════════════╗
       ║       REMOVE VARIABLES      ║
@@ -72,8 +73,6 @@ interface IFuulManager {
     function setClaimCooldown(uint256 _period) external;
 
     function setCampaignBudgetCooldown(uint256 period) external;
-
-    function setClaimFrequency(uint256 period) external;
 
     /*╔═════════════════════════════╗
       ║       TOKEN CURRENCIES      ║
@@ -103,11 +102,6 @@ interface IFuulManager {
         uint256 limit
     ) external;
 
-    // function setCurrencyTokenType(
-    //     address tokenAddress,
-    //     TokenType tokenType
-    // ) external;
-
     /*╔═════════════════════════════╗
       ║            PAUSE            ║
       ╚═════════════════════════════╝*/
@@ -119,28 +113,29 @@ interface IFuulManager {
     function isPaused() external view returns (bool);
 
     /*╔═════════════════════════════╗
-      ║      CLAIM FROM CAMPAIGN    ║
+      ║      ATTRIBUTE AND CLAIM    ║
       ╚═════════════════════════════╝*/
 
-    // function claimFromCampaign(
-    //     ClaimVoucher calldata voucher,
-    //     bytes calldata signature
-    // ) external;
+    function attributeTransactions(
+        AttributeCheck[] calldata attributeChecks
+    ) external;
+
+    function claim(ClaimCheck[] calldata claimChecks) external;
 
     /*╔═════════════════════════════╗
       ║          EMERGENCY          ║
       ╚═════════════════════════════╝*/
 
-    // function emergencyWithdrawFungibleTokensFromProjects(
-    //     address to,
-    //     FuulProjectFungibleCurrencies[] memory projectsCurrencies
-    // ) external;
+    function emergencyWithdrawFungibleTokensFromProjects(
+        address to,
+        FuulProjectFungibleCurrencies[] memory projectsCurrencies
+    ) external;
 
-    // function emergencyWithdrawNFTTokensFromProject(
-    //     address to,
-    //     address fuulProject,
-    //     address currency,
-    //     uint256[] memory tokenIds,
-    //     uint256[] memory amounts
-    // ) external;
+    function emergencyWithdrawNFTsFromProject(
+        address to,
+        address fuulProject,
+        address currency,
+        uint256[] memory tokenIds,
+        uint256[] memory amounts
+    ) external;
 }
