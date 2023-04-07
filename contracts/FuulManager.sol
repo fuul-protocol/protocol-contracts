@@ -24,6 +24,8 @@ contract FuulManager is
 {
     using ERC165Checker for address;
 
+    uint256 public testAmount;
+
     struct CurrencyToken {
         TokenType tokenType;
         uint256 claimLimitPerCooldown;
@@ -192,7 +194,7 @@ contract FuulManager is
             ClaimCheck memory claimCheck = claimChecks[i];
 
             // Send
-            uint tokenAmount;
+            uint256 tokenAmount;
             address currency;
             (tokenAmount, currency) = IFuulProject(claimCheck.projectAddress)
                 .claimFromCampaign(
@@ -237,6 +239,7 @@ contract FuulManager is
             }
 
             // Update values
+
             usersClaims[msg.sender][currency] += tokenAmount;
         }
     }

@@ -17,6 +17,8 @@ import "./interfaces/IFuulManager.sol";
 import "./interfaces/IFuulFactory.sol";
 import "./interfaces/IFuulProject.sol";
 
+// Key recovery? Fuul manager (or any other address) allowed to add new ADMINs -> time delay in the middle
+
 contract FuulProject is
     IFuulProject,
     AccessControlEnumerable,
@@ -545,7 +547,7 @@ contract FuulProject is
 
             campaigns[campaignId].currentBudget -= amount;
 
-            UserEarnings storage user = usersEarnings[msg.sender][campaignId];
+            UserEarnings storage user = usersEarnings[receivers[i]][campaignId];
 
             user.totalEarnings += amount;
             user.availableToClaim += amount;
@@ -561,13 +563,17 @@ contract FuulProject is
         external
         onlyFuulManager
         nonReentrant
-        returns (uint256 amount, address currency)
+        returns (uint256 claimAmount, address claimCurrency)
     {
-        UserEarnings storage user = usersEarnings[msg.sender][campaignId];
+        UserEarnings storage user = usersEarnings[receiver][campaignId];
 
         Campaign storage campaign = campaigns[campaignId];
 
         uint256 availableAmount = user.availableToClaim;
+
+        if (availableAmount == 0) {
+            revert IncorrectBalance(availableAmount);
+        }
 
         IFuulManager.TokenType tokenType = campaign.tokenType;
         address currency = campaign.currency;

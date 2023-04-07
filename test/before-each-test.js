@@ -52,7 +52,7 @@ const setupTest = async function (deployProject = true) {
 
   const provider = hre.ethers.provider;
 
-  [user1, user2, user3] = await hre.ethers.getSigners();
+  [user1, user2, user3, user4, user5] = await hre.ethers.getSigners();
 
   // Deploy mocks
 
@@ -106,6 +106,8 @@ const setupTest = async function (deployProject = true) {
     user1,
     user2,
     user3,
+    user4,
+    user5,
     adminRole,
     provider,
     limitAmount,
