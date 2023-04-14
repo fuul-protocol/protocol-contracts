@@ -4,6 +4,7 @@ require("@nomiclabs/hardhat-etherscan");
 require("hardhat-contract-sizer");
 require("@nomicfoundation/hardhat-chai-matchers");
 require("hardhat-gas-reporter");
+require("solidity-docgen");
 
 const { DEPLOYER_MNEMONIC, ETHERSCAN_API_KEY, COINMARKETCAP_API_KEY } =
   process.env;
