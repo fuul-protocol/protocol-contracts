@@ -13,6 +13,8 @@ interface IFuulProject {
 
     event CampaignMetadataUpdated(uint256 campaignId, string campaignURI);
 
+    event ProjectInfoUpdated(string projectInfoURI);
+
     event CampaignCreated(
         address indexed account,
         address currency,
@@ -57,7 +59,7 @@ interface IFuulProject {
     error Unauthorized(address sender, address requiredSender);
     error ManagerIsPaused();
     error CampaignNotExists(uint256 campaignId);
-    error EmptyCampaignURI(string campaignURI);
+    error EmptyURI(string uri);
     error TokenCurrencyNotAccepted(address tokenAddress);
 
     error CampaignNotInactive(uint256 campaignId);
@@ -101,6 +103,14 @@ interface IFuulProject {
     function fuulManagerAddress() external view returns (address);
 
     function fuulManagerInstance() external view returns (IFuulManager);
+
+    /*╔═════════════════════════════╗
+      ║        PROJECT INFO         ║
+      ╚═════════════════════════════╝*/
+
+    function projectInfoURI() external view returns (string memory);
+
+    function setProjectInfoURI(string memory _projectURI) external;
 
     /*╔═════════════════════════════╗
       ║         CAMPAIGNS           ║

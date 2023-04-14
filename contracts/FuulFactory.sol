@@ -21,7 +21,8 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
     event ProjectCreated(
         uint256 projectId,
         address deployedAddress,
-        address eventSigner
+        address eventSigner,
+        string projectInfoURI
     );
 
     constructor(address _fuulManager) {
@@ -33,10 +34,15 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
 
     function createFuulProject(
         address _projectAdmin,
-        address _projectEventSigner
+        address _projectEventSigner,
+        string memory _projectInfoURI
     ) external {
         address clone = Clones.clone(fuulProjectImplementation);
-        FuulProject(clone).initialize(_projectAdmin, _projectEventSigner);
+        FuulProject(clone).initialize(
+            _projectAdmin,
+            _projectEventSigner,
+            _projectInfoURI
+        );
 
         _projectTracker.increment();
 
@@ -47,13 +53,16 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
         emit ProjectCreated(
             projectsCreated(),
             address(clone),
-            _projectEventSigner
+            _projectEventSigner,
+            _projectInfoURI
         );
     }
 
     function projectsCreated() public view returns (uint256) {
         return _projectTracker.current();
     }
+
+    // Checked received?
 
     function setFuulManager(
         address _fuulManager

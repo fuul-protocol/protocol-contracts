@@ -7,7 +7,8 @@ interface IFuulFactory {
 
     function createFuulProject(
         address _projectAdmin,
-        address _projectEventSigner
+        address _projectEventSigner,
+        string memory _projectInfoURI
     ) external;
 
     function projects(uint256 projectId) external returns (address);

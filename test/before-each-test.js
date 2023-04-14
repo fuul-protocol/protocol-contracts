@@ -22,12 +22,14 @@ const deployMocks = async function () {
 
 const deployManager = async function (
   signerAddress,
+  pauserAddress,
   tokenAddress,
   limitAmount
 ) {
   const FuulManager = await hre.ethers.getContractFactory("FuulManager");
   const fuulManager = await FuulManager.deploy(
     signerAddress,
+    pauserAddress,
     tokenAddress,
     limitAmount,
     limitAmount
@@ -64,20 +66,10 @@ const setupTest = async function (deployProject = true) {
 
   const fuulManager = await deployManager(
     user1.address,
+    user1.address,
     token.address,
     limitAmount
   );
-
-  // const isERC721 = await fuulManager.isERC721(nft721.address);
-  // const noERC721 = await fuulManager.isERC721(nft1155.address);
-
-  // const isERC1155 = await fuulManager.isERC1155(nft1155.address);
-  // const noERC1155 = await fuulManager.isERC1155(nft721.address);
-
-  // console.log("721", isERC721);
-  // console.log("1155", isERC1155);
-  // console.log("no 721", noERC721);
-  // console.log("no 1155", noERC1155);
 
   // Deploy Factory
 
@@ -89,7 +81,7 @@ const setupTest = async function (deployProject = true) {
 
   if (deployProject) {
     const signer = this.user2.address;
-    await fuulFactory.createFuulProject(user1.address, signer);
+    await fuulFactory.createFuulProject(user1.address, signer, "projectURI");
     const addressDeployed = await fuulFactory.projects(1);
 
     const FuulProject = await ethers.getContractFactory("FuulProject");

@@ -31,9 +31,11 @@ contract FuulManager is
         uint256 claimLimitPerCooldown;
         uint256 cumulativeClaimPerCooldown;
         uint256 claimCooldownPeriodStarted;
+        bool isActive;
     }
 
     bytes32 public constant ATTRIBUTOR_ROLE = keccak256("ATTRIBUTOR_ROLE");
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     uint256 public campaignBudgetCooldown = 30 days;
     uint256 public claimCooldown = 1 days;
@@ -52,6 +54,7 @@ contract FuulManager is
 
     constructor(
         address _attributor,
+        address _pauser,
         address acceptedERC20CurrencyToken,
         uint256 initialTokenLimit,
         uint256 initialZeroTokenLimit
@@ -59,6 +62,7 @@ contract FuulManager is
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
         _setupRole(ATTRIBUTOR_ROLE, _attributor);
+        _setupRole(PAUSER_ROLE, _pauser);
 
         _addCurrencyToken(acceptedERC20CurrencyToken, initialTokenLimit);
         _addCurrencyToken(address(0), initialZeroTokenLimit);
@@ -107,7 +111,7 @@ contract FuulManager is
     function isCurrencyTokenAccepted(
         address tokenAddress
     ) public view returns (bool isAccepted) {
-        return currencyTokens[tokenAddress].claimLimitPerCooldown > 0;
+        return currencyTokens[tokenAddress].isActive;
     }
 
     function addCurrencyToken(
@@ -120,14 +124,13 @@ contract FuulManager is
     function removeCurrencyToken(
         address tokenAddress
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        CurrencyToken storage currency = currencyTokens[tokenAddress];
-
-        if (currency.claimLimitPerCooldown == 0) {
+        if (!isCurrencyTokenAccepted(tokenAddress)) {
             revert TokenCurrencyNotAccepted(tokenAddress);
         }
+        CurrencyToken storage currency = currencyTokens[tokenAddress];
 
-        currency.claimLimitPerCooldown = 0;
-        currency.claimCooldownPeriodStarted = 0;
+        currency.isActive = false;
+
         // Projects will not be able to create new campaigns or deposit with the currency token
         // We keep the tokenType because campaigns using this currency will still be able to claim it
     }
@@ -136,14 +139,13 @@ contract FuulManager is
         address tokenAddress,
         uint256 limit
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (!isCurrencyTokenAccepted(tokenAddress)) {
+            revert TokenCurrencyNotAccepted(tokenAddress);
+        }
         CurrencyToken storage currency = currencyTokens[tokenAddress];
 
         if (limit == 0 || limit == currency.claimLimitPerCooldown) {
             revert InvalidUintArgument(limit);
-        }
-
-        if (currency.claimLimitPerCooldown == 0) {
-            revert TokenCurrencyNotAccepted(tokenAddress);
         }
 
         currency.claimLimitPerCooldown = limit;
@@ -153,11 +155,11 @@ contract FuulManager is
       ║            PAUSE            ║
       ╚═════════════════════════════╝*/
 
-    function pauseAll() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function pauseAll() external onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
-    function unpauseAll() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function unpauseAll() external onlyRole(PAUSER_ROLE) {
         _unpause();
     }
 
@@ -337,7 +339,8 @@ contract FuulManager is
             tokenType: tokenType,
             claimLimitPerCooldown: claimLimitPerCooldown,
             cumulativeClaimPerCooldown: 0,
-            claimCooldownPeriodStarted: block.timestamp
+            claimCooldownPeriodStarted: block.timestamp,
+            isActive: true
         });
     }
 }

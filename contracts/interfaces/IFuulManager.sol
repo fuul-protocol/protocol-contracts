@@ -80,7 +80,7 @@ interface IFuulManager {
 
     function currencyTokens(
         address currencyToken
-    ) external view returns (TokenType, uint256, uint256, uint256);
+    ) external view returns (TokenType, uint256, uint256, uint256, bool);
 
     function getTokenType(
         address currencyToken

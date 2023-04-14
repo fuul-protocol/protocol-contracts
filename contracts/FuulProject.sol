@@ -17,8 +17,6 @@ import "./interfaces/IFuulManager.sol";
 import "./interfaces/IFuulFactory.sol";
 import "./interfaces/IFuulProject.sol";
 
-// Key recovery? Fuul manager (or any other address) allowed to add new ADMINs -> time delay in the middle
-
 contract FuulProject is
     IFuulProject,
     AccessControlEnumerable,
@@ -65,6 +63,8 @@ contract FuulProject is
 
     uint256[] private emptyArray;
 
+    string public projectInfoURI;
+
     /*╔═════════════════════════════╗
       ║           MODIFIER          ║
       ╚═════════════════════════════╝*/
@@ -104,10 +104,16 @@ contract FuulProject is
     // called once by the factory at time of deployment
     function initialize(
         address projectAdmin,
-        address _projectEventSigner
+        address _projectEventSigner,
+        string memory _projectInfoURI
     ) external {
         require(fuulFactory == address(0), "FuulV1: FORBIDDEN");
+
+        if (bytes(_projectInfoURI).length == 0) {
+            revert EmptyURI(_projectInfoURI);
+        }
         fuulFactory = msg.sender;
+        projectInfoURI = _projectInfoURI;
 
         _setupRole(DEFAULT_ADMIN_ROLE, projectAdmin);
         _setupRole(EVENTS_SIGNER_ROLE, _projectEventSigner);
@@ -126,6 +132,22 @@ contract FuulProject is
     }
 
     /*╔═════════════════════════════╗
+      ║        PROJECT INFO         ║
+      ╚═════════════════════════════╝*/
+
+    function setProjectInfoURI(
+        string memory _projectURI
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (bytes(_projectURI).length == 0) {
+            revert EmptyURI(_projectURI);
+        }
+
+        projectInfoURI = _projectURI;
+
+        emit ProjectInfoUpdated(_projectURI);
+    }
+
+    /*╔═════════════════════════════╗
       ║          CAMPAIGNS          ║
       ╚═════════════════════════════╝*/
 
@@ -138,7 +160,7 @@ contract FuulProject is
         address currency
     ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
         if (bytes(_campaignURI).length == 0) {
-            revert EmptyCampaignURI(_campaignURI);
+            revert EmptyURI(_campaignURI);
         }
 
         if (!fuulManagerInstance().isCurrencyTokenAccepted(currency)) {
@@ -552,6 +574,8 @@ contract FuulProject is
             user.totalEarnings += amount;
             user.availableToClaim += amount;
         }
+
+        // emit ATTRIBUTION(asdas, proff)
     }
 
     function claimFromCampaign(
