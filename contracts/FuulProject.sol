@@ -28,10 +28,7 @@ contract FuulProject is
     using SafeERC20 for IERC20;
     using Address for address payable;
 
-    /*╔═════════════════════════════╗
-      ║          STRUCTS            ║
-      ╚═════════════════════════════╝*/
-
+    // Campaign info
     struct Campaign {
         uint256 totalDeposited;
         uint256 currentBudget;
@@ -41,51 +38,62 @@ contract FuulProject is
         IFuulManager.TokenType tokenType;
     }
 
+    // User earnings per campaign
     struct UserEarnings {
         uint256 totalEarnings;
         uint256 availableToClaim;
     }
 
-    /*╔═════════════════════════════╗
-      ║          VARIABLES          ║
-      ╚═════════════════════════════╝*/
+    // Factory contract address
+    address public fuulFactory;
 
+    // Campaigns created number tracker
     Counters.Counter private _campaignIdTracker;
 
+    // Roles for allowed addresses to send events through our SDK (not used in the contract)
     bytes32 public constant EVENTS_SIGNER_ROLE =
         keccak256("EVENTS_SIGNER_ROLE");
 
-    address public fuulFactory;
+    // Mapping campaign id with campaign info
+    mapping(uint256 => Campaign) public campaigns;
 
-    mapping(uint256 => Campaign) public campaigns; //  campaignId => Campaign
+    // Mapping owner address to campaign id to earnings
+    mapping(address => mapping(uint256 => UserEarnings)) public usersEarnings;
 
-    mapping(address => mapping(uint256 => UserEarnings)) public usersEarnings; // Address => campaign => UserEarnings
-
-    uint256[] private emptyArray;
-
+    // URI that points to a file with project information (image, name, description, etc)
     string public projectInfoURI;
 
-    /*╔═════════════════════════════╗
-      ║           MODIFIER          ║
-      ╚═════════════════════════════╝*/
+    // Helper empty array to input in events
+    uint256[] private emptyArray;
+
+    /**
+     * @dev Modifier that checks that a campaign exists. Reverts
+     * with a CampaignNotExists error including the inputed campaign id.
+     */
 
     modifier campaignExists(uint256 _campaignId) {
         if (_campaignId == 0 || _campaignId > campaignsCreated()) {
-            revert CampaignNotExists(_campaignId);
+            revert CampaignNotExists();
         }
         _;
     }
+
+    /**
+     * @dev Modifier that the sender is the fuul manager. Reverts
+     * with an Unauthorized error including the sender and the required sender.
+     */
 
     modifier onlyFuulManager() {
         if (msg.sender != fuulManagerAddress()) {
-            revert Unauthorized({
-                sender: msg.sender,
-                requiredSender: fuulManagerAddress()
-            });
+            revert IFuulManager.Unauthorized();
         }
         _;
     }
 
+    /**
+     * @dev Modifier that the Fuul Manager contract is not paused. Reverts
+     * with a ManagerIsPaused error.
+     */
     modifier whenFundsNotFreezed() {
         if (fuulManagerInstance().isPaused()) {
             revert ManagerIsPaused();
@@ -97,11 +105,23 @@ contract FuulProject is
       ║         CONSTRUCTOR         ║
       ╚═════════════════════════════╝*/
 
+    /**
+     * @dev Sets the value for {fuulFactory}.
+     *
+     * This value is immutable: it can only be set once during
+     * construction.
+     */
     constructor() {
         fuulFactory = address(0);
     }
 
-    // called once by the factory at time of deployment
+    /**
+     * @dev Initializes the contract when the Factory deploys a new clone}.
+     *
+     * Grants roles for project admin, the address allowed to send events 
+     * through the SDK and the URI with the project information
+
+     */
     function initialize(
         address projectAdmin,
         address _projectEventSigner,
@@ -109,13 +129,11 @@ contract FuulProject is
     ) external {
         require(fuulFactory == address(0), "FuulV1: FORBIDDEN");
 
-        if (bytes(_projectInfoURI).length == 0) {
-            revert EmptyURI(_projectInfoURI);
-        }
         fuulFactory = msg.sender;
         projectInfoURI = _projectInfoURI;
 
         _setupRole(DEFAULT_ADMIN_ROLE, projectAdmin);
+
         _setupRole(EVENTS_SIGNER_ROLE, _projectEventSigner);
     }
 
@@ -123,10 +141,16 @@ contract FuulProject is
       ║     FROM OTHER CONTRACTS    ║
       ╚═════════════════════════════╝*/
 
+    /**
+     * @dev Returns the address of the active Fuul Manager contract.
+     */
     function fuulManagerAddress() public view returns (address) {
         return IFuulFactory(fuulFactory).fuulManager();
     }
 
+    /**
+     * @dev Returns the instance of the Fuul Manager contract.
+     */
     function fuulManagerInstance() public view returns (IFuulManager) {
         return IFuulManager(fuulManagerAddress());
     }
@@ -135,11 +159,21 @@ contract FuulProject is
       ║        PROJECT INFO         ║
       ╚═════════════════════════════╝*/
 
+    /**
+     * @dev Sets `projectInfoURI` as the information for the project.
+     *
+     * Emits {ProjectInfoUpdated}.
+     *
+     * Requirements:
+     *
+     * - `_projectURI` must not be an empty string.
+     * - Only admins can deactivate campaigns.
+     */
     function setProjectInfoURI(
         string memory _projectURI
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (bytes(_projectURI).length == 0) {
-            revert EmptyURI(_projectURI);
+            revert EmptyURI();
         }
 
         projectInfoURI = _projectURI;
@@ -151,20 +185,35 @@ contract FuulProject is
       ║          CAMPAIGNS          ║
       ╚═════════════════════════════╝*/
 
+    /**
+     * @dev Returns the number of campaigns created.
+     */
     function campaignsCreated() public view returns (uint256) {
         return _campaignIdTracker.current();
     }
 
+    /**
+     * @dev Creates a new `Campaign` object.
+     * The `campaignId` follows the number of campaigns created.
+     *
+     * Emits {CampaignCreated}.
+     *
+     * Requirements:
+     *
+     * - `_campaignURI` must not be an empty string.
+     * - `currency` must be accepted in the Fuul Manager contract.
+     * - Only admins can create campaigns.
+     */
     function createCampaign(
         string memory _campaignURI,
         address currency
     ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
         if (bytes(_campaignURI).length == 0) {
-            revert EmptyURI(_campaignURI);
+            revert EmptyURI();
         }
 
         if (!fuulManagerInstance().isCurrencyTokenAccepted(currency)) {
-            revert TokenCurrencyNotAccepted(currency);
+            revert IFuulManager.TokenCurrencyNotAccepted();
         }
 
         _campaignIdTracker.increment();
@@ -194,6 +243,14 @@ contract FuulProject is
         );
     }
 
+    /**
+     * @dev Reactivates campaign. Sets the active value to be true
+     *
+     * Requirements:
+     *
+     * - `campaignId` must exist and be inactive.
+     * - Only admins can reactivate campaigns.
+     */
     function reactivateCampaign(
         uint256 campaignId
     )
@@ -205,12 +262,20 @@ contract FuulProject is
         Campaign storage campaign = campaigns[campaignId];
 
         if (campaign.deactivatedAt == 0) {
-            revert CampaignNotInactive(campaignId);
+            revert CampaignNotInactive();
         }
 
         campaign.deactivatedAt = 0;
     }
 
+    /**
+     * @dev Deactivates campaign. Sets the active value to be false
+     *
+     * Requirements:
+     *
+     * - `campaignId` must exist and be active.
+     * - Only admins can deactivate campaigns.
+     */
     function deactivateCampaign(
         uint256 campaignId
     )
@@ -222,11 +287,23 @@ contract FuulProject is
         Campaign storage campaign = campaigns[campaignId];
 
         if (campaign.deactivatedAt > 0) {
-            revert CampaignNotActive(campaignId);
+            revert CampaignNotActive();
         }
 
         campaign.deactivatedAt = block.timestamp;
     }
+
+    /**
+     * @dev Sets `campaignURI` in the Campaign structure.
+     *
+     * Emits {CampaignMetadataUpdated}.
+     *
+     * Requirements:
+     *
+     * - `campaignId` must exist.
+     * - `_campaignURI` must not be an empty string.
+     * - Only admins can deactivate campaigns.
+     */
 
     function setCampaignURI(
         uint256 _campaignId,
@@ -237,6 +314,9 @@ contract FuulProject is
         onlyRole(DEFAULT_ADMIN_ROLE)
         campaignExists(_campaignId)
     {
+        if (bytes(_campaignURI).length == 0) {
+            revert EmptyURI();
+        }
         campaigns[_campaignId].campaignURI = _campaignURI;
 
         emit CampaignMetadataUpdated(_campaignId, _campaignURI);
@@ -246,6 +326,19 @@ contract FuulProject is
       ║        DEPOSIT BUDGET       ║
       ╚═════════════════════════════╝*/
 
+    /**
+     * @dev Deposits fungible tokens in a campaign.
+     * They can be native or ERC20 tokens.
+     *
+     * Emits {BudgetDeposited}.
+     *
+     * Requirements:
+     *
+     * - `campaignId` must exist and be active.
+     * - `amount` must be greater than zero.
+     * - Only admins can deposit.
+     * - Funds must not be freezed.
+     */
     function depositFungibleToken(
         uint256 campaignId,
         uint256 amount
@@ -257,18 +350,21 @@ contract FuulProject is
         onlyRole(DEFAULT_ADMIN_ROLE)
         campaignExists(campaignId)
     {
+        if (amount == 0) {
+            revert ZeroAmount();
+        }
         Campaign storage campaign = campaigns[campaignId];
 
         address currency = campaign.currency;
 
         if (!fuulManagerInstance().isCurrencyTokenAccepted(currency)) {
-            revert TokenCurrencyNotAccepted(currency);
+            revert IFuulManager.TokenCurrencyNotAccepted();
         }
 
         IFuulManager.TokenType tokenType = campaign.tokenType;
 
         if (campaign.deactivatedAt > 0) {
-            revert CampaignNotActive(campaignId);
+            revert CampaignNotActive();
         }
         // Commented to optimize contract size
 
@@ -278,16 +374,13 @@ contract FuulProject is
         //     "Currency is not a fungible token"
         // );
 
-        uint256 depositedAmount;
-
         if (tokenType == IFuulManager.TokenType.NATIVE) {
-            if (msg.value == 0) {
-                revert IncorrectBalance(msg.value);
+            if (msg.value != amount) {
+                revert IncorrectMsgValue();
             }
-            depositedAmount = msg.value;
         } else if (tokenType == IFuulManager.TokenType.ERC_20) {
             if (msg.value > 0) {
-                revert IncorrectBalance(msg.value);
+                revert IncorrectMsgValue();
             }
 
             IERC20(currency).safeTransferFrom(
@@ -295,16 +388,15 @@ contract FuulProject is
                 address(this),
                 amount
             );
-            depositedAmount = amount;
         }
 
         // Update balance
-        campaign.totalDeposited += depositedAmount;
-        campaign.currentBudget += depositedAmount;
+        campaign.totalDeposited += amount;
+        campaign.currentBudget += amount;
 
         emit BudgetDeposited(
             msg.sender,
-            depositedAmount,
+            amount,
             currency,
             campaignId,
             tokenType,
@@ -313,6 +405,19 @@ contract FuulProject is
         );
     }
 
+    /**
+     * @dev Deposits NFTs in a campaign.
+     * They can be ERC1155 or ERC721 tokens.
+     * `amounts` parameter is only used when dealing with ERC1155 tokens.
+     *
+     * Emits {BudgetDeposited}.
+     *
+     * Requirements:
+     *
+     * - `campaignId` must exist and be active.
+     * - Only admins can deposit.
+     * - Funds must not be freezed.
+     */
     function depositNFTToken(
         uint256 campaignId,
         uint256[] memory tokenIds,
@@ -328,13 +433,13 @@ contract FuulProject is
         address currency = campaign.currency;
 
         if (!fuulManagerInstance().isCurrencyTokenAccepted(currency)) {
-            revert TokenCurrencyNotAccepted(currency);
+            revert IFuulManager.TokenCurrencyNotAccepted();
         }
 
         IFuulManager.TokenType tokenType = campaign.tokenType;
 
         if (campaign.deactivatedAt > 0) {
-            revert CampaignNotActive(campaignId);
+            revert CampaignNotActive();
         }
         // Commented to optimize contract size
 
@@ -392,21 +497,48 @@ contract FuulProject is
       ║        REMOVE BUDGET        ║
       ╚═════════════════════════════╝*/
 
+    /**
+     * @dev Returns the timestamp when funds can be removed from a campaign.
+     * This period starts when the campaign is deactivated and ends after the
+     * `campaignBudgetCooldown` is passed.
+     */
     function getBudgetCooldownPeriod(
         uint256 deactivatedAt
     ) public view returns (uint256) {
+        if (deactivatedAt == 0) {
+            revert CampaignNotInactive();
+        }
         return deactivatedAt + fuulManagerInstance().campaignBudgetCooldown();
     }
 
+    /**
+     * @dev Removes fungible tokens from a campaign.
+     * They can be native or ERC20 tokens.
+     *
+     * Emits {BudgetRemoved}.
+     *
+     * Requirements:
+     *
+     * - `campaignId` must exist and be active.
+     * - `amount` must be greater than zero.
+     * - Only admins can remove.
+     * - Funds must not be freezed.
+     * - Budget remove cooldown period has to be completed.
+     */
     function removeFungibleBudget(
         uint256 campaignId,
         uint256 amount
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) whenFundsNotFreezed nonReentrant {
-        Campaign storage campaign = campaigns[campaignId];
-
-        if (campaign.deactivatedAt == 0) {
-            revert CampaignNotInactive(campaignId);
+    )
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        whenFundsNotFreezed
+        nonReentrant
+        campaignExists(campaignId)
+    {
+        if (amount == 0) {
+            revert ZeroAmount();
         }
+        Campaign storage campaign = campaigns[campaignId];
 
         address currency = campaign.currency;
 
@@ -424,10 +556,7 @@ contract FuulProject is
         );
 
         if (block.timestamp < cooldownPeriod) {
-            revert CooldownPeriodNotFinished({
-                now: block.timestamp,
-                required: cooldownPeriod
-            });
+            revert CooldownPeriodNotFinished();
         }
 
         // Update campaign budget - By underflow it indirectly checks that amount <= campaign.currentBudget
@@ -467,26 +596,44 @@ contract FuulProject is
         );
     }
 
+    /**
+     * @dev Removes NFT tokens from a campaign.
+     * They can be ERC1155 or ERC721 tokens.
+     * `amounts` parameter is only used when dealing with ERC1155 tokens.
+     *
+     * Emits {BudgetRemoved}.
+     *
+     * Requirements:
+     *
+     * - `campaignId` must exist and be active.
+     * - `amount` must be greater than zero.
+     * - Only admins can remove.
+     * - Funds must not be freezed.
+     * - Budget remove cooldown period has to be completed.
+     */
     function removeNFTBudget(
         uint256 campaignId,
         uint256[] memory tokenIds,
         uint256[] memory amounts
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) whenFundsNotFreezed nonReentrant {
-        Campaign storage campaign = campaigns[campaignId];
-
-        if (campaign.deactivatedAt == 0) {
-            revert CampaignNotInactive(campaignId);
+    )
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        whenFundsNotFreezed
+        nonReentrant
+        campaignExists(campaignId)
+    {
+        uint256 tokenIdsLength = tokenIds.length;
+        if (tokenIdsLength == 0) {
+            revert ZeroAmount();
         }
+        Campaign storage campaign = campaigns[campaignId];
 
         uint256 cooldownPeriod = getBudgetCooldownPeriod(
             campaign.deactivatedAt
         );
 
         if (block.timestamp < cooldownPeriod) {
-            revert CooldownPeriodNotFinished({
-                now: block.timestamp,
-                required: cooldownPeriod
-            });
+            revert CooldownPeriodNotFinished();
         }
 
         address currency = campaign.currency;
@@ -504,7 +651,7 @@ contract FuulProject is
         uint256 removeAmount;
 
         if (tokenType == IFuulManager.TokenType.ERC_721) {
-            for (uint256 i = 0; i < tokenIds.length; i++) {
+            for (uint256 i = 0; i < tokenIdsLength; i++) {
                 _transferERC721Tokens(
                     currency,
                     address(this),
@@ -513,7 +660,7 @@ contract FuulProject is
                 );
             }
 
-            removeAmount = tokenIds.length;
+            removeAmount = tokenIdsLength;
         } else if (tokenType == IFuulManager.TokenType.ERC_1155) {
             _transferERC1155Tokens(
                 currency,
@@ -544,28 +691,41 @@ contract FuulProject is
       ║         ATTRIBUTION         ║
       ╚═════════════════════════════╝*/
 
+    /**
+     * @dev Attributes: removes `amounts` from `campaignIds` balance and adds them to `receivers`.
+     *
+     * Requirements:
+     *
+     * - All arrays must have the same length.
+     * - All elements of `campaignIds` must exist and have the corresponding balance.
+     * - All elements of `amounts` must be greater than zero.
+     * - Only Fuul Manager can attribute.
+     */
     function attributeTransactions(
         uint256[] calldata campaignIds,
         address[] calldata receivers,
         uint256[] calldata amounts
     ) external onlyFuulManager nonReentrant {
         if (campaignIds.length != receivers.length) {
-            revert IFuulManager.UnequalLengths(
-                campaignIds.length,
-                receivers.length
-            );
+            revert IFuulManager.InvalidArgument();
         }
 
         if (campaignIds.length != amounts.length) {
-            revert IFuulManager.UnequalLengths(
-                campaignIds.length,
-                amounts.length
-            );
+            revert IFuulManager.InvalidArgument();
         }
 
         for (uint256 i = 0; i < campaignIds.length; i++) {
             uint256 campaignId = campaignIds[i];
+
+            if (campaignId == 0 || campaignId > campaignsCreated()) {
+                revert CampaignNotExists();
+            }
+
             uint256 amount = amounts[i];
+
+            if (amount == 0) {
+                revert ZeroAmount();
+            }
 
             campaigns[campaignId].currentBudget -= amount;
 
@@ -574,9 +734,20 @@ contract FuulProject is
             user.totalEarnings += amount;
             user.availableToClaim += amount;
         }
-
-        // emit ATTRIBUTION(asdas, proff)
     }
+
+    /**
+     * @dev Claims: sends funds to `receiver` that has available to claim funds.
+     *
+     * `tokenIds` parameter is only used when dealing with ERC1155 and ERC721 tokens.
+     * `amounts` parameter is only used when dealing with ERC1155 tokens.
+     *
+     * Requirements:
+     *
+     * - `receiver` must have available funds to claim in `campaignId`.
+     * - Only Fuul Manager can call this function.
+     * - Funds must not be freezed.
+     */
 
     function claimFromCampaign(
         uint256 campaignId,
@@ -587,6 +758,7 @@ contract FuulProject is
         external
         onlyFuulManager
         nonReentrant
+        whenFundsNotFreezed
         returns (uint256 claimAmount, address claimCurrency)
     {
         UserEarnings storage user = usersEarnings[receiver][campaignId];
@@ -596,7 +768,7 @@ contract FuulProject is
         uint256 availableAmount = user.availableToClaim;
 
         if (availableAmount == 0) {
-            revert IncorrectBalance(availableAmount);
+            revert ZeroAmount();
         }
 
         IFuulManager.TokenType tokenType = campaign.tokenType;
@@ -659,10 +831,23 @@ contract FuulProject is
       ║          EMERGENCY          ║
       ╚═════════════════════════════╝*/
 
+    /**
+     * @dev Withdraws all fungible tokens from contract to a receiver `to`.
+     * They can be native or ERC20 tokens.
+     *
+     * Requirements:
+     *
+     * - `to` must not be the zero address.
+     * - Only Fuul Manager can call this function.
+     */
     function emergencyWithdrawFungibleTokens(
         address to,
         address currency
     ) external onlyFuulManager {
+        if (to == address(0)) {
+            revert ZeroAddress();
+        }
+
         if (currency == address(0)) {
             // uint256 balance = address(this).balance;
             // require(balance > 0, "Contract has no balance");
@@ -680,12 +865,25 @@ contract FuulProject is
         }
     }
 
+    /**
+     * @dev Withdraws all NFTs from contract to a receiver `to`.
+     * They can be ERC1155 or ERC721 tokens.
+     *
+     * Requirements:
+     *
+     * - `to` must not be the zero address.
+     * - Only Fuul Manager can call this function.
+     */
+
     function emergencyWithdrawNFTTokens(
         address to,
         address currency,
         uint256[] memory tokenIds,
         uint256[] memory amounts
     ) external onlyFuulManager {
+        if (to == address(0)) {
+            revert ZeroAddress();
+        }
         IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
             currency
         );
@@ -709,16 +907,15 @@ contract FuulProject is
       ║   INTERNAL TRANSFER TOKENS  ║
       ╚═════════════════════════════╝*/
 
+    /**
+     * @dev Helper function to transfer ERC721 tokens.
+     */
     function _transferERC721Tokens(
         address tokenAddress,
         address senderAddress,
         address receiverAddress,
         uint256 tokenId
     ) internal {
-        if (tokenAddress == address(0)) {
-            revert ZeroAddress();
-        }
-
         // Transfer from does not allow to send more funds than balance
         IERC721(tokenAddress).safeTransferFrom(
             senderAddress,
@@ -727,6 +924,9 @@ contract FuulProject is
         );
     }
 
+    /**
+     * @dev Helper function to transfer ERC1155 tokens.
+     */
     function _transferERC1155Tokens(
         address tokenAddress,
         address senderAddress,
@@ -734,9 +934,6 @@ contract FuulProject is
         uint256[] memory tokenIds,
         uint256[] memory amounts
     ) internal {
-        if (tokenAddress == address(0)) {
-            revert ZeroAddress();
-        }
         // Transfer from does not allow to send more funds than balance
         IERC1155(tokenAddress).safeBatchTransferFrom(
             senderAddress,
@@ -751,6 +948,9 @@ contract FuulProject is
       ║            OTHER            ║
       ╚═════════════════════════════╝*/
 
+    /**
+     * @dev Helper function to sum all amounts inside the array.
+     */
     function _getSumFromArray(
         uint256[] memory amounts
     ) internal pure returns (uint256 result) {
@@ -765,6 +965,9 @@ contract FuulProject is
       ║          OVERRIDES          ║
       ╚═════════════════════════════╝*/
 
+    /**
+     * @dev See {IERC165-supportsInterface}.
+     */
     function supportsInterface(
         bytes4 interfaceId
     )

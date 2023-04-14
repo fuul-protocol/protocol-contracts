@@ -34,20 +34,12 @@ interface IFuulManager {
       ║           ERRORS            ║
       ╚═════════════════════════════╝*/
 
-    error InvalidUintArgument(uint256 value);
-    error InvalidAddressArgument(address value);
-    error InvalidTokenTypeArgument(TokenType value);
-
-    error TokenCurrencyAlreadyAccepted(address tokenAddress);
-    error TokenCurrencyNotAccepted(address tokenAddress);
-
-    // Voucher
+    error InvalidArgument();
+    error TokenCurrencyAlreadyAccepted();
+    error TokenCurrencyNotAccepted();
     error InvalidSignature();
-    error ClaimedVoucher(string voucherId);
-    error VoucherExpired(uint256 deadline, uint256 now);
-    error Unauthorized(address sender, address requiredSender);
-    error OverTheLimit(uint256 amount, uint256 limit);
-    error UnequalLengths(uint256 lengthOne, uint256 lengthTwo);
+    error Unauthorized();
+    error OverTheLimit();
 
     /*╔═════════════════════════════╗
       ║       PUBLIC VARIABLES      ║
@@ -65,10 +57,6 @@ interface IFuulManager {
     /*╔═════════════════════════════╗
       ║       REMOVE VARIABLES      ║
       ╚═════════════════════════════╝*/
-
-    function claimCooldownEnd(
-        uint256 claimCooldownPeriodStarted
-    ) external view returns (uint256);
 
     function setClaimCooldown(uint256 _period) external;
 

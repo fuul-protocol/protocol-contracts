@@ -3,7 +3,12 @@
 pragma solidity ^0.8.18;
 
 interface IFuulFactory {
-    error SameAddressValue(address value);
+    event ProjectCreated(
+        uint256 projectId,
+        address deployedAddress,
+        address eventSigner,
+        string projectInfoURI
+    );
 
     function createFuulProject(
         address _projectAdmin,

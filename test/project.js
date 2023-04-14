@@ -109,17 +109,17 @@ describe("Fuul Project - Campaign management", function () {
   it("Should fail to to deactivate, reactivate and set campaign uri if campaign does not exist", async function () {
     const campaignId = 1;
 
-    await expect(this.fuulProject.setCampaignURI(campaignId, this.campaignURI))
-      .to.be.revertedWithCustomError(this.fuulProject, "CampaignNotExists")
-      .withArgs(campaignId);
+    await expect(
+      this.fuulProject.setCampaignURI(campaignId, this.campaignURI)
+    ).to.be.revertedWithCustomError(this.fuulProject, "CampaignNotExists");
 
-    await expect(this.fuulProject.deactivateCampaign(campaignId))
-      .to.be.revertedWithCustomError(this.fuulProject, "CampaignNotExists")
-      .withArgs(campaignId);
+    await expect(
+      this.fuulProject.deactivateCampaign(campaignId)
+    ).to.be.revertedWithCustomError(this.fuulProject, "CampaignNotExists");
 
-    await expect(this.fuulProject.reactivateCampaign(campaignId))
-      .to.be.revertedWithCustomError(this.fuulProject, "CampaignNotExists")
-      .withArgs(campaignId);
+    await expect(
+      this.fuulProject.reactivateCampaign(campaignId)
+    ).to.be.revertedWithCustomError(this.fuulProject, "CampaignNotExists");
   });
 
   it("Should fail to create, activate and deactivate campaign and set campaignURI if not admin role", async function () {
@@ -190,9 +190,13 @@ describe("Fuul Project - Deposit and remove fungible", function () {
 
   it("Should deposit correctly & set correct values with currency = 0x", async function () {
     await expect(
-      this.fuulProject.depositFungibleToken(this.nativeCampaignId, 0, {
-        value: this.amount,
-      })
+      this.fuulProject.depositFungibleToken(
+        this.nativeCampaignId,
+        this.amount,
+        {
+          value: this.amount,
+        }
+      )
     )
       .to.emit(this.fuulProject, "BudgetDeposited")
       .withArgs(
@@ -220,9 +224,13 @@ describe("Fuul Project - Deposit and remove fungible", function () {
 
   it("Should remove correctly & set correct values with currency = 0x", async function () {
     // Deposit
-    await this.fuulProject.depositFungibleToken(this.nativeCampaignId, 0, {
-      value: this.amount,
-    });
+    await this.fuulProject.depositFungibleToken(
+      this.nativeCampaignId,
+      this.amount,
+      {
+        value: this.amount,
+      }
+    );
 
     // Deactivate campaign
     await this.fuulProject.deactivateCampaign(this.nativeCampaignId);
@@ -257,12 +265,10 @@ describe("Fuul Project - Deposit and remove fungible", function () {
     const campaignId = 10;
 
     await expect(
-      this.fuulProject.depositFungibleToken(campaignId, 0, {
+      this.fuulProject.depositFungibleToken(campaignId, this.amount, {
         value: this.amount,
       })
-    )
-      .to.be.revertedWithCustomError(this.fuulProject, "CampaignNotExists")
-      .withArgs(campaignId);
+    ).to.be.revertedWithCustomError(this.fuulProject, "CampaignNotExists");
   });
 
   it("Fail to remove if not deactivated or cooldown is not over", async function () {
@@ -270,9 +276,7 @@ describe("Fuul Project - Deposit and remove fungible", function () {
 
     await expect(
       this.fuulProject.removeFungibleBudget(this.nativeCampaignId, this.amount)
-    )
-      .to.be.revertedWithCustomError(this.fuulProject, "CampaignNotInactive")
-      .withArgs(this.nativeCampaignId);
+    ).to.be.revertedWithCustomError(this.fuulProject, "CampaignNotInactive");
 
     // Remove before cooldown is complete
     await this.fuulProject.deactivateCampaign(this.nativeCampaignId);
@@ -406,6 +410,18 @@ describe("Fuul Project - Deposit and remove fungible", function () {
     await expect(balance).to.equal(0);
   });
 
+  it("Should fail to deposit with amount equals to zero", async function () {
+    await expect(
+      this.fuulProject.depositFungibleToken(this.nativeCampaignId, 0)
+    ).to.be.revertedWithCustomError(this.fuulProject, "ZeroAmount");
+  });
+
+  it("Should fail to deposit native token if amount differs to msg.value", async function () {
+    await expect(
+      this.fuulProject.depositFungibleToken(this.nativeCampaignId, this.amount)
+    ).to.be.revertedWithCustomError(this.fuulProject, "IncorrectMsgValue");
+  });
+
   it("Should fail to deposit and remove if not admin role", async function () {
     const error = `AccessControl: account ${this.user2.address.toLowerCase()} is missing role ${
       this.adminRole
@@ -430,22 +446,16 @@ describe("Fuul Project - Deposit and remove fungible", function () {
     await expect(
       this.fuulProject.depositFungibleToken(this.erc20CampaignId, this.amount)
     ).to.be.revertedWithCustomError(this.fuulProject, "ManagerIsPaused");
-
-    await expect(
-      this.fuulProject.removeFungibleBudget(this.erc20CampaignId, this.amount)
-    ).to.be.revertedWithCustomError(this.fuulProject, "ManagerIsPaused");
   });
 
   it("Should fail to deposit if token currency is removed", async function () {
     await this.fuulManager.removeCurrencyToken(this.token.address);
     await expect(
       this.fuulProject.depositFungibleToken(this.erc20CampaignId, this.amount)
-    )
-      .to.be.revertedWithCustomError(
-        this.fuulProject,
-        "TokenCurrencyNotAccepted"
-      )
-      .withArgs(this.token.address);
+    ).to.be.revertedWithCustomError(
+      this.fuulProject,
+      "TokenCurrencyNotAccepted"
+    );
   });
 });
 
@@ -578,9 +588,7 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
 
     await expect(
       this.fuulProject.depositNFTToken(campaignId, this.tokenIds, [])
-    )
-      .to.be.revertedWithCustomError(this.fuulProject, "CampaignNotExists")
-      .withArgs(campaignId);
+    ).to.be.revertedWithCustomError(this.fuulProject, "CampaignNotExists");
   });
 
   it("Fail to remove if not deactivated or cooldown is not over", async function () {
@@ -588,9 +596,7 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
 
     await expect(
       this.fuulProject.removeNFTBudget(this.campaignId, this.tokenIds, [])
-    )
-      .to.be.revertedWithCustomError(this.fuulProject, "CampaignNotInactive")
-      .withArgs(this.campaignId);
+    ).to.be.revertedWithCustomError(this.fuulProject, "CampaignNotInactive");
 
     // Remove before cooldown is complete
     await this.fuulProject.deactivateCampaign(this.campaignId);
@@ -638,12 +644,10 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
 
     await expect(
       this.fuulProject.depositNFTToken(this.campaignId, this.tokenIds, [])
-    )
-      .to.be.revertedWithCustomError(
-        this.fuulProject,
-        "TokenCurrencyNotAccepted"
-      )
-      .withArgs(this.nft721.address);
+    ).to.be.revertedWithCustomError(
+      this.fuulProject,
+      "TokenCurrencyNotAccepted"
+    );
   });
 });
 
@@ -766,7 +770,7 @@ describe("Fuul Project - Deposit and remove NFT 1155", function () {
   });
 });
 
-describe("Fuul Project - Fuul Admin functions", function () {
+describe("Fuul Project - Fuul Manager functions", function () {
   beforeEach(async function () {
     const { fuulProject, fuulManager, user1 } = await setupTest();
 
@@ -779,16 +783,12 @@ describe("Fuul Project - Fuul Admin functions", function () {
     // Attribute
     await expect(
       this.fuulProject.attributeTransactions([1], [this.user1.address], [1])
-    )
-      .to.be.revertedWithCustomError(this.fuulProject, "Unauthorized")
-      .withArgs(this.user1.address, this.fuulManager.address);
+    ).to.be.revertedWithCustomError(this.fuulProject, "Unauthorized");
 
     // Claim
     await expect(
       this.fuulProject.claimFromCampaign(1, this.user1.address, [], [])
-    )
-      .to.be.revertedWithCustomError(this.fuulProject, "Unauthorized")
-      .withArgs(this.user1.address, this.fuulManager.address);
+    ).to.be.revertedWithCustomError(this.fuulProject, "Unauthorized");
 
     // Emergency withdraw fungible
     await expect(
@@ -796,9 +796,7 @@ describe("Fuul Project - Fuul Admin functions", function () {
         this.fuulProject.address,
         ethers.constants.AddressZero
       )
-    )
-      .to.be.revertedWithCustomError(this.fuulProject, "Unauthorized")
-      .withArgs(this.user1.address, this.fuulManager.address);
+    ).to.be.revertedWithCustomError(this.fuulProject, "Unauthorized");
 
     // Emergency withdraw NFTs
 
@@ -809,8 +807,6 @@ describe("Fuul Project - Fuul Admin functions", function () {
         [],
         []
       )
-    )
-      .to.be.revertedWithCustomError(this.fuulProject, "Unauthorized")
-      .withArgs(this.user1.address, this.fuulManager.address);
+    ).to.be.revertedWithCustomError(this.fuulProject, "Unauthorized");
   });
 });

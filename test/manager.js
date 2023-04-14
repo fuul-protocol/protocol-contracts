@@ -51,17 +51,17 @@ describe("Fuul Manager - Remove variables management", function () {
   it("Should fail to set claim cooldown if incorrect arguments are passed", async function () {
     const newPeriod = await this.fuulManager.claimCooldown();
 
-    await expect(this.fuulManager.setClaimCooldown(newPeriod))
-      .to.be.revertedWithCustomError(this.fuulManager, "InvalidUintArgument")
-      .withArgs(newPeriod);
+    await expect(
+      this.fuulManager.setClaimCooldown(newPeriod)
+    ).to.be.revertedWithCustomError(this.fuulManager, "InvalidArgument");
   });
 
   it("Should fail to set budget cooldown if incorrect arguments are passed", async function () {
     const newPeriod = await this.fuulManager.campaignBudgetCooldown();
 
-    await expect(this.fuulManager.setCampaignBudgetCooldown(newPeriod))
-      .to.be.revertedWithCustomError(this.fuulManager, "InvalidUintArgument")
-      .withArgs(newPeriod);
+    await expect(
+      this.fuulManager.setCampaignBudgetCooldown(newPeriod)
+    ).to.be.revertedWithCustomError(this.fuulManager, "InvalidArgument");
   });
 });
 
@@ -155,62 +155,45 @@ describe("Fuul Manager - Token currency management", function () {
 
     await expect(
       this.fuulManager.addCurrencyToken(this.token.address, this.limit)
-    )
-      .to.be.revertedWithCustomError(
-        this.fuulManager,
-        "TokenCurrencyAlreadyAccepted"
-      )
-      .withArgs(this.token.address);
+    ).to.be.revertedWithCustomError(
+      this.fuulManager,
+      "TokenCurrencyAlreadyAccepted"
+    );
 
     // Limit = 0
 
-    await expect(this.fuulManager.addCurrencyToken(this.newCurrency, 0))
-      .to.be.revertedWithCustomError(this.fuulManager, "InvalidUintArgument")
-      .withArgs(0);
+    await expect(
+      this.fuulManager.addCurrencyToken(this.newCurrency, 0)
+    ).to.be.revertedWithCustomError(this.fuulManager, "InvalidArgument");
 
     // EOA Address
     await expect(
       this.fuulManager.addCurrencyToken(this.user2.address, this.limitAmount)
-    )
-      .to.be.revertedWithCustomError(this.fuulManager, "InvalidAddressArgument")
-      .withArgs(this.user2.address);
+    ).to.be.revertedWithCustomError(this.fuulManager, "InvalidArgument");
   });
 
   it("Should fail to remove currency and not accepted", async function () {
-    await expect(this.fuulManager.removeCurrencyToken(this.user2.address))
-      .to.be.revertedWithCustomError(
-        this.fuulManager,
-        "TokenCurrencyNotAccepted"
-      )
-      .withArgs(this.user2.address);
+    await expect(
+      this.fuulManager.removeCurrencyToken(this.user2.address)
+    ).to.be.revertedWithCustomError(
+      this.fuulManager,
+      "TokenCurrencyNotAccepted"
+    );
   });
 
   it("Should fail to set new token limit if incorrect arguments are passed", async function () {
-    // Token not accepted
-
-    await expect(
-      this.fuulManager.setCurrencyTokenLimit(this.user2.address, this.limit)
-    )
-      .to.be.revertedWithCustomError(
-        this.fuulManager,
-        "TokenCurrencyNotAccepted"
-      )
-      .withArgs(this.user2.address);
-
     // Same token type value
     await expect(
       this.fuulManager.setCurrencyTokenLimit(
         this.token.address,
         this.limitAmount
       )
-    )
-      .to.be.revertedWithCustomError(this.fuulManager, "InvalidUintArgument")
-      .withArgs(this.limitAmount);
+    ).to.be.revertedWithCustomError(this.fuulManager, "InvalidArgument");
 
     // Limit = 0
-    await expect(this.fuulManager.setCurrencyTokenLimit(this.token.address, 0))
-      .to.be.revertedWithCustomError(this.fuulManager, "InvalidUintArgument")
-      .withArgs(0);
+    await expect(
+      this.fuulManager.setCurrencyTokenLimit(this.token.address, 0)
+    ).to.be.revertedWithCustomError(this.fuulManager, "InvalidArgument");
   });
 });
 
@@ -280,9 +263,13 @@ describe("Fuul Manager - Emergency withdraw", function () {
 
     this.nativeCampaignId = 2;
 
-    this.fuulProject.depositFungibleToken(this.nativeCampaignId, 0, {
-      value: this.amount,
-    });
+    await this.fuulProject.depositFungibleToken(
+      this.nativeCampaignId,
+      this.amount,
+      {
+        value: this.amount,
+      }
+    );
 
     // Balance Before
 
@@ -492,9 +479,13 @@ describe("Fuul Manager - Attribute", function () {
 
     this.nativeCampaignId = 2;
 
-    this.fuulProject.depositFungibleToken(this.nativeCampaignId, 0, {
-      value: this.amount,
-    });
+    await this.fuulProject.depositFungibleToken(
+      this.nativeCampaignId,
+      this.amount,
+      {
+        value: this.amount,
+      }
+    );
 
     // Create 721 campaign and deposit in Fuul project
 
@@ -743,9 +734,13 @@ describe("Fuul Manager - Claim", function () {
 
     this.nativeCampaignId = 2;
 
-    this.fuulProject.depositFungibleToken(this.nativeCampaignId, 0, {
-      value: this.amount,
-    });
+    await this.fuulProject.depositFungibleToken(
+      this.nativeCampaignId,
+      this.amount,
+      {
+        value: this.amount,
+      }
+    );
 
     // Create 721 campaign and deposit in Fuul project
 
@@ -1238,9 +1233,9 @@ describe("Fuul Manager - Claim", function () {
       },
     ];
 
-    await expect(this.fuulManager.connect(this.user2).claim(claimChecks))
-      .to.be.revertedWithCustomError(this.fuulProject, "IncorrectBalance")
-      .withArgs(0);
+    await expect(
+      this.fuulManager.connect(this.user2).claim(claimChecks)
+    ).to.be.revertedWithCustomError(this.fuulProject, "ZeroAmount");
   });
 
   it("Should fail to claim if contract is paused", async function () {

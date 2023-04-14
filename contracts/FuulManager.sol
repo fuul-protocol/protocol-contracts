@@ -4,28 +4,29 @@ pragma solidity ^0.8.18;
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
-import "./interfaces/IFuulProject.sol";
-import "./interfaces/IFuulManager.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/interfaces/IERC165.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
+import "./interfaces/IFuulManager.sol";
+
 contract FuulManager is
     IFuulManager,
     AccessControlEnumerable,
     ReentrancyGuard,
-    Pausable,
-    EIP712
+    Pausable
 {
     using ERC165Checker for address;
 
-    uint256 public testAmount;
+    // Attributor role
+    bytes32 public constant ATTRIBUTOR_ROLE = keccak256("ATTRIBUTOR_ROLE");
+    // Pauser role
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
+    // Currency token info
     struct CurrencyToken {
         TokenType tokenType;
         uint256 claimLimitPerCooldown;
@@ -34,65 +35,83 @@ contract FuulManager is
         bool isActive;
     }
 
-    bytes32 public constant ATTRIBUTOR_ROLE = keccak256("ATTRIBUTOR_ROLE");
-    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
-
-    uint256 public campaignBudgetCooldown = 30 days;
-    uint256 public claimCooldown = 1 days;
-
-    mapping(address => mapping(address => uint256)) public usersClaims; // Address => currency => total claimed
-
+    // Mapping addresses with tokens info
     mapping(address => CurrencyToken) public currencyTokens;
 
+    // Period that should pass after campaign is deactivated for projects to be able to remove budget
+    uint256 public campaignBudgetCooldown = 30 days;
+
+    // Period that should pass after `claimCooldownPeriodStarted` for the cumulative amount to be restarted
+    uint256 public claimCooldown = 1 days;
+
+    // Mapping users and currency with total amount claimed
+    mapping(address => mapping(address => uint256)) public usersClaims;
+
+    // Interfaces for ERC721 and ERC1155 contracts
     bytes4 public constant IID_IERC1155 = type(IERC1155).interfaceId;
     bytes4 public constant IID_IERC721 = type(IERC721).interfaceId;
-    bytes4 public constant IID_IERC20 = type(IERC20).interfaceId;
 
     /*╔═════════════════════════════╗
       ║         CONSTRUCTOR         ║
       ╚═════════════════════════════╝*/
 
+    /**
+     * @dev Grants roles to `_attributor`, `_pauser` and DEFAULT_ADMIN_ROLE to the deployer.
+     *
+     * Adds the initial `acceptedERC20CurrencyToken` as an accepted currency with its `initialTokenLimit`.
+     * Adds the zero address (native token) as an accepted currency with its `initialNativeTokenLimit`.
+     */
     constructor(
         address _attributor,
         address _pauser,
         address acceptedERC20CurrencyToken,
         uint256 initialTokenLimit,
-        uint256 initialZeroTokenLimit
-    ) EIP712("FuulManager", "1.0.0") {
+        uint256 initialNativeTokenLimit
+    ) {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
         _setupRole(ATTRIBUTOR_ROLE, _attributor);
         _setupRole(PAUSER_ROLE, _pauser);
 
         _addCurrencyToken(acceptedERC20CurrencyToken, initialTokenLimit);
-        _addCurrencyToken(address(0), initialZeroTokenLimit);
+        _addCurrencyToken(address(0), initialNativeTokenLimit);
     }
 
     /*╔═════════════════════════════╗
       ║       REMOVE VARIABLES      ║
       ╚═════════════════════════════╝*/
 
-    function claimCooldownEnd(
-        uint256 claimCooldownPeriodStarted
-    ) public view returns (uint256) {
-        return claimCooldownPeriodStarted + claimCooldown;
-    }
-
+    /**
+     * @dev Sets the period for `claimCooldown`.
+     *
+     * Requirements:
+     *
+     * - `_period` must be different from the current one.
+     * - Only admins can call this function.
+     */
     function setClaimCooldown(
         uint256 _period
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_period == claimCooldown) {
-            revert InvalidUintArgument(_period);
+            revert InvalidArgument();
         }
 
         claimCooldown = _period;
     }
 
+    /**
+     * @dev Sets the period for `campaignBudgetCooldown`.
+     *
+     * Requirements:
+     *
+     * - `_period` must be different from the current one.
+     * - Only admins can call this function.
+     */
     function setCampaignBudgetCooldown(
         uint256 _period
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_period == campaignBudgetCooldown) {
-            revert InvalidUintArgument(_period);
+            revert InvalidArgument();
         }
 
         campaignBudgetCooldown = _period;
@@ -102,18 +121,32 @@ contract FuulManager is
       ║       TOKEN CURRENCIES      ║
       ╚═════════════════════════════╝*/
 
+    /**
+     * @dev Returns TokenType enum from a tokenAddress.
+     */
     function getTokenType(
         address tokenAddress
     ) public view returns (TokenType tokenType) {
         return currencyTokens[tokenAddress].tokenType;
     }
 
+    /**
+     * @dev Returns whether the currency token is accepted.
+     */
     function isCurrencyTokenAccepted(
         address tokenAddress
     ) public view returns (bool isAccepted) {
         return currencyTokens[tokenAddress].isActive;
     }
 
+    /**
+     * @dev Adds a currency token.
+     * See {_addCurrencyToken}
+     *
+     * Requirements:
+     *
+     * - Only admins can call this function.
+     */
     function addCurrencyToken(
         address tokenAddress,
         uint256 claimLimitPerCooldown
@@ -121,11 +154,19 @@ contract FuulManager is
         _addCurrencyToken(tokenAddress, claimLimitPerCooldown);
     }
 
+    /**
+     * @dev Removes a currency token.
+     *
+     * Requirements:
+     *
+     * - `tokenAddress` must be accepted.
+     * - Only admins can call this function.
+     */
     function removeCurrencyToken(
         address tokenAddress
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (!isCurrencyTokenAccepted(tokenAddress)) {
-            revert TokenCurrencyNotAccepted(tokenAddress);
+            revert TokenCurrencyNotAccepted();
         }
         CurrencyToken storage currency = currencyTokens[tokenAddress];
 
@@ -135,17 +176,27 @@ contract FuulManager is
         // We keep the tokenType because campaigns using this currency will still be able to claim it
     }
 
+    /**
+     * @dev Sets a new `claimLimitPerCooldown` for a currency token.
+     *
+     * Notes:
+     * We are not checking that the tokenAddress is accepted because
+     * users can claim from unaccepted currencies.
+     *
+     * Requirements:
+     *
+     * - `limit` must be greater than zero.
+     * - `limit` must be different from the current one.
+     * - Only admins can call this function.
+     */
     function setCurrencyTokenLimit(
         address tokenAddress,
         uint256 limit
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (!isCurrencyTokenAccepted(tokenAddress)) {
-            revert TokenCurrencyNotAccepted(tokenAddress);
-        }
         CurrencyToken storage currency = currencyTokens[tokenAddress];
 
         if (limit == 0 || limit == currency.claimLimitPerCooldown) {
-            revert InvalidUintArgument(limit);
+            revert InvalidArgument();
         }
 
         currency.claimLimitPerCooldown = limit;
@@ -155,21 +206,50 @@ contract FuulManager is
       ║            PAUSE            ║
       ╚═════════════════════════════╝*/
 
+    /**
+     * @dev Pauses the contract and all {FuulProject}s.
+     * See {Pausable.sol}
+     *
+     * Requirements:
+     *
+     * - Only addresses with the PAUSER_ROLE can call this function.
+     */
     function pauseAll() external onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
+    /**
+     * @dev Unpauses the contract and all {FuulProject}s.
+     * See {Pausable.sol}
+     *
+     * Requirements:
+     *
+     * - Only addresses with the PAUSER_ROLE can call this function.
+     */
     function unpauseAll() external onlyRole(PAUSER_ROLE) {
         _unpause();
     }
 
+    /**
+     * @dev Returns whether the contract is paused.
+     * See {Pausable.sol}
+     */
     function isPaused() external view returns (bool) {
         return paused();
     }
 
     /*╔═════════════════════════════╗
-      ║       UPDATE BALANCES       ║
+      ║      ATTRIBUTE & CLAIM      ║
       ╚═════════════════════════════╝*/
+
+    /**
+     * @dev Attributes: calls the `attributeTransactions` function in {FuulProject} from a loop of `AttributeCheck`.
+     *
+     * Requirements:
+     *
+     * - Contract should not be paused.
+     * - Only addresses with the ATTRIBUTOR_ROLE can call this function.
+     */
 
     function attributeTransactions(
         AttributeCheck[] calldata attributeChecks
@@ -185,10 +265,13 @@ contract FuulManager is
         }
     }
 
-    /*╔═════════════════════════════╗
-      ║           CLAIM             ║
-      ╚═════════════════════════════╝*/
-
+    /**
+     * @dev Claims: calls the `claimFromCampaign` function in {FuulProject} from a loop of `ClaimChecks`.
+     *
+     * Requirements:
+     *
+     * - Contract should not be paused.
+     */
     function claim(
         ClaimCheck[] calldata claimChecks
     ) external whenNotPaused nonReentrant {
@@ -211,10 +294,7 @@ contract FuulManager is
             // Limit
 
             if (tokenAmount > currencyInfo.claimLimitPerCooldown) {
-                revert OverTheLimit(
-                    tokenAmount,
-                    currencyInfo.claimLimitPerCooldown
-                );
+                revert OverTheLimit();
             }
 
             if (
@@ -227,10 +307,7 @@ contract FuulManager is
                     currencyInfo.cumulativeClaimPerCooldown + tokenAmount >
                     currencyInfo.claimLimitPerCooldown
                 ) {
-                    revert OverTheLimit(
-                        currencyInfo.cumulativeClaimPerCooldown + tokenAmount,
-                        currencyInfo.claimLimitPerCooldown
-                    );
+                    revert OverTheLimit();
                 }
 
                 currencyInfo.cumulativeClaimPerCooldown += tokenAmount;
@@ -250,6 +327,14 @@ contract FuulManager is
       ║          EMERGENCY          ║
       ╚═════════════════════════════╝*/
 
+    /**
+     * @dev Calls the `emergencyWithdrawFungibleTokens` function in {FuulProject}
+     * from a loop of `FuulProjectFungibleCurrencies`.
+     *
+     * Requirements:
+     *
+     * - Only admins can call this function.
+     */
     function emergencyWithdrawFungibleTokensFromProjects(
         address to,
         FuulProjectFungibleCurrencies[] memory projectsCurrencies
@@ -268,6 +353,13 @@ contract FuulManager is
         }
     }
 
+    /**
+     * @dev Calls the `emergencyWithdrawNFTTokens` function in {FuulProject}.
+     *
+     * Requirements:
+     *
+     * - Only admins can call this function.
+     */
     function emergencyWithdrawNFTsFromProject(
         address to,
         address projectAddress,
@@ -287,6 +379,9 @@ contract FuulManager is
       ║      INTERNAL ADD TOKEN     ║
       ╚═════════════════════════════╝*/
 
+    /**
+     * @dev Returns whether the address is an ERC20 token.
+     */
     function isERC20(address tokenAddress) internal view returns (bool) {
         IERC20 token = IERC20(tokenAddress);
         try token.totalSupply() {
@@ -297,6 +392,9 @@ contract FuulManager is
         return false;
     }
 
+    /**
+     * @dev Returns whether the address is a contract.
+     */
     function isContract(address _addr) internal view returns (bool) {
         uint32 size;
         assembly {
@@ -305,20 +403,30 @@ contract FuulManager is
         return (size > 0);
     }
 
+    /**
+     * @dev Adds a new `tokenAddress` to accepted currencies with its
+     * corresponding `claimLimitPerCooldown`.
+     *
+     * Requirements:
+     *
+     * - `tokenAddress` must be a contract (excepting for the zero address).
+     * - `tokenAddress` must not be accepted yet.
+     * - `claimLimitPerCooldown` should be greater than zero.
+     */
     function _addCurrencyToken(
         address tokenAddress,
         uint256 claimLimitPerCooldown
     ) internal {
         if (tokenAddress != address(0) && !isContract(tokenAddress)) {
-            revert InvalidAddressArgument(tokenAddress);
+            revert InvalidArgument();
         }
 
         if (isCurrencyTokenAccepted(tokenAddress)) {
-            revert TokenCurrencyAlreadyAccepted(tokenAddress);
+            revert TokenCurrencyAlreadyAccepted();
         }
 
         if (claimLimitPerCooldown == 0) {
-            revert InvalidUintArgument(claimLimitPerCooldown);
+            revert InvalidArgument();
         }
 
         TokenType tokenType;
@@ -332,7 +440,7 @@ contract FuulManager is
         } else if (tokenAddress.supportsInterface(IID_IERC1155)) {
             tokenType = TokenType(3);
         } else {
-            revert InvalidAddressArgument(tokenAddress);
+            revert InvalidArgument();
         }
 
         currencyTokens[tokenAddress] = CurrencyToken({

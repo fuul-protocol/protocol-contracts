@@ -56,18 +56,19 @@ interface IFuulProject {
       ║           ERRORS            ║
       ╚═════════════════════════════╝*/
 
-    error Unauthorized(address sender, address requiredSender);
     error ManagerIsPaused();
-    error CampaignNotExists(uint256 campaignId);
-    error EmptyURI(string uri);
-    error TokenCurrencyNotAccepted(address tokenAddress);
+    error ManagerIsNotPaused();
 
-    error CampaignNotInactive(uint256 campaignId);
-    error CampaignNotActive(uint256 campaignId);
-    // error InsufficientBalance(uint256 available, uint256 required);
-    error IncorrectBalance(uint256 amount);
-    error CooldownPeriodNotFinished(uint256 now, uint256 required);
+    error CampaignNotExists();
+    error EmptyURI();
+
+    error CampaignNotInactive();
+    error CampaignNotActive();
+    error IncorrectMsgValue();
+
+    error CooldownPeriodNotFinished();
     error ZeroAddress();
+    error ZeroAmount();
 
     // error SameValue(address value);
 
