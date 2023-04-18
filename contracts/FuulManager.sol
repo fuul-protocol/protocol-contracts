@@ -284,7 +284,7 @@ contract FuulManager is
             (tokenAmount, currency) = IFuulProject(claimCheck.projectAddress)
                 .claimFromCampaign(
                     claimCheck.campaignId,
-                    msg.sender,
+                    _msgSender(),
                     claimCheck.tokenIds,
                     claimCheck.amounts
                 );
@@ -319,7 +319,7 @@ contract FuulManager is
 
             // Update values
 
-            usersClaims[msg.sender][currency] += tokenAmount;
+            usersClaims[_msgSender()][currency] += tokenAmount;
         }
     }
 
@@ -385,7 +385,7 @@ contract FuulManager is
     function isERC20(address tokenAddress) internal view returns (bool) {
         IERC20 token = IERC20(tokenAddress);
         try token.totalSupply() {
-            try token.allowance(msg.sender, address(this)) {
+            try token.allowance(_msgSender(), address(this)) {
                 return true;
             } catch {}
         } catch {}

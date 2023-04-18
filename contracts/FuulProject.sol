@@ -44,6 +44,12 @@ contract FuulProject is
         uint256 availableToClaim;
     }
 
+    // Protocol fees per curency
+    struct ProtocolFees {
+        uint256 totalFees;
+        uint256 availableToClaim;
+    }
+
     // Factory contract address
     address public fuulFactory;
 
@@ -59,6 +65,10 @@ contract FuulProject is
 
     // Mapping owner address to campaign id to earnings
     mapping(address => mapping(uint256 => UserEarnings)) public usersEarnings;
+
+    // Mapping token address to fees
+    mapping(address => mapping(uint256 => ProtocolFees))
+        public protocolFeesperCurrency;
 
     // URI that points to a file with project information (image, name, description, etc)
     string public projectInfoURI;
@@ -84,7 +94,7 @@ contract FuulProject is
      */
 
     modifier onlyFuulManager() {
-        if (msg.sender != fuulManagerAddress()) {
+        if (_msgSender() != fuulManagerAddress()) {
             revert IFuulManager.Unauthorized();
         }
         _;
@@ -129,7 +139,7 @@ contract FuulProject is
     ) external {
         require(fuulFactory == address(0), "FuulV1: FORBIDDEN");
 
-        fuulFactory = msg.sender;
+        fuulFactory = _msgSender();
         projectInfoURI = _projectInfoURI;
 
         _setupRole(DEFAULT_ADMIN_ROLE, projectAdmin);
@@ -235,7 +245,7 @@ contract FuulProject is
         });
 
         emit CampaignCreated(
-            msg.sender,
+            _msgSender(),
             currency,
             campaignId,
             tokenType,
@@ -384,7 +394,7 @@ contract FuulProject is
             }
 
             IERC20(currency).safeTransferFrom(
-                msg.sender,
+                _msgSender(),
                 address(this),
                 amount
             );
@@ -395,7 +405,7 @@ contract FuulProject is
         campaign.currentBudget += amount;
 
         emit BudgetDeposited(
-            msg.sender,
+            _msgSender(),
             amount,
             currency,
             campaignId,
@@ -456,7 +466,7 @@ contract FuulProject is
             for (uint256 i = 0; i < tokenIds.length; i++) {
                 _transferERC721Tokens(
                     currency,
-                    msg.sender,
+                    _msgSender(),
                     address(this),
                     tokenIds[i]
                 );
@@ -468,7 +478,7 @@ contract FuulProject is
         } else if (tokenType == IFuulManager.TokenType.ERC_1155) {
             _transferERC1155Tokens(
                 currency,
-                msg.sender,
+                _msgSender(),
                 address(this),
                 tokenIds,
                 amounts
@@ -483,7 +493,7 @@ contract FuulProject is
         campaign.currentBudget += depositedAmount;
 
         emit BudgetDeposited(
-            msg.sender,
+            _msgSender(),
             depositedAmount,
             currency,
             campaignId,
@@ -572,7 +582,7 @@ contract FuulProject is
             //         required: amount
             //     });
 
-            payable(msg.sender).sendValue(amount);
+            payable(_msgSender()).sendValue(amount);
         } else if (tokenType == IFuulManager.TokenType.ERC_20) {
             // Commented to optimize contract size
 
@@ -582,11 +592,11 @@ contract FuulProject is
             //         available: balance,
             //         required: amount
             //     });
-            IERC20(currency).safeTransfer(msg.sender, amount);
+            IERC20(currency).safeTransfer(_msgSender(), amount);
         }
 
         emit BudgetRemoved(
-            msg.sender,
+            _msgSender(),
             amount,
             currency,
             campaignId,
@@ -655,7 +665,7 @@ contract FuulProject is
                 _transferERC721Tokens(
                     currency,
                     address(this),
-                    msg.sender,
+                    _msgSender(),
                     tokenIds[i]
                 );
             }
@@ -665,7 +675,7 @@ contract FuulProject is
             _transferERC1155Tokens(
                 currency,
                 address(this),
-                msg.sender,
+                _msgSender(),
                 tokenIds,
                 amounts
             );
@@ -677,7 +687,7 @@ contract FuulProject is
         campaign.currentBudget -= removeAmount;
 
         emit BudgetRemoved(
-            msg.sender,
+            _msgSender(),
             removeAmount,
             currency,
             campaignId,
