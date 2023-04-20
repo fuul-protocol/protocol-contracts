@@ -51,6 +51,9 @@ contract FuulManager is
     bytes4 public constant IID_IERC1155 = type(IERC1155).interfaceId;
     bytes4 public constant IID_IERC721 = type(IERC721).interfaceId;
 
+    uint8 public protocolFees;
+    uint8 public clientFees;
+
     /*╔═════════════════════════════╗
       ║         CONSTRUCTOR         ║
       ╚═════════════════════════════╝*/
@@ -115,6 +118,44 @@ contract FuulManager is
         }
 
         campaignBudgetCooldown = _period;
+    }
+
+    /*╔═════════════════════════════╗
+      ║        FEES VARIABLES       ║
+      ╚═════════════════════════════╝*/
+
+    /**
+     * @dev Sets the protocol fees for each attribution.
+     *
+     * Requirements:
+     *
+     * - `_value` must be different from the current one.
+     * - Only admins can call this function.
+     */
+    function setProtocolFees(
+        uint8 _value
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (_value == protocolFees) {
+            revert InvalidArgument();
+        }
+
+        protocolFees = _value;
+    }
+
+    /**
+     * @dev Sets the fees for the client that was used to create the campaign.
+     *
+     * Requirements:
+     *
+     * - `_value` must be different from the current one.
+     * - Only admins can call this function.
+     */
+    function setClientFees(uint8 _value) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (_value == clientFees) {
+            revert InvalidArgument();
+        }
+
+        clientFees = _value;
     }
 
     /*╔═════════════════════════════╗
@@ -321,58 +362,6 @@ contract FuulManager is
 
             usersClaims[_msgSender()][currency] += tokenAmount;
         }
-    }
-
-    /*╔═════════════════════════════╗
-      ║          EMERGENCY          ║
-      ╚═════════════════════════════╝*/
-
-    /**
-     * @dev Calls the `emergencyWithdrawFungibleTokens` function in {FuulProject}
-     * from a loop of `FuulProjectFungibleCurrencies`.
-     *
-     * Requirements:
-     *
-     * - Only admins can call this function.
-     */
-    function emergencyWithdrawFungibleTokensFromProjects(
-        address to,
-        FuulProjectFungibleCurrencies[] memory projectsCurrencies
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        for (uint256 i = 0; i < projectsCurrencies.length; i++) {
-            FuulProjectFungibleCurrencies memory project = projectsCurrencies[
-                i
-            ];
-
-            for (uint256 j = 0; j < project.currencies.length; j++) {
-                address currency = project.currencies[j];
-
-                IFuulProject(project.deployedAddress)
-                    .emergencyWithdrawFungibleTokens(to, currency);
-            }
-        }
-    }
-
-    /**
-     * @dev Calls the `emergencyWithdrawNFTTokens` function in {FuulProject}.
-     *
-     * Requirements:
-     *
-     * - Only admins can call this function.
-     */
-    function emergencyWithdrawNFTsFromProject(
-        address to,
-        address projectAddress,
-        address currency,
-        uint256[] memory tokenIds,
-        uint256[] memory amounts
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        IFuulProject(projectAddress).emergencyWithdrawNFTTokens(
-            to,
-            currency,
-            tokenIds,
-            amounts
-        );
     }
 
     /*╔═════════════════════════════╗

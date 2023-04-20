@@ -104,7 +104,7 @@ contract FuulProject is
      * @dev Modifier that the Fuul Manager contract is not paused. Reverts
      * with a ManagerIsPaused error.
      */
-    modifier whenFundsNotFreezed() {
+    modifier whenManagerIsPaused() {
         if (fuulManagerInstance().isPaused()) {
             revert ManagerIsPaused();
         }
@@ -347,7 +347,6 @@ contract FuulProject is
      * - `campaignId` must exist and be active.
      * - `amount` must be greater than zero.
      * - Only admins can deposit.
-     * - Funds must not be freezed.
      */
     function depositFungibleToken(
         uint256 campaignId,
@@ -356,7 +355,6 @@ contract FuulProject is
         external
         payable
         nonReentrant
-        whenFundsNotFreezed
         onlyRole(DEFAULT_ADMIN_ROLE)
         campaignExists(campaignId)
     {
@@ -426,7 +424,6 @@ contract FuulProject is
      *
      * - `campaignId` must exist and be active.
      * - Only admins can deposit.
-     * - Funds must not be freezed.
      */
     function depositNFTToken(
         uint256 campaignId,
@@ -435,7 +432,6 @@ contract FuulProject is
     )
         external
         nonReentrant
-        whenFundsNotFreezed
         onlyRole(DEFAULT_ADMIN_ROLE)
         campaignExists(campaignId)
     {
@@ -532,7 +528,6 @@ contract FuulProject is
      * - `campaignId` must exist and be active.
      * - `amount` must be greater than zero.
      * - Only admins can remove.
-     * - Funds must not be freezed.
      * - Budget remove cooldown period has to be completed.
      */
     function removeFungibleBudget(
@@ -541,7 +536,6 @@ contract FuulProject is
     )
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
-        whenFundsNotFreezed
         nonReentrant
         campaignExists(campaignId)
     {
@@ -618,7 +612,6 @@ contract FuulProject is
      * - `campaignId` must exist and be active.
      * - `amount` must be greater than zero.
      * - Only admins can remove.
-     * - Funds must not be freezed.
      * - Budget remove cooldown period has to be completed.
      */
     function removeNFTBudget(
@@ -628,7 +621,6 @@ contract FuulProject is
     )
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
-        whenFundsNotFreezed
         nonReentrant
         campaignExists(campaignId)
     {
@@ -710,12 +702,14 @@ contract FuulProject is
      * - All elements of `campaignIds` must exist and have the corresponding balance.
      * - All elements of `amounts` must be greater than zero.
      * - Only Fuul Manager can attribute.
+     * - Funds must not be freezed.
+
      */
     function attributeTransactions(
         uint256[] calldata campaignIds,
         address[] calldata receivers,
         uint256[] calldata amounts
-    ) external onlyFuulManager nonReentrant {
+    ) external onlyFuulManager nonReentrant whenManagerIsPaused {
         if (campaignIds.length != receivers.length) {
             revert IFuulManager.InvalidArgument();
         }
@@ -768,7 +762,7 @@ contract FuulProject is
         external
         onlyFuulManager
         nonReentrant
-        whenFundsNotFreezed
+        whenManagerIsPaused
         returns (uint256 claimAmount, address claimCurrency)
     {
         UserEarnings storage user = usersEarnings[receiver][campaignId];
@@ -835,82 +829,6 @@ contract FuulProject is
         );
 
         return (tokenAmount, currency);
-    }
-
-    /*╔═════════════════════════════╗
-      ║          EMERGENCY          ║
-      ╚═════════════════════════════╝*/
-
-    /**
-     * @dev Withdraws all fungible tokens from contract to a receiver `to`.
-     * They can be native or ERC20 tokens.
-     *
-     * Requirements:
-     *
-     * - `to` must not be the zero address.
-     * - Only Fuul Manager can call this function.
-     */
-    function emergencyWithdrawFungibleTokens(
-        address to,
-        address currency
-    ) external onlyFuulManager {
-        if (to == address(0)) {
-            revert ZeroAddress();
-        }
-
-        if (currency == address(0)) {
-            // uint256 balance = address(this).balance;
-            // require(balance > 0, "Contract has no balance");
-
-            payable(to).sendValue(address(this).balance);
-        } else {
-            // uint256 balance = IERC20(currency).balanceOf(address(this));
-
-            // require(balance > 0, "Contract has no balance");
-
-            IERC20(currency).safeTransfer(
-                to,
-                IERC20(currency).balanceOf(address(this))
-            );
-        }
-    }
-
-    /**
-     * @dev Withdraws all NFTs from contract to a receiver `to`.
-     * They can be ERC1155 or ERC721 tokens.
-     *
-     * Requirements:
-     *
-     * - `to` must not be the zero address.
-     * - Only Fuul Manager can call this function.
-     */
-
-    function emergencyWithdrawNFTTokens(
-        address to,
-        address currency,
-        uint256[] memory tokenIds,
-        uint256[] memory amounts
-    ) external onlyFuulManager {
-        if (to == address(0)) {
-            revert ZeroAddress();
-        }
-        IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
-            currency
-        );
-
-        if (tokenType == IFuulManager.TokenType.ERC_721) {
-            for (uint256 i = 0; i < tokenIds.length; i++) {
-                _transferERC721Tokens(currency, address(this), to, tokenIds[i]);
-            }
-        } else if (tokenType == IFuulManager.TokenType.ERC_1155) {
-            _transferERC1155Tokens(
-                currency,
-                address(this),
-                to,
-                tokenIds,
-                amounts
-            );
-        }
     }
 
     /*╔═════════════════════════════╗

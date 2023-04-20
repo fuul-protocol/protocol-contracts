@@ -54,6 +54,10 @@ interface IFuulManager {
         address currency
     ) external view returns (uint256);
 
+    function protocolFees() external view returns (uint8 fees);
+
+    function clientFees() external view returns (uint8 fees);
+
     /*╔═════════════════════════════╗
       ║       REMOVE VARIABLES      ║
       ╚═════════════════════════════╝*/
@@ -61,6 +65,14 @@ interface IFuulManager {
     function setClaimCooldown(uint256 _period) external;
 
     function setCampaignBudgetCooldown(uint256 period) external;
+
+    /*╔═════════════════════════════╗
+      ║        FEES VARIABLES       ║
+      ╚═════════════════════════════╝*/
+
+    function setProtocolFees(uint8 value) external;
+
+    function setClientFees(uint8 value) external;
 
     /*╔═════════════════════════════╗
       ║       TOKEN CURRENCIES      ║
@@ -109,21 +121,4 @@ interface IFuulManager {
     ) external;
 
     function claim(ClaimCheck[] calldata claimChecks) external;
-
-    /*╔═════════════════════════════╗
-      ║          EMERGENCY          ║
-      ╚═════════════════════════════╝*/
-
-    function emergencyWithdrawFungibleTokensFromProjects(
-        address to,
-        FuulProjectFungibleCurrencies[] memory projectsCurrencies
-    ) external;
-
-    function emergencyWithdrawNFTsFromProject(
-        address to,
-        address fuulProject,
-        address currency,
-        uint256[] memory tokenIds,
-        uint256[] memory amounts
-    ) external;
 }

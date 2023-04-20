@@ -440,14 +440,6 @@ describe("Fuul Project - Deposit and remove fungible", function () {
     ).to.be.revertedWith(error);
   });
 
-  it("Should fail to deposit and remove if funds are freezed from Fuul Manager", async function () {
-    await this.fuulManager.pauseAll();
-
-    await expect(
-      this.fuulProject.depositFungibleToken(this.erc20CampaignId, this.amount)
-    ).to.be.revertedWithCustomError(this.fuulProject, "ManagerIsPaused");
-  });
-
   it("Should fail to deposit if token currency is removed", async function () {
     await this.fuulManager.removeCurrencyToken(this.token.address);
     await expect(
@@ -627,18 +619,6 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     ).to.be.revertedWith(error);
   });
 
-  it("Should fail to deposit and remove if funds are freezed from Fuul Manager", async function () {
-    await this.fuulManager.pauseAll();
-
-    await expect(
-      this.fuulProject.depositNFTToken(this.campaignId, this.tokenIds, [])
-    ).to.be.revertedWithCustomError(this.fuulProject, "ManagerIsPaused");
-
-    await expect(
-      this.fuulProject.removeNFTBudget(this.campaignId, this.tokenIds, [])
-    ).to.be.revertedWithCustomError(this.fuulProject, "ManagerIsPaused");
-  });
-
   it("Should fail to deposit if token currency is removed", async function () {
     await this.fuulManager.removeCurrencyToken(this.nft721.address);
 
@@ -779,7 +759,7 @@ describe("Fuul Project - Fuul Manager functions", function () {
     this.user1 = user1;
   });
 
-  it("Fail to attribute, claim and emergency withdraw if sender is not Fuul Manager", async function () {
+  it("Fail to attribute and claim if sender is not Fuul Manager", async function () {
     // Attribute
     await expect(
       this.fuulProject.attributeTransactions([1], [this.user1.address], [1])
@@ -788,25 +768,6 @@ describe("Fuul Project - Fuul Manager functions", function () {
     // Claim
     await expect(
       this.fuulProject.claimFromCampaign(1, this.user1.address, [], [])
-    ).to.be.revertedWithCustomError(this.fuulProject, "Unauthorized");
-
-    // Emergency withdraw fungible
-    await expect(
-      this.fuulProject.emergencyWithdrawFungibleTokens(
-        this.fuulProject.address,
-        ethers.constants.AddressZero
-      )
-    ).to.be.revertedWithCustomError(this.fuulProject, "Unauthorized");
-
-    // Emergency withdraw NFTs
-
-    await expect(
-      this.fuulProject.emergencyWithdrawNFTTokens(
-        this.fuulProject.address,
-        ethers.constants.AddressZero,
-        [],
-        []
-      )
     ).to.be.revertedWithCustomError(this.fuulProject, "Unauthorized");
   });
 });

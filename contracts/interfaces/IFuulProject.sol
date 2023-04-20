@@ -181,20 +181,4 @@ interface IFuulProject {
         uint256[] memory tokenIds,
         uint256[] memory amounts
     ) external returns (uint256, address);
-
-    /*╔═════════════════════════════╗
-      ║          EMERGENCY          ║
-      ╚═════════════════════════════╝*/
-
-    function emergencyWithdrawFungibleTokens(
-        address to,
-        address currency
-    ) external;
-
-    function emergencyWithdrawNFTTokens(
-        address to,
-        address currency,
-        uint256[] memory rewardTokenIds,
-        uint256[] memory amounts
-    ) external;
 }
