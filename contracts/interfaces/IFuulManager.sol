@@ -30,6 +30,15 @@ interface IFuulManager {
         address deployedAddress;
         address[] currencies;
     }
+
+    struct FeesInformation {
+        uint8 protocolFee;
+        uint8 attributorFee;
+        uint8 clientFee;
+        address protocolFeeCollector;
+        uint256 nftFixedFeeAmount;
+    }
+
     /*╔═════════════════════════════╗
       ║           ERRORS            ║
       ╚═════════════════════════════╝*/
@@ -54,9 +63,17 @@ interface IFuulManager {
         address currency
     ) external view returns (uint256);
 
-    function protocolFees() external view returns (uint8 fees);
+    function protocolFee() external view returns (uint8 fees);
 
-    function clientFees() external view returns (uint8 fees);
+    function protocolFeeCollector() external view returns (address);
+
+    function getFeesInformation() external returns (FeesInformation memory);
+
+    function clientFee() external view returns (uint8 fees);
+
+    function attributorFee() external view returns (uint8 fees);
+
+    function nftFeeCurrency() external view returns (address);
 
     /*╔═════════════════════════════╗
       ║       REMOVE VARIABLES      ║
@@ -70,9 +87,11 @@ interface IFuulManager {
       ║        FEES VARIABLES       ║
       ╚═════════════════════════════╝*/
 
-    function setProtocolFees(uint8 value) external;
+    function setProtocolFee(uint8 value) external;
 
-    function setClientFees(uint8 value) external;
+    function setClientFee(uint8 value) external;
+
+    function setAttributorFee(uint8 value) external;
 
     /*╔═════════════════════════════╗
       ║       TOKEN CURRENCIES      ║
@@ -116,9 +135,9 @@ interface IFuulManager {
       ║      ATTRIBUTE AND CLAIM    ║
       ╚═════════════════════════════╝*/
 
-    function attributeTransactions(
-        AttributeCheck[] calldata attributeChecks
-    ) external;
+    // function attributeTransactions(
+    //     AttributeCheck[] calldata attributeChecks
+    // ) external;
 
     function claim(ClaimCheck[] calldata claimChecks) external;
 }

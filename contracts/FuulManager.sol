@@ -51,8 +51,14 @@ contract FuulManager is
     bytes4 public constant IID_IERC1155 = type(IERC1155).interfaceId;
     bytes4 public constant IID_IERC721 = type(IERC721).interfaceId;
 
-    uint8 public protocolFees;
-    uint8 public clientFees;
+    // Fees
+    uint8 public protocolFee;
+    uint8 public clientFee;
+    uint8 public attributorFee;
+    uint256 public nftFixedFeeAmount;
+
+    address public protocolFeeCollector;
+    address public nftFeeCurrency;
 
     /*╔═════════════════════════════╗
       ║         CONSTRUCTOR         ║
@@ -125,6 +131,25 @@ contract FuulManager is
       ╚═════════════════════════════╝*/
 
     /**
+     * @dev Gets all fees for attribution.
+     *
+     */
+    function getFeesInformation()
+        external
+        view
+        returns (FeesInformation memory)
+    {
+        return
+            FeesInformation({
+                protocolFee: protocolFee,
+                attributorFee: attributorFee,
+                clientFee: clientFee,
+                protocolFeeCollector: protocolFeeCollector,
+                nftFixedFeeAmount: nftFixedFeeAmount
+            });
+    }
+
+    /**
      * @dev Sets the protocol fees for each attribution.
      *
      * Requirements:
@@ -132,14 +157,14 @@ contract FuulManager is
      * - `_value` must be different from the current one.
      * - Only admins can call this function.
      */
-    function setProtocolFees(
+    function setProtocolFee(
         uint8 _value
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_value == protocolFees) {
+        if (_value == protocolFee) {
             revert InvalidArgument();
         }
 
-        protocolFees = _value;
+        protocolFee = _value;
     }
 
     /**
@@ -150,13 +175,35 @@ contract FuulManager is
      * - `_value` must be different from the current one.
      * - Only admins can call this function.
      */
-    function setClientFees(uint8 _value) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_value == clientFees) {
+    function setClientFee(uint8 _value) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (_value == clientFee) {
             revert InvalidArgument();
         }
 
-        clientFees = _value;
+        clientFee = _value;
     }
+
+    /**
+     * @dev Sets the fees for the client that was used to create the campaign.
+     *
+     * Requirements:
+     *
+     * - `_value` must be different from the current one.
+     * - Only admins can call this function.
+     */
+    function setAttributorFee(
+        uint8 _value
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (_value == attributorFee) {
+            revert InvalidArgument();
+        }
+
+        attributorFee = _value;
+    }
+
+    // Set nft fee amount
+    // set protocol fee receiver
+    // set fee budget currency
 
     /*╔═════════════════════════════╗
       ║       TOKEN CURRENCIES      ║
@@ -292,19 +339,19 @@ contract FuulManager is
      * - Only addresses with the ATTRIBUTOR_ROLE can call this function.
      */
 
-    function attributeTransactions(
-        AttributeCheck[] calldata attributeChecks
-    ) external whenNotPaused nonReentrant onlyRole(ATTRIBUTOR_ROLE) {
-        for (uint256 i = 0; i < attributeChecks.length; i++) {
-            AttributeCheck memory attributeCheck = attributeChecks[i];
+    // function attributeTransactions(
+    //     AttributeCheck[] calldata attributeChecks
+    // ) external whenNotPaused nonReentrant onlyRole(ATTRIBUTOR_ROLE) {
+    //     for (uint256 i = 0; i < attributeChecks.length; i++) {
+    //         AttributeCheck memory attributeCheck = attributeChecks[i];
 
-            IFuulProject(attributeCheck.projectAddress).attributeTransactions(
-                attributeCheck.campaignIds,
-                attributeCheck.receivers,
-                attributeCheck.amounts
-            );
-        }
-    }
+    //         IFuulProject(attributeCheck.projectAddress).attributeTransactions(
+    //             attributeCheck.campaignIds,
+    //             attributeCheck.receivers,
+    //             attributeCheck.amounts
+    //         );
+    //     }
+    // }
 
     /**
      * @dev Claims: calls the `claimFromCampaign` function in {FuulProject} from a loop of `ClaimChecks`.

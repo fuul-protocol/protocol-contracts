@@ -5,29 +5,50 @@ pragma solidity ^0.8.18;
 
 interface IFuulProject {
     /*╔═════════════════════════════╗
+      ║           STRUCT            ║
+      ╚═════════════════════════════╝*/
+    // Campaign info
+    struct Campaign {
+        uint256 totalDeposited;
+        uint256 currentBudget;
+        address currency;
+        uint256 deactivatedAt;
+        IFuulManager.TokenType tokenType;
+        address clientFeeCollector;
+    }
+
+    // Attribution
+    struct Attribution {
+        uint256 campaignId;
+        uint256 totalAmount;
+        address partner;
+        address endUser;
+        uint256 amountToPartner;
+        uint256 amountToEndUser;
+    }
+
+    /*╔═════════════════════════════╗
       ║           EVENTS            ║
       ╚═════════════════════════════╝*/
 
     // uint256[] tokenIds: used in ERC721 and ERC1155
     // uint256[] amounts: used in ERC1155
 
-    event CampaignMetadataUpdated(uint256 campaignId, string campaignURI);
-
     event ProjectInfoUpdated(string projectInfoURI);
 
     event CampaignCreated(
         address indexed account,
         address currency,
-        uint256 campaignTokenId,
+        uint256 campaignId,
         IFuulManager.TokenType tokenType,
-        string _campaignURI
+        address clientFeeCollector
     );
 
     event BudgetDeposited(
         address indexed account,
         uint256 amount,
         address currency,
-        uint256 campaignTokenId,
+        uint256 campaignId,
         IFuulManager.TokenType tokenType,
         uint256[] tokenIds,
         uint256[] amounts
@@ -37,19 +58,41 @@ interface IFuulProject {
         address indexed account,
         uint256 amount,
         address currency,
-        uint256 campaignTokenId,
+        uint256 campaignId,
         IFuulManager.TokenType tokenType,
         uint256[] tokenIds,
         uint256[] amounts
     );
 
     event Claimed(
-        uint256 campaignTokenId,
+        uint256 campaignId,
         address indexed account,
         address currency,
         uint256 amount,
         uint256[] rewardTokenIds,
         uint256[] amounts
+    );
+
+    // Array Order: protocol, client, attributor, partner, end user
+
+    event Attributed(
+        uint256 campaignId,
+        address currency,
+        uint256 totalAmount,
+        address[5] receivers,
+        uint256[5] amounts
+    );
+
+    event FeeBudgetDeposited(
+        address indexed account,
+        uint256 amount,
+        address currency
+    );
+
+    event FeeBudgetRemoved(
+        address indexed account,
+        uint256 amount,
+        address currency
     );
 
     /*╔═════════════════════════════╗
@@ -88,14 +131,14 @@ interface IFuulProject {
             uint256,
             address,
             uint256,
-            string memory,
-            IFuulManager.TokenType
+            IFuulManager.TokenType,
+            address
         );
 
-    function usersEarnings(
+    function availableToClaim(
         address account,
         uint256 campaignId
-    ) external view returns (uint256, uint256);
+    ) external view returns (uint256);
 
     /*╔═════════════════════════════╗
       ║     FROM OTHER CONTRACTS    ║
@@ -119,25 +162,25 @@ interface IFuulProject {
 
     function campaignsCreated() external view returns (uint256);
 
-    function createCampaign(string memory _tokenURI, address currency) external;
+    function createCampaign(
+        string memory newProjectURI,
+        address currency,
+        address clientFeeCollector
+    ) external;
 
-    function reactivateCampaign(uint256 tokenId) external;
-
-    function deactivateCampaign(uint256 tokenId) external;
-
-    function setCampaignURI(uint256 _tokenId, string memory _tokenURI) external;
+    function switchCampaignStatus(uint256 tokenId) external;
 
     /*╔═════════════════════════════╗
       ║           DEPOSIT           ║
       ╚═════════════════════════════╝*/
 
     function depositFungibleToken(
-        uint256 campaignTokenId,
+        uint256 campaignId,
         uint256 amount
     ) external payable;
 
     function depositNFTToken(
-        uint256 campaignTokenId,
+        uint256 campaignId,
         uint256[] memory rewardTokenIds,
         uint256[] memory amounts
     ) external;
@@ -150,13 +193,10 @@ interface IFuulProject {
         uint256 deactivatedAt
     ) external view returns (uint256);
 
-    function removeFungibleBudget(
-        uint256 campaignTokenId,
-        uint256 amount
-    ) external;
+    function removeFungibleBudget(uint256 campaignId, uint256 amount) external;
 
     function removeNFTBudget(
-        uint256 campaignTokenId,
+        uint256 campaignId,
         uint256[] memory rewardTokenIds,
         uint256[] memory amounts
     ) external;
@@ -166,9 +206,8 @@ interface IFuulProject {
       ╚═════════════════════════════╝*/
 
     function attributeTransactions(
-        uint256[] calldata campaignIds,
-        address[] calldata receivers,
-        uint256[] calldata amounts
+        Attribution[] calldata attributions,
+        address attributorFeeCollector
     ) external;
 
     /*╔═════════════════════════════╗

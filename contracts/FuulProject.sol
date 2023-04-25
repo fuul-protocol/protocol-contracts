@@ -28,28 +28,6 @@ contract FuulProject is
     using SafeERC20 for IERC20;
     using Address for address payable;
 
-    // Campaign info
-    struct Campaign {
-        uint256 totalDeposited;
-        uint256 currentBudget;
-        address currency;
-        uint256 deactivatedAt;
-        string campaignURI;
-        IFuulManager.TokenType tokenType;
-    }
-
-    // User earnings per campaign
-    struct UserEarnings {
-        uint256 totalEarnings;
-        uint256 availableToClaim;
-    }
-
-    // Protocol fees per curency
-    struct ProtocolFees {
-        uint256 totalFees;
-        uint256 availableToClaim;
-    }
-
     // Factory contract address
     address public fuulFactory;
 
@@ -63,18 +41,17 @@ contract FuulProject is
     // Mapping campaign id with campaign info
     mapping(uint256 => Campaign) public campaigns;
 
-    // Mapping owner address to campaign id to earnings
-    mapping(address => mapping(uint256 => UserEarnings)) public usersEarnings;
-
-    // Mapping token address to fees
-    mapping(address => mapping(uint256 => ProtocolFees))
-        public protocolFeesperCurrency;
+    // Mapping owner address to campaignId to earnings
+    mapping(address => mapping(uint256 => uint256)) public availableToClaim;
 
     // URI that points to a file with project information (image, name, description, etc)
     string public projectInfoURI;
 
     // Helper empty array to input in events
     uint256[] private emptyArray;
+
+    // Mapping currency with fees when campaigns reward NFTs
+    mapping(address => uint256) public nftFeeBudget;
 
     /**
      * @dev Modifier that checks that a campaign exists. Reverts
@@ -181,10 +158,12 @@ contract FuulProject is
      */
     function setProjectInfoURI(
         string memory _projectURI
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (bytes(_projectURI).length == 0) {
-            revert EmptyURI();
-        }
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        // Commented to optimize contract size
+
+        // if (bytes(_projectURI).length == 0) {
+        //     revert EmptyURI();
+        // }
 
         projectInfoURI = _projectURI;
 
@@ -210,21 +189,26 @@ contract FuulProject is
      *
      * Requirements:
      *
-     * - `_campaignURI` must not be an empty string.
+     * - `newProjectURI` must not be an empty string.
      * - `currency` must be accepted in the Fuul Manager contract.
      * - Only admins can create campaigns.
      */
     function createCampaign(
-        string memory _campaignURI,
-        address currency
-    ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (bytes(_campaignURI).length == 0) {
-            revert EmptyURI();
-        }
-
+        string memory newProjectURI,
+        address currency,
+        address clientFeeCollector
+    )
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    // Commented to optimize contract size
+    // nonReentrant
+    {
         if (!fuulManagerInstance().isCurrencyTokenAccepted(currency)) {
             revert IFuulManager.TokenCurrencyNotAccepted();
         }
+
+        // Set new project URI
+        setProjectInfoURI(newProjectURI);
 
         _campaignIdTracker.increment();
 
@@ -240,8 +224,8 @@ contract FuulProject is
             currentBudget: 0,
             currency: currency,
             deactivatedAt: 0,
-            campaignURI: _campaignURI,
-            tokenType: tokenType
+            tokenType: tokenType,
+            clientFeeCollector: clientFeeCollector
         });
 
         emit CampaignCreated(
@@ -249,87 +233,35 @@ contract FuulProject is
             currency,
             campaignId,
             tokenType,
-            _campaignURI
+            clientFeeCollector
         );
     }
 
-    /**
-     * @dev Reactivates campaign. Sets the active value to be true
-     *
-     * Requirements:
-     *
-     * - `campaignId` must exist and be inactive.
-     * - Only admins can reactivate campaigns.
-     */
-    function reactivateCampaign(
+    // /**
+    //  * @dev Activates or deactivates campaign.
+    //  *
+    //  * Requirements:
+    //  *
+    //  * - `campaignId` must exist and be active.
+    //  * - Only admins can call this function.
+    //  */
+
+    function switchCampaignStatus(
         uint256 campaignId
     )
         external
-        nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
-        campaignExists(campaignId)
+    // Commented to optimize contract size
+    // campaignExists(campaignId)
+    // nonReentrant
     {
         Campaign storage campaign = campaigns[campaignId];
 
         if (campaign.deactivatedAt == 0) {
-            revert CampaignNotInactive();
+            campaign.deactivatedAt = block.timestamp;
+        } else {
+            campaign.deactivatedAt == 0;
         }
-
-        campaign.deactivatedAt = 0;
-    }
-
-    /**
-     * @dev Deactivates campaign. Sets the active value to be false
-     *
-     * Requirements:
-     *
-     * - `campaignId` must exist and be active.
-     * - Only admins can deactivate campaigns.
-     */
-    function deactivateCampaign(
-        uint256 campaignId
-    )
-        external
-        nonReentrant
-        onlyRole(DEFAULT_ADMIN_ROLE)
-        campaignExists(campaignId)
-    {
-        Campaign storage campaign = campaigns[campaignId];
-
-        if (campaign.deactivatedAt > 0) {
-            revert CampaignNotActive();
-        }
-
-        campaign.deactivatedAt = block.timestamp;
-    }
-
-    /**
-     * @dev Sets `campaignURI` in the Campaign structure.
-     *
-     * Emits {CampaignMetadataUpdated}.
-     *
-     * Requirements:
-     *
-     * - `campaignId` must exist.
-     * - `_campaignURI` must not be an empty string.
-     * - Only admins can deactivate campaigns.
-     */
-
-    function setCampaignURI(
-        uint256 _campaignId,
-        string memory _campaignURI
-    )
-        external
-        nonReentrant
-        onlyRole(DEFAULT_ADMIN_ROLE)
-        campaignExists(_campaignId)
-    {
-        if (bytes(_campaignURI).length == 0) {
-            revert EmptyURI();
-        }
-        campaigns[_campaignId].campaignURI = _campaignURI;
-
-        emit CampaignMetadataUpdated(_campaignId, _campaignURI);
     }
 
     /*╔═════════════════════════════╗
@@ -354,13 +286,17 @@ contract FuulProject is
     )
         external
         payable
-        nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
         campaignExists(campaignId)
+    // Commented to optimize contract size
+    // nonReentrant
+
     {
-        if (amount == 0) {
-            revert ZeroAmount();
-        }
+        // Commented to optimize contract size
+
+        // if (amount == 0) {
+        //     revert ZeroAmount();
+        // }
         Campaign storage campaign = campaigns[campaignId];
 
         address currency = campaign.currency;
@@ -371,10 +307,11 @@ contract FuulProject is
 
         IFuulManager.TokenType tokenType = campaign.tokenType;
 
-        if (campaign.deactivatedAt > 0) {
-            revert CampaignNotActive();
-        }
         // Commented to optimize contract size
+
+        // if (campaign.deactivatedAt > 0) {
+        //     revert CampaignNotActive();
+        // }
 
         // require(
         //     tokenType == IFuulManager.TokenType.NATIVE ||
@@ -387,10 +324,6 @@ contract FuulProject is
                 revert IncorrectMsgValue();
             }
         } else if (tokenType == IFuulManager.TokenType.ERC_20) {
-            if (msg.value > 0) {
-                revert IncorrectMsgValue();
-            }
-
             IERC20(currency).safeTransferFrom(
                 _msgSender(),
                 address(this),
@@ -431,9 +364,10 @@ contract FuulProject is
         uint256[] memory amounts
     )
         external
-        nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
         campaignExists(campaignId)
+    // Commented to optimize contract size
+    // nonReentrant
     {
         Campaign storage campaign = campaigns[campaignId];
         address currency = campaign.currency;
@@ -444,10 +378,11 @@ contract FuulProject is
 
         IFuulManager.TokenType tokenType = campaign.tokenType;
 
-        if (campaign.deactivatedAt > 0) {
-            revert CampaignNotActive();
-        }
         // Commented to optimize contract size
+
+        // if (campaign.deactivatedAt > 0) {
+        //     revert CampaignNotActive();
+        // }
 
         // require(
         //     tokenType == IFuulManager.TokenType.ERC_721 ||
@@ -536,12 +471,16 @@ contract FuulProject is
     )
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
-        nonReentrant
-        campaignExists(campaignId)
+    // Commented to optimize contract size
+    // campaignExists(campaignId)
+    // nonReentrant
     {
-        if (amount == 0) {
-            revert ZeroAmount();
-        }
+        // Commented to optimize contract size
+
+        // if (amount == 0) {
+        //     revert ZeroAmount();
+        // }
+
         Campaign storage campaign = campaigns[campaignId];
 
         address currency = campaign.currency;
@@ -567,25 +506,8 @@ contract FuulProject is
         campaign.currentBudget -= amount;
 
         if (tokenType == IFuulManager.TokenType.NATIVE) {
-            // Commented to optimize contract size
-            // uint256 balance = address(this).balance;
-
-            // if (amount > balance)
-            //     revert InsufficientBalance({
-            //         available: balance,
-            //         required: amount
-            //     });
-
             payable(_msgSender()).sendValue(amount);
         } else if (tokenType == IFuulManager.TokenType.ERC_20) {
-            // Commented to optimize contract size
-
-            // uint256 balance = IERC20(currency).balanceOf(address(this));
-            // if (amount > balance)
-            //     revert InsufficientBalance({
-            //         available: balance,
-            //         required: amount
-            //     });
             IERC20(currency).safeTransfer(_msgSender(), amount);
         }
 
@@ -621,13 +543,17 @@ contract FuulProject is
     )
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
-        nonReentrant
-        campaignExists(campaignId)
+    // Commented to optimize contract size
+    // campaignExists(campaignId)
+    // nonReentrant
     {
         uint256 tokenIdsLength = tokenIds.length;
-        if (tokenIdsLength == 0) {
-            revert ZeroAmount();
-        }
+
+        // Commented to optimize contract size
+
+        // if (tokenIdsLength == 0) {
+        //     revert ZeroAmount();
+        // }
         Campaign storage campaign = campaigns[campaignId];
 
         uint256 cooldownPeriod = getBudgetCooldownPeriod(
@@ -690,53 +616,272 @@ contract FuulProject is
     }
 
     /*╔═════════════════════════════╗
+      ║        NFT FEE BUDGET       ║
+      ╚═════════════════════════════╝*/
+
+    /**
+     * @dev Deposits budget to pay for fees when rewarding NFTs in a campaign.
+     * The currency is defined in the Fuul Manager contract.
+     *
+     * Emits {FeeBudgetDeposit}.
+     *
+     * Requirements:
+     *
+     * - `amount` must be greater than zero.
+     * - Only admins can deposit.
+     */
+    function depositFeeBudget(
+        uint256 amount
+    )
+        external
+        payable
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    // Commented to optimize contract size
+    // nonReentrant
+
+    {
+        // Commented to optimize contract size
+
+        // if (amount == 0) {
+        //     revert ZeroAmount();
+        // }
+
+        address currency = fuulManagerInstance().nftFeeCurrency();
+
+        if (currency == address(0)) {
+            if (msg.value != amount) {
+                revert IncorrectMsgValue();
+            }
+        } else {
+            IERC20(currency).safeTransferFrom(
+                _msgSender(),
+                address(this),
+                amount
+            );
+        }
+
+        // Update balance
+        nftFeeBudget[currency] += amount;
+
+        emit FeeBudgetDeposited(_msgSender(), amount, currency);
+    }
+
+    /**
+     * @dev Removes fee budget for NFT rewards.
+     *
+     * Emits {BudgetRemoved}.
+     *
+     * Notes: Currency is an argument because if default is changed in Fuul Manager, projects will still be able to remove
+     *
+     * Requirements:
+     *
+     * - `amount` must be greater than zero.
+     * - Only admins can remove.
+     */
+    function removeFeeBudget(
+        address currency,
+        uint256 amount
+    )
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    // Commented to optimize contract size
+    //  nonReentrant
+    {
+        if (amount == 0) {
+            revert ZeroAmount();
+        }
+
+        nftFeeBudget[currency] -= amount;
+
+        if (currency == address(0)) {
+            payable(_msgSender()).sendValue(amount);
+        } else {
+            IERC20(currency).safeTransfer(_msgSender(), amount);
+        }
+
+        emit FeeBudgetRemoved(_msgSender(), amount, currency);
+    }
+
+    /*╔═════════════════════════════╗
       ║         ATTRIBUTION         ║
       ╚═════════════════════════════╝*/
 
     /**
-     * @dev Attributes: removes `amounts` from `campaignIds` balance and adds them to `receivers`.
+     * @dev Internal function to calculate fees and amounts for campaigns that have a fungible token reward.
+     *
+     */
+
+    function _calculateAmountsForFungibleTokenCampaigns(
+        IFuulManager.FeesInformation memory feesInfo,
+        uint256 totalAmount,
+        uint256 amountToPartner,
+        uint256 amountToEndUser
+    )
+        internal
+        pure
+        returns (
+            uint256[3] memory fees,
+            uint256 netAmountToPartner,
+            uint256 netAmountToEndUser
+        )
+    {
+        // Calculate the percentage to partners
+        uint256 partnerPercentage = (100 * amountToPartner) /
+            (amountToPartner + amountToEndUser);
+
+        // Get all fees
+        uint256[3] memory allFees = [
+            (feesInfo.protocolFee * totalAmount) / 100,
+            (feesInfo.clientFee * totalAmount) / 100,
+            (feesInfo.attributorFee * totalAmount) / 100
+        ];
+
+        // Get net amounts
+        uint256 netPartnerAmount = ((totalAmount -
+            allFees[0] -
+            allFees[1] -
+            allFees[2]) * partnerPercentage) / 100;
+
+        uint256 netEndUserAmount = totalAmount -
+            allFees[0] -
+            allFees[1] -
+            allFees[2] -
+            amountToPartner;
+
+        return (allFees, netPartnerAmount, netEndUserAmount);
+    }
+
+    /**
+     * @dev Internal function to calculate fees for campaigns that have a fungible token reward.
+     *
+     */
+    function _calculateFeesForNFTCampaigns(
+        IFuulManager.FeesInformation memory feesInfo
+    ) internal pure returns (uint256[3] memory fees) {
+        uint256 totalAmount = feesInfo.nftFixedFeeAmount;
+        uint256[3] memory allFees = [
+            (feesInfo.protocolFee * totalAmount) / 100,
+            (feesInfo.clientFee * totalAmount) / 100,
+            (feesInfo.attributorFee * totalAmount) / 100
+        ];
+
+        return allFees;
+    }
+
+    /**
+     * @dev Attributes: removes amounts from campaign and adds them to corresponding partner and users.
+     * It also allocates fees.
+     * 
+     * Emits {Attributed}.
+     * 
+     * Notes:
+     * - When campaign rewards are fungible tokens, fees will be a percentage of the payment and it will be substracted from the payment
+     * - When campaign rewards are NFTs, fees will be a fixed amount and the nftFeeBudget will be used
      *
      * Requirements:
      *
-     * - All arrays must have the same length.
-     * - All elements of `campaignIds` must exist and have the corresponding balance.
-     * - All elements of `amounts` must be greater than zero.
+     * - All campaigns of `attributions` must exist and have the corresponding balance.
+     * - All `totalAmount` of `attributions` must be greater than zero.
      * - Only Fuul Manager can attribute.
-     * - Funds must not be freezed.
+     * - Attribution must not be paused.
 
      */
+
     function attributeTransactions(
-        uint256[] calldata campaignIds,
-        address[] calldata receivers,
-        uint256[] calldata amounts
+        Attribution[] calldata attributions,
+        address attributorFeeCollector
     ) external onlyFuulManager nonReentrant whenManagerIsPaused {
-        if (campaignIds.length != receivers.length) {
-            revert IFuulManager.InvalidArgument();
-        }
+        IFuulManager.FeesInformation memory feesInfo = fuulManagerInstance()
+            .getFeesInformation();
 
-        if (campaignIds.length != amounts.length) {
-            revert IFuulManager.InvalidArgument();
-        }
+        for (uint256 i = 0; i < attributions.length; i++) {
+            Attribution memory attribution = attributions[i];
 
-        for (uint256 i = 0; i < campaignIds.length; i++) {
-            uint256 campaignId = campaignIds[i];
+            // Commented to optimize contract size
 
-            if (campaignId == 0 || campaignId > campaignsCreated()) {
-                revert CampaignNotExists();
+            // if (
+            //     attribution.campaignId == 0 ||
+            //     attribution.campaignId > campaignsCreated()
+            // ) {
+            //     revert CampaignNotExists();
+            // }
+
+            // if (attribution.totalAmount == 0) {
+            //     revert ZeroAmount();
+            // }
+
+            Campaign storage campaign = campaigns[attribution.campaignId];
+
+            // Calculate fees and amounts
+
+            uint256[3] memory fees;
+            uint256 amountToPartner;
+            uint256 amountToEndUser;
+
+            if (
+                campaign.tokenType == IFuulManager.TokenType.NATIVE ||
+                campaign.tokenType == IFuulManager.TokenType.ERC_20
+            ) {
+                (
+                    fees,
+                    amountToPartner,
+                    amountToEndUser
+                ) = _calculateAmountsForFungibleTokenCampaigns(
+                    feesInfo,
+                    attribution.totalAmount,
+                    attribution.amountToPartner,
+                    attribution.amountToEndUser
+                );
+            } else {
+                fees = _calculateFeesForNFTCampaigns(feesInfo);
+                amountToPartner = attribution.amountToPartner;
+                amountToEndUser = attribution.amountToEndUser;
             }
 
-            uint256 amount = amounts[i];
+            // Update campaign balance
+            campaign.currentBudget -= attribution.totalAmount;
 
-            if (amount == 0) {
-                revert ZeroAmount();
-            }
+            // Update protocol balance
 
-            campaigns[campaignId].currentBudget -= amount;
+            availableToClaim[feesInfo.protocolFeeCollector][
+                attribution.campaignId
+            ] += fees[0];
 
-            UserEarnings storage user = usersEarnings[receivers[i]][campaignId];
+            // Update client balance
 
-            user.totalEarnings += amount;
-            user.availableToClaim += amount;
+            availableToClaim[campaign.clientFeeCollector][
+                attribution.campaignId
+            ] += fees[1];
+
+            // Update attributor balance
+            availableToClaim[attributorFeeCollector][
+                attribution.campaignId
+            ] += fees[2];
+
+            // Update partner balance
+            availableToClaim[attribution.partner][
+                attribution.campaignId
+            ] += amountToPartner;
+
+            // Update end user balance
+            availableToClaim[attribution.endUser][
+                attribution.campaignId
+            ] += amountToEndUser;
+
+            // Emit Event
+            emit Attributed(
+                attribution.campaignId,
+                campaign.currency,
+                attribution.totalAmount,
+                [
+                    feesInfo.protocolFeeCollector,
+                    campaign.clientFeeCollector,
+                    attributorFeeCollector,
+                    attribution.partner,
+                    attribution.endUser
+                ],
+                [fees[0], fees[1], fees[2], amountToPartner, amountToEndUser]
+            );
         }
     }
 
@@ -750,7 +895,7 @@ contract FuulProject is
      *
      * - `receiver` must have available funds to claim in `campaignId`.
      * - Only Fuul Manager can call this function.
-     * - Funds must not be freezed.
+     * - Attribution must not be paused.
      */
 
     function claimFromCampaign(
@@ -765,15 +910,15 @@ contract FuulProject is
         whenManagerIsPaused
         returns (uint256 claimAmount, address claimCurrency)
     {
-        UserEarnings storage user = usersEarnings[receiver][campaignId];
-
         Campaign storage campaign = campaigns[campaignId];
 
-        uint256 availableAmount = user.availableToClaim;
+        uint256 availableAmount = availableToClaim[receiver][campaignId];
 
-        if (availableAmount == 0) {
-            revert ZeroAmount();
-        }
+        // Commented to optimize contract size
+
+        // if (availableAmount == 0) {
+        //     revert ZeroAmount();
+        // }
 
         IFuulManager.TokenType tokenType = campaign.tokenType;
         address currency = campaign.currency;
@@ -791,8 +936,6 @@ contract FuulProject is
         } else if (tokenType == IFuulManager.TokenType.ERC_721) {
             tokenAmount = tokenIds.length;
 
-            // Check that tokenAmount is less than availableAmount?
-
             for (uint256 i = 0; i < tokenIds.length; i++) {
                 _transferERC721Tokens(
                     currency,
@@ -803,8 +946,6 @@ contract FuulProject is
             }
         } else if (tokenType == IFuulManager.TokenType.ERC_1155) {
             tokenAmount = _getSumFromArray(amounts);
-
-            // Check that tokenAmount is less than availableAmount?
 
             _transferERC1155Tokens(
                 currency,
@@ -817,7 +958,7 @@ contract FuulProject is
 
         // Update user budget
 
-        user.availableToClaim -= tokenAmount;
+        availableToClaim[receiver][campaignId] -= tokenAmount;
 
         emit Claimed(
             campaignId,
