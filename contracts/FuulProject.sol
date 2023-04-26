@@ -572,9 +572,9 @@ contract FuulProject is
 
         // Get all fees
         uint256[3] memory allFees = [
-            (feesInfo.protocolFee * totalAmount) / 100,
-            (feesInfo.clientFee * totalAmount) / 100,
-            (feesInfo.attributorFee * totalAmount) / 100
+            (feesInfo.protocolFee * totalAmount) / 10000,
+            (feesInfo.clientFee * totalAmount) / 10000,
+            (feesInfo.attributorFee * totalAmount) / 10000
         ];
 
         // Get net amounts
@@ -601,9 +601,9 @@ contract FuulProject is
     ) internal pure returns (uint256[3] memory fees) {
         uint256 totalAmount = feesInfo.nftFixedFeeAmount;
         uint256[3] memory allFees = [
-            (feesInfo.protocolFee * totalAmount) / 100,
-            (feesInfo.clientFee * totalAmount) / 100,
-            (feesInfo.attributorFee * totalAmount) / 100
+            (feesInfo.protocolFee * totalAmount) / 10000,
+            (feesInfo.clientFee * totalAmount) / 10000,
+            (feesInfo.attributorFee * totalAmount) / 10000
         ];
 
         return allFees;

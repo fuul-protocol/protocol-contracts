@@ -462,7 +462,8 @@ describe("Fuul Manager - Attribute", function () {
 
         // Attributor
         const attributorFee =
-          (2 * this.nftFixedFeeAmountInEth * this.feesInfo.attributorFee) / 100;
+          (2 * this.nftFixedFeeAmountInEth * this.feesInfo.attributorFee) /
+          10000;
 
         expect(
           await this.fuulProject.availableToClaim(
@@ -473,7 +474,7 @@ describe("Fuul Manager - Attribute", function () {
 
         // Client
         const clientFee =
-          (2 * this.nftFixedFeeAmountInEth * this.feesInfo.clientFee) / 100;
+          (2 * this.nftFixedFeeAmountInEth * this.feesInfo.clientFee) / 10000;
 
         expect(
           await this.fuulProject.availableToClaim(
@@ -484,7 +485,7 @@ describe("Fuul Manager - Attribute", function () {
 
         // Protocol
         const protocolFee =
-          (2 * this.nftFixedFeeAmountInEth * this.feesInfo.protocolFee) / 100;
+          (2 * this.nftFixedFeeAmountInEth * this.feesInfo.protocolFee) / 10000;
 
         expect(
           await this.fuulProject.availableToClaim(
@@ -496,31 +497,23 @@ describe("Fuul Manager - Attribute", function () {
         const amountToEndUserInEth = Number(
           ethers.utils.formatEther(att.amountToEndUser.toString())
         );
-
         const amountToPartnerInEth = Number(
           ethers.utils.formatEther(att.amountToPartner.toString())
         );
-
         // Fee collectors
-
         // For fungible, fees will be charged in the same currency
-
         // Attributor
-
         const totalAmountInEth = amountToPartnerInEth + amountToEndUserInEth;
         const attributorFee =
-          (totalAmountInEth * this.feesInfo.attributorFee) / 100;
-
+          (totalAmountInEth * this.feesInfo.attributorFee) / 10000;
         expect(
           await this.fuulProject.availableToClaim(
             this.attributor.address,
             att.currency
           )
         ).to.equal(ethers.utils.parseEther(attributorFee.toString()));
-
         // Client
-        const clientFee = (totalAmountInEth * this.feesInfo.clientFee) / 100;
-
+        const clientFee = (totalAmountInEth * this.feesInfo.clientFee) / 10000;
         expect(
           await this.fuulProject.availableToClaim(
             this.clientFeeCollector.address,
@@ -530,8 +523,7 @@ describe("Fuul Manager - Attribute", function () {
 
         // Protocol
         const protocolFee =
-          (totalAmountInEth * this.feesInfo.protocolFee) / 100;
-
+          (totalAmountInEth * this.feesInfo.protocolFee) / 10000;
         expect(
           await this.fuulProject.availableToClaim(
             this.protocolFeeCollector.address,
@@ -540,17 +532,14 @@ describe("Fuul Manager - Attribute", function () {
         ).to.equal(ethers.utils.parseEther(protocolFee.toString()));
 
         // Partner and end user
-
         const netEachAmountInEth =
           (totalAmountInEth - (protocolFee + attributorFee + clientFee)) / 2;
-
         expect(
           await this.fuulProject.availableToClaim(
             this.partner.address,
             att.currency
           )
         ).to.equal(ethers.utils.parseEther(netEachAmountInEth.toString()));
-
         expect(
           await this.fuulProject.availableToClaim(
             this.endUser.address,
@@ -634,13 +623,13 @@ describe("Fuul Manager - Attribute", function () {
 
     const totalAmountInEth = amountToPartnerInEth + amountToEndUserInEth;
     const attributorFee =
-      (totalAmountInEth * this.feesInfo.attributorFee) / 100;
+      (totalAmountInEth * this.feesInfo.attributorFee) / 10000;
 
     // Client
-    const clientFee = (totalAmountInEth * this.feesInfo.clientFee) / 100;
+    const clientFee = (totalAmountInEth * this.feesInfo.clientFee) / 10000;
 
     // Protocol
-    const protocolFee = (totalAmountInEth * this.feesInfo.protocolFee) / 100;
+    const protocolFee = (totalAmountInEth * this.feesInfo.protocolFee) / 10000;
 
     const netEachAmountInEth =
       (totalAmountInEth - (protocolFee + attributorFee + clientFee)) / 2;
