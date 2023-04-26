@@ -148,7 +148,7 @@ contract FuulProject is
      * - `_projectURI` must not be an empty string.
      * - Only admins can deactivate campaigns.
      */
-    function setProjectInfoURI(
+    function setProjectURI(
         string memory _projectURI
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (bytes(_projectURI).length == 0) {
@@ -516,6 +516,7 @@ contract FuulProject is
      *
      * - `amount` must be greater than zero.
      * - Only admins can remove.
+     * - Budget remove cooldown period has to be completed.
      */
     function removeFeeBudget(
         address currency,
@@ -523,6 +524,12 @@ contract FuulProject is
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
         if (amount == 0) {
             revert ZeroAmount();
+        }
+
+        uint256 cooldownPeriod = getBudgetCooldownPeriod();
+
+        if (block.timestamp < cooldownPeriod) {
+            revert CooldownPeriodNotFinished();
         }
 
         nftFeeBudget[currency] -= amount;
@@ -580,7 +587,7 @@ contract FuulProject is
             allFees[0] -
             allFees[1] -
             allFees[2] -
-            amountToPartner;
+            netPartnerAmount;
 
         return (allFees, netPartnerAmount, netEndUserAmount);
     }

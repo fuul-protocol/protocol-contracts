@@ -15,7 +15,7 @@
 //   });
 
 //   it("Should set new project URI", async function () {
-//     expect(await this.fuulProject.setProjectInfoURI(this.projectURI))
+//     expect(await this.fuulProject.setProjectURI(this.projectURI))
 //       .to.emit(this.fuulProject, "ProjectInfoUpdated")
 //       .withArgs(this.projectURI);
 
@@ -35,7 +35,7 @@
 //     }`;
 
 //     await expect(
-//       this.fuulProject.connect(this.user2).setProjectInfoURI(this.projectURI)
+//       this.fuulProject.connect(this.user2).setProjectURI(this.projectURI)
 //     ).to.be.revertedWith(error);
 
 //     await expect(
@@ -625,4 +625,4 @@
 //   });
 // });
 
-// Fee currency
+// // Deposit and remove Fee currency
