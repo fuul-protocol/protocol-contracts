@@ -50,8 +50,10 @@ contract FuulProject is
     // Mapping currency with fees when campaigns reward NFTs
     mapping(address => uint256) public nftFeeBudget;
 
+    // Address that will receive client fees (client that created the project)
     address public clientFeeCollector;
 
+    // Timestamp for the last application to remove budget
     uint256 public lastRemovalApplication;
 
     /**
@@ -146,7 +148,7 @@ contract FuulProject is
      * Requirements:
      *
      * - `_projectURI` must not be an empty string.
-     * - Only admins can deactivate campaigns.
+     * - Only admins can call this function.
      */
     function setProjectURI(
         string memory _projectURI
@@ -165,14 +167,13 @@ contract FuulProject is
       ╚═════════════════════════════╝*/
 
     /**
-     * @dev Deposits fungible tokens in a campaign.
+     * @dev Deposits fungible tokens.
      * They can be native or ERC20 tokens.
      *
      * Emits {BudgetDeposited}.
      *
      * Requirements:
      *
-     * - `campaignId` must exist and be active.
      * - `amount` must be greater than zero.
      * - Only admins can deposit.
      * - Token currency must be accepted in {Fuul Manager}
@@ -225,7 +226,7 @@ contract FuulProject is
     }
 
     /**
-     * @dev Deposits NFTs in a campaign.
+     * @dev Deposits NFTs.
      * They can be ERC1155 or ERC721 tokens.
      * `amounts` parameter is only used when dealing with ERC1155 tokens.
      *
@@ -233,19 +234,13 @@ contract FuulProject is
      *
      * Requirements:
      *
-     * - `campaignId` must exist and be active.
      * - Only admins can deposit.
      */
     function depositNFTToken(
         address currency,
         uint256[] memory tokenIds,
         uint256[] memory amounts
-    )
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    // Commented to optimize contract size
-    // nonReentrant
-    {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
         if (!fuulManagerInstance().isCurrencyTokenAccepted(currency)) {
             revert IFuulManager.TokenCurrencyNotAccepted();
         }
@@ -308,14 +303,21 @@ contract FuulProject is
       ║        REMOVE BUDGET        ║
       ╚═════════════════════════════╝*/
 
+    /**
+     * @dev Sets timestamp for which users request to remove their budgets.
+     *     *
+     * Requirements:
+     *
+     * - Only admins can call this function.
+     */
     function applyToRemoveBudget() external onlyRole(DEFAULT_ADMIN_ROLE) {
         lastRemovalApplication = block.timestamp;
     }
 
     /**
-     * @dev Returns the timestamp when funds can be removed from a campaign.
-     * This period starts when the campaign is deactivated and ends after the
-     * `projectBudgetCooldown` is passed.
+     * @dev Returns the timestamp when funds can be removed.
+     * This period starts when they call the {applyToRemoveBudget} function and ends after the
+     * {projectBudgetCooldown} is passed.
      */
     function getBudgetCooldownPeriod() public view returns (uint256) {
         if (lastRemovalApplication == 0) {
@@ -327,14 +329,13 @@ contract FuulProject is
     }
 
     /**
-     * @dev Removes fungible tokens from a campaign.
+     * @dev Removes fungible tokens.
      * They can be native or ERC20 tokens.
      *
      * Emits {BudgetRemoved}.
      *
      * Requirements:
      *
-     * - `campaignId` must exist and be active.
      * - `amount` must be greater than zero.
      * - Only admins can remove.
      * - Budget remove cooldown period has to be completed.
@@ -384,7 +385,7 @@ contract FuulProject is
     }
 
     /**
-     * @dev Removes NFT tokens from a campaign.
+     * @dev Removes NFT tokens.
      * They can be ERC1155 or ERC721 tokens.
      * `amounts` parameter is only used when dealing with ERC1155 tokens.
      *
@@ -392,7 +393,6 @@ contract FuulProject is
      *
      * Requirements:
      *
-     * - `campaignId` must exist and be active.
      * - `amount` must be greater than zero.
      * - Only admins can remove.
      * - Budget remove cooldown period has to be completed.
@@ -468,8 +468,8 @@ contract FuulProject is
       ╚═════════════════════════════╝*/
 
     /**
-     * @dev Deposits budget to pay for fees when rewarding NFTs in a campaign.
-     * The currency is defined in the Fuul Manager contract.
+     * @dev Deposits budget to pay for fees when rewarding NFTs.
+     * The currency is defined in the {FuulManager} contract.
      *
      * Emits {FeeBudgetDeposit}.
      *
@@ -510,7 +510,7 @@ contract FuulProject is
      *
      * Emits {BudgetRemoved}.
      *
-     * Notes: Currency is an argument because if default is changed in Fuul Manager, projects will still be able to remove
+     * Notes: Currency is an argument because if the default is changed in {FuulManager}, projects will still be able to remove
      *
      * Requirements:
      *
@@ -548,7 +548,7 @@ contract FuulProject is
       ╚═════════════════════════════╝*/
 
     /**
-     * @dev Internal function to calculate fees and amounts for campaigns that have a fungible token reward.
+     * @dev Internal function to calculate fees and amounts for fungible token reward.
      *
      */
 
@@ -593,7 +593,7 @@ contract FuulProject is
     }
 
     /**
-     * @dev Internal function to calculate fees for campaigns that have a fungible token reward.
+     * @dev Internal function to calculate fees for non fungible token reward.
      *
      */
     function _calculateFeesForNFT(
@@ -610,21 +610,20 @@ contract FuulProject is
     }
 
     /**
-     * @dev Attributes: removes amounts from campaign and adds them to corresponding partner and users.
-     * It also allocates fees.
+     * @dev Attributes: removes amounts from campaign and adds them to corresponding partners, users and fee collectors.
      * 
      * Emits {Attributed}.
      * 
      * Notes:
-     * - When campaign rewards are fungible tokens, fees will be a percentage of the payment and it will be substracted from the payment
-     * - When campaign rewards are NFTs, fees will be a fixed amount and the nftFeeBudget will be used
+     * - When rewards are fungible tokens, fees will be a percentage of the payment and it will be substracted from the payment.
+     * - When rewards are NFTs, fees will be a fixed amount and the {nftFeeBudget} will be used.
      *
      * Requirements:
      *
-     * - All campaigns of `attributions` must exist and have the corresponding balance.
-     * - All `totalAmount` of `attributions` must be greater than zero.
-     * - Only Fuul Manager can attribute.
-     * - Attribution must not be paused.
+     * - Currency budgets have to be greater than amounts attributed.
+     * - The sum of  {amountToPartner} and {amountToEndUser} of each {Attribution} must be greater than zero.
+     * - Only {FuulManager} can attribute.
+     * - {FuulManager} must not be paused.
 
      */
 
@@ -728,9 +727,9 @@ contract FuulProject is
      *
      * Requirements:
      *
-     * - `receiver` must have available funds to claim in `campaignId`.
-     * - Only Fuul Manager can call this function.
-     * - Attribution must not be paused.
+     * - `receiver` must have available funds to claim for {currency}.
+     * - Only {FuulManager} can call this function.
+     * - {FuulManager} must not be paused.
      */
 
     function claimFromProject(
