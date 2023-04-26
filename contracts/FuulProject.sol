@@ -47,7 +47,7 @@ contract FuulProject is
     // Helper empty array to input in events
     uint256[] private emptyArray;
 
-    // Mapping currency with fees when campaigns reward NFTs
+    // Mapping currency with fees when rewarding NFTs
     mapping(address => uint256) public nftFeeBudget;
 
     // Address that will receive client fees (client that created the project)
@@ -610,7 +610,7 @@ contract FuulProject is
     }
 
     /**
-     * @dev Attributes: removes amounts from campaign and adds them to corresponding partners, users and fee collectors.
+     * @dev Attributes: removes amounts from budget and adds them to corresponding partners, users and fee collectors.
      * 
      * Emits {Attributed}.
      * 

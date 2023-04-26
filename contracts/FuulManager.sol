@@ -38,7 +38,7 @@ contract FuulManager is
     // Mapping addresses with tokens info
     mapping(address => CurrencyToken) public currencyTokens;
 
-    // Period that should pass after campaign is deactivated for projects to be able to remove budget
+    // Period that should pass after a project applies to remove budget to be able to remove budget
     uint256 public projectBudgetCooldown = 30 days;
 
     // Period that should pass after `claimCooldownPeriodStarted` for the cumulative amount to be restarted
@@ -51,13 +51,22 @@ contract FuulManager is
     bytes4 public constant IID_IERC1155 = type(IERC1155).interfaceId;
     bytes4 public constant IID_IERC721 = type(IERC721).interfaceId;
 
-    // Fees
+    // Protocol fee percentage. 1 => 0.01%
     uint8 public protocolFee = 1;
+
+    // Address that will collect protocol fees
+    address public protocolFeeCollector;
+
+    // Client fee. 1 => 0.01%
     uint8 public clientFee = 1;
+
+    // Attributor fee. 1 => 0.01%
     uint8 public attributorFee = 1;
+
+    // Fixed fee for NFT rewards
     uint256 public nftFixedFeeAmount = 0.1 ether;
 
-    address public protocolFeeCollector;
+    // Currency paid for NFT fixed fees
     address public nftFeeCurrency;
 
     /*╔═════════════════════════════╗
@@ -136,7 +145,7 @@ contract FuulManager is
       ╚═════════════════════════════╝*/
 
     /**
-     * @dev Gets all fees for attribution.
+     * @dev Returns all fees for attribution.
      *
      */
     function getFeesInformation()
@@ -174,7 +183,7 @@ contract FuulManager is
     }
 
     /**
-     * @dev Sets the fees for the client that was used to create the campaign.
+     * @dev Sets the fees for the client that was used to create the project.
      *
      * Requirements:
      *
@@ -190,7 +199,7 @@ contract FuulManager is
     }
 
     /**
-     * @dev Sets the fees for the client that was used to create the campaign.
+     * @dev Sets the fees for the attributor.
      *
      * Requirements:
      *
@@ -207,6 +216,14 @@ contract FuulManager is
         attributorFee = _value;
     }
 
+    /**
+     * @dev Sets the fixed fee amount for NFT rewards.
+     *
+     * Requirements:
+     *
+     * - `_value` must be different from the current one.
+     * - Only admins can call this function.
+     */
     function setNftFixedFeeAmounte(
         uint8 _value
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -217,6 +234,14 @@ contract FuulManager is
         nftFixedFeeAmount = _value;
     }
 
+    /**
+     * @dev Sets the currency that will be used to pay NFT rewards fees.
+     *
+     * Requirements:
+     *
+     * - `_value` must be different from the current one.
+     * - Only admins can call this function.
+     */
     function setNftFeeCurrency(
         address newCurrency
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -227,6 +252,14 @@ contract FuulManager is
         nftFeeCurrency = newCurrency;
     }
 
+    /**
+     * @dev Sets the protocol fee collector address.
+     *
+     * Requirements:
+     *
+     * - `_value` must be different from the current one.
+     * - Only admins can call this function.
+     */
     function setProtocolFeeCollector(
         address newCollector
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -292,8 +325,8 @@ contract FuulManager is
 
         currency.isActive = false;
 
-        // Projects will not be able to create new campaigns or deposit with the currency token
-        // We keep the tokenType because campaigns using this currency will still be able to claim it
+        // Projects will not be able to deposit with the currency token
+        // We keep the tokenType because users will still be able to claim/remove it
     }
 
     /**
@@ -363,7 +396,7 @@ contract FuulManager is
       ╚═════════════════════════════╝*/
 
     /**
-     * @dev Attributes: calls the `attributeTransactions` function in {FuulProject} from a loop of `AttributeCheck`.
+     * @dev Attributes: calls the `attributeTransactions` function in {FuulProject} from an array of {AttributionEntity}.
      *
      * Requirements:
      *
@@ -388,7 +421,7 @@ contract FuulManager is
     }
 
     /**
-     * @dev Claims: calls the `claimFromProject` function in {FuulProject} from a loop of `ClaimChecks`.
+     * @dev Claims: calls the `claimFromProject` function in {FuulProject} from an array of of {ClaimCheck}.
      *
      * Requirements:
      *
