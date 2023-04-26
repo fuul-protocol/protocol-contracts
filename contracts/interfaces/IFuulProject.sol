@@ -7,20 +7,10 @@ interface IFuulProject {
     /*╔═════════════════════════════╗
       ║           STRUCT            ║
       ╚═════════════════════════════╝*/
-    // Campaign info
-    struct Campaign {
-        uint256 totalDeposited;
-        uint256 currentBudget;
-        address currency;
-        uint256 deactivatedAt;
-        IFuulManager.TokenType tokenType;
-        address clientFeeCollector;
-    }
 
     // Attribution
     struct Attribution {
-        uint256 campaignId;
-        uint256 totalAmount;
+        address currency;
         address partner;
         address endUser;
         uint256 amountToPartner;
@@ -36,19 +26,10 @@ interface IFuulProject {
 
     event ProjectInfoUpdated(string projectInfoURI);
 
-    event CampaignCreated(
-        address indexed account,
-        address currency,
-        uint256 campaignId,
-        IFuulManager.TokenType tokenType,
-        address clientFeeCollector
-    );
-
     event BudgetDeposited(
         address indexed account,
         uint256 amount,
         address currency,
-        uint256 campaignId,
         IFuulManager.TokenType tokenType,
         uint256[] tokenIds,
         uint256[] amounts
@@ -58,14 +39,12 @@ interface IFuulProject {
         address indexed account,
         uint256 amount,
         address currency,
-        uint256 campaignId,
         IFuulManager.TokenType tokenType,
         uint256[] tokenIds,
         uint256[] amounts
     );
 
     event Claimed(
-        uint256 campaignId,
         address indexed account,
         address currency,
         uint256 amount,
@@ -76,7 +55,6 @@ interface IFuulProject {
     // Array Order: protocol, client, attributor, partner, end user
 
     event Attributed(
-        uint256 campaignId,
         address currency,
         uint256 totalAmount,
         address[5] receivers,
@@ -102,18 +80,14 @@ interface IFuulProject {
     error ManagerIsPaused();
     error ManagerIsNotPaused();
 
-    error CampaignNotExists();
     error EmptyURI();
 
-    error CampaignNotInactive();
-    error CampaignNotActive();
+    error NoRemovalApplication();
     error IncorrectMsgValue();
 
     error CooldownPeriodNotFinished();
     error ZeroAddress();
     error ZeroAmount();
-
-    // error SameValue(address value);
 
     /*╔═════════════════════════════╗
       ║       PUBLIC VARIABLES      ║
@@ -121,23 +95,9 @@ interface IFuulProject {
 
     function fuulFactory() external view returns (address);
 
-    function campaigns(
-        uint256 tokenId
-    )
-        external
-        view
-        returns (
-            uint256,
-            uint256,
-            address,
-            uint256,
-            IFuulManager.TokenType,
-            address
-        );
-
     function availableToClaim(
         address account,
-        uint256 campaignId
+        address currency
     ) external view returns (uint256);
 
     /*╔═════════════════════════════╗
@@ -156,31 +116,19 @@ interface IFuulProject {
 
     function setProjectInfoURI(string memory _projectURI) external;
 
-    /*╔═════════════════════════════╗
-      ║         CAMPAIGNS           ║
-      ╚═════════════════════════════╝*/
-
-    function campaignsCreated() external view returns (uint256);
-
-    function createCampaign(
-        string memory newProjectURI,
-        address currency,
-        address clientFeeCollector
-    ) external;
-
-    function switchCampaignStatus(uint256 tokenId) external;
+    function clientFeeCollector() external view returns (address);
 
     /*╔═════════════════════════════╗
       ║           DEPOSIT           ║
       ╚═════════════════════════════╝*/
 
     function depositFungibleToken(
-        uint256 campaignId,
+        address currency,
         uint256 amount
     ) external payable;
 
     function depositNFTToken(
-        uint256 campaignId,
+        address currency,
         uint256[] memory rewardTokenIds,
         uint256[] memory amounts
     ) external;
@@ -189,14 +137,16 @@ interface IFuulProject {
       ║           REMOVE            ║
       ╚═════════════════════════════╝*/
 
-    function getBudgetCooldownPeriod(
-        uint256 deactivatedAt
-    ) external view returns (uint256);
+    function lastRemovalApplication() external view returns (uint256);
 
-    function removeFungibleBudget(uint256 campaignId, uint256 amount) external;
+    function applyToRemoveBudget() external;
+
+    function getBudgetCooldownPeriod() external view returns (uint256);
+
+    function removeFungibleBudget(address currency, uint256 amount) external;
 
     function removeNFTBudget(
-        uint256 campaignId,
+        address currency,
         uint256[] memory rewardTokenIds,
         uint256[] memory amounts
     ) external;
@@ -214,8 +164,8 @@ interface IFuulProject {
       ║            CLAIM            ║
       ╚═════════════════════════════╝*/
 
-    function claimFromCampaign(
-        uint256 campaignId,
+    function claimFromProject(
+        address currency,
         address receiver,
         uint256[] memory tokenIds,
         uint256[] memory amounts

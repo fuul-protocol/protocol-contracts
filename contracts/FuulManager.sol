@@ -39,7 +39,7 @@ contract FuulManager is
     mapping(address => CurrencyToken) public currencyTokens;
 
     // Period that should pass after campaign is deactivated for projects to be able to remove budget
-    uint256 public campaignBudgetCooldown = 30 days;
+    uint256 public projectBudgetCooldown = 30 days;
 
     // Period that should pass after `claimCooldownPeriodStarted` for the cumulative amount to be restarted
     uint256 public claimCooldown = 1 days;
@@ -52,10 +52,10 @@ contract FuulManager is
     bytes4 public constant IID_IERC721 = type(IERC721).interfaceId;
 
     // Fees
-    uint8 public protocolFee;
-    uint8 public clientFee;
-    uint8 public attributorFee;
-    uint256 public nftFixedFeeAmount;
+    uint8 public protocolFee = 8;
+    uint8 public clientFee = 8;
+    uint8 public attributorFee = 8;
+    uint256 public nftFixedFeeAmount = 0.1 ether;
 
     address public protocolFeeCollector;
     address public nftFeeCurrency;
@@ -75,7 +75,9 @@ contract FuulManager is
         address _pauser,
         address acceptedERC20CurrencyToken,
         uint256 initialTokenLimit,
-        uint256 initialNativeTokenLimit
+        uint256 initialNativeTokenLimit,
+        address _protocolFeeCollector,
+        address _nftFeeCurrency
     ) {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
@@ -84,6 +86,9 @@ contract FuulManager is
 
         _addCurrencyToken(acceptedERC20CurrencyToken, initialTokenLimit);
         _addCurrencyToken(address(0), initialNativeTokenLimit);
+
+        protocolFeeCollector = _protocolFeeCollector;
+        nftFeeCurrency = _nftFeeCurrency;
     }
 
     /*╔═════════════════════════════╗
@@ -109,21 +114,21 @@ contract FuulManager is
     }
 
     /**
-     * @dev Sets the period for `campaignBudgetCooldown`.
+     * @dev Sets the period for `projectBudgetCooldown`.
      *
      * Requirements:
      *
      * - `_period` must be different from the current one.
      * - Only admins can call this function.
      */
-    function setCampaignBudgetCooldown(
+    function setProjectBudgetCooldown(
         uint256 _period
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_period == campaignBudgetCooldown) {
+        if (_period == projectBudgetCooldown) {
             revert InvalidArgument();
         }
 
-        campaignBudgetCooldown = _period;
+        projectBudgetCooldown = _period;
     }
 
     /*╔═════════════════════════════╗
@@ -145,7 +150,8 @@ contract FuulManager is
                 attributorFee: attributorFee,
                 clientFee: clientFee,
                 protocolFeeCollector: protocolFeeCollector,
-                nftFixedFeeAmount: nftFixedFeeAmount
+                nftFixedFeeAmount: nftFixedFeeAmount,
+                nftFeeCurrency: nftFeeCurrency
             });
     }
 
@@ -201,9 +207,35 @@ contract FuulManager is
         attributorFee = _value;
     }
 
-    // Set nft fee amount
-    // set protocol fee receiver
-    // set fee budget currency
+    function setNftFixedFeeAmounte(
+        uint8 _value
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (_value == nftFixedFeeAmount) {
+            revert InvalidArgument();
+        }
+
+        nftFixedFeeAmount = _value;
+    }
+
+    function setNftFeeCurrency(
+        address newCurrency
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (newCurrency == nftFeeCurrency) {
+            revert InvalidArgument();
+        }
+
+        nftFeeCurrency = newCurrency;
+    }
+
+    function setProtocolFeeCollector(
+        address newCollector
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (newCollector == protocolFeeCollector) {
+            revert InvalidArgument();
+        }
+
+        protocolFeeCollector = newCollector;
+    }
 
     /*╔═════════════════════════════╗
       ║       TOKEN CURRENCIES      ║
@@ -339,22 +371,24 @@ contract FuulManager is
      * - Only addresses with the ATTRIBUTOR_ROLE can call this function.
      */
 
-    // function attributeTransactions(
-    //     AttributeCheck[] calldata attributeChecks
-    // ) external whenNotPaused nonReentrant onlyRole(ATTRIBUTOR_ROLE) {
-    //     for (uint256 i = 0; i < attributeChecks.length; i++) {
-    //         AttributeCheck memory attributeCheck = attributeChecks[i];
+    function attributeTransactions(
+        AttributionEntity[] memory attributions,
+        address attributorFeeCollector
+    ) external whenNotPaused nonReentrant onlyRole(ATTRIBUTOR_ROLE) {
+        for (uint256 i = 0; i < attributions.length; i++) {
+            IFuulProject.Attribution[]
+                memory projectAttributions = attributions[i]
+                    .projectAttributions;
 
-    //         IFuulProject(attributeCheck.projectAddress).attributeTransactions(
-    //             attributeCheck.campaignIds,
-    //             attributeCheck.receivers,
-    //             attributeCheck.amounts
-    //         );
-    //     }
-    // }
+            IFuulProject(attributions[i].projectAddress).attributeTransactions(
+                projectAttributions,
+                attributorFeeCollector
+            );
+        }
+    }
 
     /**
-     * @dev Claims: calls the `claimFromCampaign` function in {FuulProject} from a loop of `ClaimChecks`.
+     * @dev Claims: calls the `claimFromProject` function in {FuulProject} from a loop of `ClaimChecks`.
      *
      * Requirements:
      *
@@ -370,8 +404,8 @@ contract FuulManager is
             uint256 tokenAmount;
             address currency;
             (tokenAmount, currency) = IFuulProject(claimCheck.projectAddress)
-                .claimFromCampaign(
-                    claimCheck.campaignId,
+                .claimFromProject(
+                    claimCheck.currency,
                     _msgSender(),
                     claimCheck.tokenIds,
                     claimCheck.amounts

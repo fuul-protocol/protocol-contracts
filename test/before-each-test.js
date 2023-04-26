@@ -10,21 +10,26 @@ const deployMocks = async function () {
   // Deploy Mock Token Rewards
   const token = await deployContract("MockTokenRewards");
 
+  // Deploy Mock Fee Token Currency
+  const nftFeeCurrency = await deployContract("MockTokenRewards");
+
   // Deploy NFT 721 Rewards
 
   const nft721 = await deployContract("MockNFT721Rewards");
 
-  // Deploy NFT 1155 Rewards
+  // Deploy NFT 1155
   const nft1155 = await deployContract("MockNFT1155Rewards");
 
-  return { token, nft721, nft1155 };
+  return { token, nftFeeCurrency, nft721, nft1155 };
 };
 
 const deployManager = async function (
   signerAddress,
   pauserAddress,
   tokenAddress,
-  limitAmount
+  limitAmount,
+  protocolFeeCollector,
+  nftFeeCurrency
 ) {
   const FuulManager = await hre.ethers.getContractFactory("FuulManager");
   const fuulManager = await FuulManager.deploy(
@@ -32,7 +37,9 @@ const deployManager = async function (
     pauserAddress,
     tokenAddress,
     limitAmount,
-    limitAmount
+    limitAmount,
+    protocolFeeCollector,
+    nftFeeCurrency
   );
 
   await fuulManager.deployed();
@@ -54,11 +61,19 @@ const setupTest = async function (deployProject = true) {
 
   const provider = hre.ethers.provider;
 
-  [user1, user2, user3, user4, user5] = await hre.ethers.getSigners();
+  [
+    user1,
+    user2,
+    user3,
+    user4,
+    user5,
+    protocolFeeCollector,
+    clientFeeCollector,
+  ] = await hre.ethers.getSigners();
 
   // Deploy mocks
 
-  const { token, nft721, nft1155 } = await deployMocks();
+  const { token, nftFeeCurrency, nft721, nft1155 } = await deployMocks();
 
   // Deploy Manager
 
@@ -68,7 +83,9 @@ const setupTest = async function (deployProject = true) {
     user1.address,
     user1.address,
     token.address,
-    limitAmount
+    limitAmount,
+    protocolFeeCollector.address,
+    nftFeeCurrency.address
   );
 
   // Deploy Factory
@@ -81,7 +98,12 @@ const setupTest = async function (deployProject = true) {
 
   if (deployProject) {
     const signer = this.user2.address;
-    await fuulFactory.createFuulProject(user1.address, signer, "projectURI");
+    await fuulFactory.createFuulProject(
+      user1.address,
+      signer,
+      "projectURI",
+      clientFeeCollector.address
+    );
     const addressDeployed = await fuulFactory.projects(1);
 
     const FuulProject = await ethers.getContractFactory("FuulProject");
@@ -103,6 +125,9 @@ const setupTest = async function (deployProject = true) {
     adminRole,
     provider,
     limitAmount,
+    protocolFeeCollector,
+    nftFeeCurrency,
+    clientFeeCollector,
   };
 };
 

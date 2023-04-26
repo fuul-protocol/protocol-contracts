@@ -7,18 +7,29 @@ interface IFuulFactory {
         uint256 projectId,
         address deployedAddress,
         address eventSigner,
-        string projectInfoURI
+        string projectInfoURI,
+        address _clientFeeCollector
     );
 
     function createFuulProject(
         address _projectAdmin,
         address _projectEventSigner,
-        string memory _projectInfoURI
+        string memory _projectInfoURI,
+        address _clientFeeCollector
     ) external;
 
     function projects(uint256 projectId) external returns (address);
 
-    function projectsCreated() external view returns (uint256);
+    function totalProjectsCreated() external view returns (uint256);
+
+    function getUserProjectByIndex(
+        address account,
+        uint256 index
+    ) external view returns (address);
+
+    function getUserProjectCount(
+        address account
+    ) external view returns (uint256);
 
     function fuulManager() external view returns (address);
 

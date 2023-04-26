@@ -14,16 +14,14 @@ interface IFuulManager {
 
     struct ClaimCheck {
         address projectAddress;
-        uint256 campaignId;
+        address currency;
         uint256[] tokenIds;
         uint256[] amounts;
     }
 
-    struct AttributeCheck {
+    struct AttributionEntity {
         address projectAddress;
-        uint256[] campaignIds;
-        address[] receivers;
-        uint256[] amounts;
+        IFuulProject.Attribution[] projectAttributions;
     }
 
     struct FuulProjectFungibleCurrencies {
@@ -37,6 +35,7 @@ interface IFuulManager {
         uint8 clientFee;
         address protocolFeeCollector;
         uint256 nftFixedFeeAmount;
+        address nftFeeCurrency;
     }
 
     /*╔═════════════════════════════╗
@@ -54,7 +53,7 @@ interface IFuulManager {
       ║       PUBLIC VARIABLES      ║
       ╚═════════════════════════════╝*/
 
-    function campaignBudgetCooldown() external view returns (uint256 period);
+    function projectBudgetCooldown() external view returns (uint256 period);
 
     function claimCooldown() external view returns (uint256 period);
 
@@ -81,7 +80,7 @@ interface IFuulManager {
 
     function setClaimCooldown(uint256 _period) external;
 
-    function setCampaignBudgetCooldown(uint256 period) external;
+    function setProjectBudgetCooldown(uint256 period) external;
 
     /*╔═════════════════════════════╗
       ║        FEES VARIABLES       ║
