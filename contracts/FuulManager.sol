@@ -52,9 +52,9 @@ contract FuulManager is
     bytes4 public constant IID_IERC721 = type(IERC721).interfaceId;
 
     // Fees
-    uint8 public protocolFee = 8;
-    uint8 public clientFee = 8;
-    uint8 public attributorFee = 8;
+    uint8 public protocolFee = 1;
+    uint8 public clientFee = 1;
+    uint8 public attributorFee = 1;
     uint256 public nftFixedFeeAmount = 0.1 ether;
 
     address public protocolFeeCollector;
