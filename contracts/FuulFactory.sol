@@ -122,8 +122,8 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
      *
      * Requirements:
      *
-     * - `_fuulManager` must not be the address zero.
-     * - `_fuulManager` must be different from the current one.
+     * - {_fuulManager} must not be the zero address.
+     * - {_fuulManager} must be different from the current one.
      * - Only admins can call this function.
      */
     function setFuulManager(
