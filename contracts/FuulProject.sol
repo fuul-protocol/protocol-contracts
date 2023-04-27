@@ -59,6 +59,9 @@ contract FuulProject is
     // Mapping attribution proofs with already processed
     mapping(bytes32 => bool) public attributionProofs;
 
+    // Hash for servers to know if they are synced with the last version of the project URI
+    bytes32 public lastStatusHash;
+
     /**
      * @dev Modifier that the sender is the fuul manager. Reverts
      * with an Unauthorized error including the sender and the required sender.
@@ -119,6 +122,10 @@ contract FuulProject is
         _setupRole(DEFAULT_ADMIN_ROLE, projectAdmin);
 
         _setupRole(EVENTS_SIGNER_ROLE, _projectEventSigner);
+
+        lastStatusHash = keccak256(
+            abi.encodePacked(block.prevrandao, block.timestamp)
+        );
     }
 
     /*╔═════════════════════════════╗
@@ -161,6 +168,10 @@ contract FuulProject is
         }
 
         projectInfoURI = _projectURI;
+
+        lastStatusHash = keccak256(
+            abi.encodePacked(block.prevrandao, block.timestamp)
+        );
 
         emit ProjectInfoUpdated(_projectURI);
     }
@@ -530,9 +541,10 @@ contract FuulProject is
         address currency,
         uint256 amount
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
-        if (amount == 0) {
-            revert ZeroAmount();
-        }
+        // Commented to optimize contract size
+        // if (amount == 0) {
+        //     revert ZeroAmount();
+        // }
 
         uint256 cooldownPeriod = getBudgetCooldownPeriod();
 
@@ -586,16 +598,10 @@ contract FuulProject is
         ];
 
         // Get net amounts
-        uint256 netPartnerAmount = ((totalAmount -
-            allFees[0] -
-            allFees[1] -
-            allFees[2]) * partnerPercentage) / 100;
+        uint256 netTotal = (totalAmount - allFees[0] - allFees[1] - allFees[2]);
+        uint256 netPartnerAmount = (netTotal * partnerPercentage) / 100;
 
-        uint256 netEndUserAmount = totalAmount -
-            allFees[0] -
-            allFees[1] -
-            allFees[2] -
-            netPartnerAmount;
+        uint256 netEndUserAmount = netTotal - netPartnerAmount;
 
         return (allFees, netPartnerAmount, netEndUserAmount);
     }
@@ -654,9 +660,10 @@ contract FuulProject is
             uint256 totalAmount = attribution.amountToPartner +
                 attribution.amountToEndUser;
 
-            if (totalAmount == 0) {
-                revert ZeroAmount();
-            }
+            // Commented to optimize contract size
+            // if (totalAmount == 0) {
+            //     revert ZeroAmount();
+            // }
 
             address currency = attribution.currency;
 

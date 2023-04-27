@@ -28,6 +28,9 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
     // Mapping accounts with created project contract address
     mapping(address => EnumerableSet.AddressSet) userProjects;
 
+    // Hash for servers to know if they are synced with the last version of projects=
+    bytes32 public lastStatusHash;
+
     /**
      * @dev Sets the values for {fuulManager} and {fuulProjectImplementation}.
      * It grants the DEFAULT_ADMIN_ROLE to the deployer.
@@ -78,9 +81,11 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
 
         _projectTracker.increment();
 
-        // Is it convenient to do project Ids increasingly or should they be random generated?
-
         projects[totalProjectsCreated()] = address(clone);
+
+        lastStatusHash = keccak256(
+            abi.encodePacked(block.prevrandao, block.timestamp)
+        );
 
         emit ProjectCreated(
             totalProjectsCreated(),

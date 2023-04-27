@@ -99,6 +99,8 @@ interface IFuulProject {
         address currency
     ) external view returns (uint256);
 
+    function lastStatusHash() external view returns (bytes32);
+
     /*╔═════════════════════════════╗
       ║     FROM OTHER CONTRACTS    ║
       ╚═════════════════════════════╝*/

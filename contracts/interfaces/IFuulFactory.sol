@@ -11,6 +11,8 @@ interface IFuulFactory {
         address clientFeeCollector
     );
 
+    function lastStatusHash() external view returns (bytes32);
+
     function createFuulProject(
         address _projectAdmin,
         address _projectEventSigner,
