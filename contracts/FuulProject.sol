@@ -56,6 +56,9 @@ contract FuulProject is
     // Timestamp for the last application to remove budget
     uint256 public lastRemovalApplication;
 
+    // Mapping attribution proofs with already processed
+    mapping(bytes32 => bool) public attributionProofs;
+
     /**
      * @dev Modifier that the sender is the fuul manager. Reverts
      * with an Unauthorized error including the sender and the required sender.
@@ -182,9 +185,10 @@ contract FuulProject is
         address currency,
         uint256 amount
     ) external payable onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
-        if (amount == 0) {
-            revert ZeroAmount();
-        }
+        // Commented to optimize contract size
+        // if (amount == 0) {
+        //     revert ZeroAmount();
+        // }
 
         if (!fuulManagerInstance().isCurrencyTokenAccepted(currency)) {
             revert IFuulManager.TokenCurrencyNotAccepted();
@@ -194,6 +198,7 @@ contract FuulProject is
             currency
         );
 
+        // Commented to optimize contract size
         // require(
         //     tokenType == IFuulManager.TokenType.NATIVE ||
         //         tokenType == IFuulManager.TokenType.ERC_20,
@@ -344,9 +349,10 @@ contract FuulProject is
         address currency,
         uint256 amount
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
-        if (amount == 0) {
-            revert ZeroAmount();
-        }
+        // Commented to optimize contract size
+        // if (amount == 0) {
+        //     revert ZeroAmount();
+        // }
 
         IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
             currency
@@ -404,9 +410,10 @@ contract FuulProject is
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
         uint256 tokenIdsLength = tokenIds.length;
 
-        if (tokenIdsLength == 0) {
-            revert ZeroAmount();
-        }
+        // Commented to optimize contract size
+        // if (tokenIdsLength == 0) {
+        //     revert ZeroAmount();
+        // }
 
         uint256 cooldownPeriod = getBudgetCooldownPeriod();
 
@@ -481,9 +488,10 @@ contract FuulProject is
     function depositFeeBudget(
         uint256 amount
     ) external payable onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
-        if (amount == 0) {
-            revert ZeroAmount();
-        }
+        // Commented to optimize contract size
+        // if (amount == 0) {
+        //     revert ZeroAmount();
+        // }
 
         address currency = fuulManagerInstance().nftFeeCurrency();
 
@@ -508,7 +516,7 @@ contract FuulProject is
     /**
      * @dev Removes fee budget for NFT rewards.
      *
-     * Emits {BudgetRemoved}.
+     * Emits {FeeBudgetRemoved}.
      *
      * Notes: Currency is an argument because if the default is changed in {FuulManager}, projects will still be able to remove
      *
@@ -637,6 +645,12 @@ contract FuulProject is
         for (uint256 i = 0; i < attributions.length; i++) {
             Attribution memory attribution = attributions[i];
 
+            if (attributionProofs[attribution.proof]) {
+                revert AlreadyAttributed();
+            }
+
+            attributionProofs[attribution.proof] = true;
+
             uint256 totalAmount = attribution.amountToPartner +
                 attribution.amountToEndUser;
 
@@ -714,7 +728,8 @@ contract FuulProject is
                     attribution.partner,
                     attribution.endUser
                 ],
-                [fees[0], fees[1], fees[2], amountToPartner, amountToEndUser]
+                [fees[0], fees[1], fees[2], amountToPartner, amountToEndUser],
+                attribution.proof
             );
         }
     }

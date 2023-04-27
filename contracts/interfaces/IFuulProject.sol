@@ -15,6 +15,7 @@ interface IFuulProject {
         address endUser;
         uint256 amountToPartner;
         uint256 amountToEndUser;
+        bytes32 proof;
     }
 
     /*╔═════════════════════════════╗
@@ -58,7 +59,8 @@ interface IFuulProject {
         address currency,
         uint256 totalAmount,
         address[5] receivers,
-        uint256[5] amounts
+        uint256[5] amounts,
+        bytes32 proof
     );
 
     event FeeBudgetDeposited(
@@ -84,6 +86,7 @@ interface IFuulProject {
     error CooldownPeriodNotFinished();
     error ZeroAmount();
     error Unauthorized();
+    error AlreadyAttributed();
 
     /*╔═════════════════════════════╗
       ║       PUBLIC VARIABLES      ║

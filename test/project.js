@@ -270,11 +270,11 @@ describe("Fuul Project - Deposit and remove fungible", function () {
     await expect(balance).to.equal(0);
   });
 
-  it("Should fail to deposit with amount equals to zero", async function () {
-    await expect(
-      this.fuulProject.depositFungibleToken(this.token.address, 0)
-    ).to.be.revertedWithCustomError(this.fuulProject, "ZeroAmount");
-  });
+  // it("Should fail to deposit with amount equals to zero", async function () {
+  //   await expect(
+  //     this.fuulProject.depositFungibleToken(this.token.address, 0)
+  //   ).to.be.revertedWithCustomError(this.fuulProject, "ZeroAmount");
+  // });
 
   it("Should fail to deposit native token if amount differs to msg.value", async function () {
     await expect(
@@ -606,6 +606,8 @@ describe("Fuul Project - Fuul Manager functions", function () {
       endUser: this.user1.address,
       amountToPartner: 1,
       amountToEndUser: 1,
+      proof:
+        "0x70726f6f66000000000000000000000000000000000000000000000000000000",
     };
 
     // Attribute
@@ -767,11 +769,11 @@ describe("Fuul Project - Deposit and remove fee budget", function () {
     ).to.equal(0);
   });
 
-  it("Should fail to deposit with amount equals to zero", async function () {
-    await expect(
-      this.fuulProject.depositFeeBudget(0)
-    ).to.be.revertedWithCustomError(this.fuulProject, "ZeroAmount");
-  });
+  // it("Should fail to deposit with amount equals to zero", async function () {
+  //   await expect(
+  //     this.fuulProject.depositFeeBudget(0)
+  //   ).to.be.revertedWithCustomError(this.fuulProject, "ZeroAmount");
+  // });
 
   it("Should fail to deposit and remove if not admin role", async function () {
     const error = `AccessControl: account ${this.user2.address.toLowerCase()} is missing role ${

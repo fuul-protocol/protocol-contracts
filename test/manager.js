@@ -384,6 +384,8 @@ describe("Fuul Manager - Attribute", function () {
     this.attributionTemplate = {
       partner: this.partner.address,
       endUser: this.endUser.address,
+      proof:
+        "0x70726f6f66000000000000000000000000000000000000000000000000000000",
     };
 
     this.feesInfo = await this.fuulManager.getFeesInformation();
@@ -403,24 +405,32 @@ describe("Fuul Manager - Attribute", function () {
           currency: this.token.address,
           amountToPartner: this.attributedAmount,
           amountToEndUser: this.attributedAmount,
+          proof:
+            "0x70726f6f66310a00000000000000000000000000000000000000000000000000",
         },
         {
           ...this.attributionTemplate,
           currency: ethers.constants.AddressZero,
           amountToPartner: this.attributedAmount,
           amountToEndUser: this.attributedAmount,
+          proof:
+            "0x70726f6f66320a00000000000000000000000000000000000000000000000000",
         },
         {
           ...this.attributionTemplate,
           currency: this.nft721.address,
           amountToPartner: this.tokenIds.length / 2,
           amountToEndUser: this.tokenIds.length / 2,
+          proof:
+            "0x70726f6f66330a00000000000000000000000000000000000000000000000000",
         },
         {
           ...this.attributionTemplate,
           currency: this.nft1155.address,
           amountToPartner: this.tokenAmount / 2,
           amountToEndUser: this.tokenAmount / 2,
+          proof:
+            "0x70726f6f66340a00000000000000000000000000000000000000000000000000",
         },
       ],
     };
@@ -437,6 +447,11 @@ describe("Fuul Manager - Attribute", function () {
       // Budget
       let budget = await this.fuulProject.budgets(att.currency);
       expect(budget).to.equal(0);
+
+      // Proof
+      expect(await this.fuulProject.attributionProofs(att.proof)).to.equal(
+        true
+      );
 
       if ([this.nft721.address, this.nft1155.address].includes(att.currency)) {
         // For NFTs fees are separated
@@ -602,6 +617,11 @@ describe("Fuul Manager - Attribute", function () {
       attributionEntities,
       this.attributor.address
     );
+
+    // Check proofs
+    expect(
+      await this.fuulProject.attributionProofs(this.attributionTemplate.proof)
+    ).to.equal(true);
 
     // Check balances
 
@@ -834,6 +854,8 @@ describe("Fuul Manager - Claim", function () {
     this.attributionTemplate = {
       partner: this.partner.address,
       endUser: this.endUser.address,
+      proof:
+        "0x70726f6f66000000000000000000000000000000000000000000000000000000",
     };
 
     this.attributionEntity = {
@@ -844,24 +866,32 @@ describe("Fuul Manager - Claim", function () {
           currency: this.token.address,
           amountToPartner: this.attributedAmount,
           amountToEndUser: this.attributedAmount,
+          proof:
+            "0x70726f6f66310a00000000000000000000000000000000000000000000000000",
         },
         {
           ...this.attributionTemplate,
           currency: ethers.constants.AddressZero,
           amountToPartner: this.attributedAmount,
           amountToEndUser: this.attributedAmount,
+          proof:
+            "0x70726f6f66320a00000000000000000000000000000000000000000000000000",
         },
         {
           ...this.attributionTemplate,
           currency: this.nft721.address,
           amountToPartner: 2,
           amountToEndUser: 2,
+          proof:
+            "0x70726f6f66330a00000000000000000000000000000000000000000000000000",
         },
         {
           ...this.attributionTemplate,
           currency: this.nft1155.address,
           amountToPartner: 2,
           amountToEndUser: 2,
+          proof:
+            "0x70726f6f66340a00000000000000000000000000000000000000000000000000",
         },
       ],
     };
@@ -905,6 +935,8 @@ describe("Fuul Manager - Claim", function () {
           currency: currency,
           amountToPartner: this.attributedAmount,
           amountToEndUser: this.attributedAmount,
+          proof:
+            "0x70726f6f66000000000000000000000000000000000000000000000000000000",
         },
       ],
     };

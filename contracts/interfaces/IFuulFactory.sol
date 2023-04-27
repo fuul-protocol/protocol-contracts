@@ -8,7 +8,7 @@ interface IFuulFactory {
         address deployedAddress,
         address eventSigner,
         string projectInfoURI,
-        address _clientFeeCollector
+        address clientFeeCollector
     );
 
     function createFuulProject(
