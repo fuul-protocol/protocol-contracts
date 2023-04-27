@@ -316,8 +316,8 @@ contract FuulProject is
 
     /**
      * @dev Returns the timestamp when funds can be removed.
-     * This period starts when they call the {applyToRemoveBudget} function and ends after the
-     * {projectBudgetCooldown} is passed.
+     * The period for removing a project's budget begins upon calling the {applyToRemoveBudget} function
+     * and ends once the {projectBudgetCooldown} period has elapsed.
      */
     function getBudgetCooldownPeriod() public view returns (uint256) {
         if (lastRemovalApplication == 0) {

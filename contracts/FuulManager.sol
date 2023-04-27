@@ -38,10 +38,10 @@ contract FuulManager is
     // Mapping addresses with tokens info
     mapping(address => CurrencyToken) public currencyTokens;
 
-    // Period that should pass after a project applies to remove budget to be able to remove budget
+    // Amount of time that must elapse between a project's application to remove funds from its budget and the actual removal of those funds.
     uint256 public projectBudgetCooldown = 30 days;
 
-    // Period that should pass after `claimCooldownPeriodStarted` for the cumulative amount to be restarted
+    // Amount of time that must elapse after {claimCooldownPeriodStarted} for the cumulative amount to be restarted
     uint256 public claimCooldown = 1 days;
 
     // Mapping users and currency with total amount claimed
