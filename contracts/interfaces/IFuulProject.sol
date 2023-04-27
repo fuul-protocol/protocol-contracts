@@ -78,16 +78,12 @@ interface IFuulProject {
       ╚═════════════════════════════╝*/
 
     error ManagerIsPaused();
-    error ManagerIsNotPaused();
-
     error EmptyURI();
-
     error NoRemovalApplication();
     error IncorrectMsgValue();
-
     error CooldownPeriodNotFinished();
-    error ZeroAddress();
     error ZeroAmount();
+    error Unauthorized();
 
     /*╔═════════════════════════════╗
       ║       PUBLIC VARIABLES      ║

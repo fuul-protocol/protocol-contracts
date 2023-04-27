@@ -61,7 +61,7 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
         address _clientFeeCollector
     ) external {
         if (_projectAdmin == address(0) || _projectEventSigner == address(0)) {
-            revert IFuulProject.ZeroAddress();
+            revert ZeroAddress();
         }
 
         if (bytes(_projectInfoURI).length == 0) {
@@ -130,7 +130,7 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
         address _fuulManager
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_fuulManager == address(0)) {
-            revert IFuulProject.ZeroAddress();
+            revert ZeroAddress();
         }
         if (_fuulManager == fuulManager) {
             revert IFuulManager.InvalidArgument();

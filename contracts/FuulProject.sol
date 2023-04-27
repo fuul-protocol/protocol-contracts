@@ -63,7 +63,7 @@ contract FuulProject is
 
     modifier onlyFuulManager() {
         if (_msgSender() != fuulManagerAddress()) {
-            revert IFuulManager.Unauthorized();
+            revert Unauthorized();
         }
         _;
     }

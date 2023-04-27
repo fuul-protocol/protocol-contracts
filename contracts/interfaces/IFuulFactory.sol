@@ -18,6 +18,8 @@ interface IFuulFactory {
         address _clientFeeCollector
     ) external;
 
+    error ZeroAddress();
+
     function projects(uint256 projectId) external returns (address);
 
     function totalProjectsCreated() external view returns (uint256);

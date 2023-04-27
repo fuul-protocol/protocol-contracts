@@ -24,11 +24,6 @@ interface IFuulManager {
         IFuulProject.Attribution[] projectAttributions;
     }
 
-    struct FuulProjectFungibleCurrencies {
-        address deployedAddress;
-        address[] currencies;
-    }
-
     struct FeesInformation {
         uint8 protocolFee;
         uint8 attributorFee;
@@ -45,8 +40,6 @@ interface IFuulManager {
     error InvalidArgument();
     error TokenCurrencyAlreadyAccepted();
     error TokenCurrencyNotAccepted();
-    error InvalidSignature();
-    error Unauthorized();
     error OverTheLimit();
 
     /*╔═════════════════════════════╗
