@@ -211,13 +211,17 @@ contract FuulProject is
             revert ZeroAmount();
         }
 
-        if (!fuulManagerInstance().isCurrencyTokenAccepted(currency)) {
+        (
+            IFuulManager.TokenType tokenType,
+            ,
+            ,
+            ,
+            bool isTokenActive
+        ) = fuulManagerInstance().currencyTokens(currency);
+
+        if (!isTokenActive) {
             revert IFuulManager.TokenCurrencyNotAccepted();
         }
-
-        IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
-            currency
-        );
 
         // Commented to optimize contract size
         // require(
@@ -269,13 +273,17 @@ contract FuulProject is
         uint256[] memory tokenIds,
         uint256[] memory amounts
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
-        if (!fuulManagerInstance().isCurrencyTokenAccepted(currency)) {
+        (
+            IFuulManager.TokenType tokenType,
+            ,
+            ,
+            ,
+            bool isTokenActive
+        ) = fuulManagerInstance().currencyTokens(currency);
+
+        if (!isTokenActive) {
             revert IFuulManager.TokenCurrencyNotAccepted();
         }
-
-        IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
-            currency
-        );
 
         // Commented to optimize contract size
 
@@ -346,12 +354,12 @@ contract FuulProject is
      * and ends once the {projectBudgetCooldown} period has elapsed.
      */
     function getBudgetCooldownPeriod() public view returns (uint256) {
-        if (lastRemovalApplication == 0) {
+        uint256 _lastApplication = lastRemovalApplication;
+
+        if (_lastApplication == 0) {
             revert NoRemovalApplication();
         }
-        return
-            lastRemovalApplication +
-            fuulManagerInstance().projectBudgetCooldown();
+        return _lastApplication + fuulManagerInstance().projectBudgetCooldown();
     }
 
     /**
@@ -385,9 +393,8 @@ contract FuulProject is
         //         tokenType == IFuulManager.TokenType.ERC_20,
         //     "Currency is not a fungible token"
         // );
-        uint256 cooldownPeriod = getBudgetCooldownPeriod();
 
-        if (block.timestamp < cooldownPeriod) {
+        if (block.timestamp < getBudgetCooldownPeriod()) {
             revert CooldownPeriodNotFinished();
         }
 
@@ -436,9 +443,7 @@ contract FuulProject is
             revert ZeroAmount();
         }
 
-        uint256 cooldownPeriod = getBudgetCooldownPeriod();
-
-        if (block.timestamp < cooldownPeriod) {
+        if (block.timestamp < getBudgetCooldownPeriod()) {
             revert CooldownPeriodNotFinished();
         }
 
@@ -554,9 +559,7 @@ contract FuulProject is
             revert ZeroAmount();
         }
 
-        uint256 cooldownPeriod = getBudgetCooldownPeriod();
-
-        if (block.timestamp < cooldownPeriod) {
+        if (block.timestamp < getBudgetCooldownPeriod()) {
             revert CooldownPeriodNotFinished();
         }
 
