@@ -31,9 +31,21 @@ contract FuulProject is
     // Factory contract address
     address public fuulFactory;
 
+    // Address that will receive client fees (client that created the project)
+    address public clientFeeCollector;
+
     // Roles for allowed addresses to send events through our SDK (not used in the contract)
     bytes32 public constant EVENTS_SIGNER_ROLE =
         keccak256("EVENTS_SIGNER_ROLE");
+
+    // Hash for servers to know if they are synced with the last version of the project URI
+    bytes32 public lastStatusHash;
+
+    // URI that points to a file with project information (image, name, description, etc)
+    string public projectInfoURI;
+
+    // Timestamp for the last application to remove budget
+    uint256 public lastRemovalApplication;
 
     // Mapping currency with amount
     mapping(address => uint256) public budgets;
@@ -41,26 +53,11 @@ contract FuulProject is
     // Mapping owner address to currency to earnings
     mapping(address => mapping(address => uint256)) public availableToClaim;
 
-    // URI that points to a file with project information (image, name, description, etc)
-    string public projectInfoURI;
-
-    // Helper empty array to input in events
-    uint256[] private emptyArray;
-
     // Mapping currency with fees when rewarding NFTs
     mapping(address => uint256) public nftFeeBudget;
 
-    // Address that will receive client fees (client that created the project)
-    address public clientFeeCollector;
-
-    // Timestamp for the last application to remove budget
-    uint256 public lastRemovalApplication;
-
     // Mapping attribution proofs with already processed
     mapping(bytes32 => bool) public attributionProofs;
-
-    // Hash for servers to know if they are synced with the last version of the project URI
-    bytes32 public lastStatusHash;
 
     /**
      * @dev Modifier that the sender is the fuul manager. Reverts
@@ -68,10 +65,17 @@ contract FuulProject is
      */
 
     modifier onlyFuulManager() {
+        _onlyFuulManager();
+        _;
+    }
+
+    /**
+     * @dev Internal function for {onlyFuulManager} modifier. Reverts with a Unauthorized error.
+     */
+    function _onlyFuulManager() internal view {
         if (_msgSender() != fuulManagerAddress()) {
             revert Unauthorized();
         }
-        _;
     }
 
     /**
@@ -79,10 +83,17 @@ contract FuulProject is
      * with a ManagerIsPaused error.
      */
     modifier whenManagerIsPaused() {
+        _whenManagerIsPaused();
+        _;
+    }
+
+    /**
+     * @dev Internal function for {whenManagerIsPaused} modifier. Reverts with a ManagerIsPaused error.
+     */
+    function _whenManagerIsPaused() internal view {
         if (fuulManagerInstance().isPaused()) {
             revert ManagerIsPaused();
         }
-        _;
     }
 
     /*╔═════════════════════════════╗
@@ -196,10 +207,9 @@ contract FuulProject is
         address currency,
         uint256 amount
     ) external payable onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
-        // Commented to optimize contract size
-        // if (amount == 0) {
-        //     revert ZeroAmount();
-        // }
+        if (amount == 0) {
+            revert ZeroAmount();
+        }
 
         if (!fuulManagerInstance().isCurrencyTokenAccepted(currency)) {
             revert IFuulManager.TokenCurrencyNotAccepted();
@@ -230,6 +240,8 @@ contract FuulProject is
 
         // Update balance
         budgets[currency] += amount;
+
+        uint256[] memory emptyArray;
 
         emit BudgetDeposited(
             _msgSender(),
@@ -287,8 +299,6 @@ contract FuulProject is
             }
 
             depositedAmount = tokenIds.length;
-
-            tokenAmounts = emptyArray;
         } else if (tokenType == IFuulManager.TokenType.ERC_1155) {
             _transferERC1155Tokens(
                 currency,
@@ -360,10 +370,9 @@ contract FuulProject is
         address currency,
         uint256 amount
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
-        // Commented to optimize contract size
-        // if (amount == 0) {
-        //     revert ZeroAmount();
-        // }
+        if (amount == 0) {
+            revert ZeroAmount();
+        }
 
         IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
             currency
@@ -390,6 +399,8 @@ contract FuulProject is
         } else if (tokenType == IFuulManager.TokenType.ERC_20) {
             IERC20(currency).safeTransfer(_msgSender(), amount);
         }
+
+        uint256[] memory emptyArray;
 
         emit BudgetRemoved(
             _msgSender(),
@@ -421,10 +432,9 @@ contract FuulProject is
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
         uint256 tokenIdsLength = tokenIds.length;
 
-        // Commented to optimize contract size
-        // if (tokenIdsLength == 0) {
-        //     revert ZeroAmount();
-        // }
+        if (tokenIdsLength == 0) {
+            revert ZeroAmount();
+        }
 
         uint256 cooldownPeriod = getBudgetCooldownPeriod();
 
@@ -499,10 +509,9 @@ contract FuulProject is
     function depositFeeBudget(
         uint256 amount
     ) external payable onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
-        // Commented to optimize contract size
-        // if (amount == 0) {
-        //     revert ZeroAmount();
-        // }
+        if (amount == 0) {
+            revert ZeroAmount();
+        }
 
         address currency = fuulManagerInstance().nftFeeCurrency();
 
@@ -541,10 +550,9 @@ contract FuulProject is
         address currency,
         uint256 amount
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
-        // Commented to optimize contract size
-        // if (amount == 0) {
-        //     revert ZeroAmount();
-        // }
+        if (amount == 0) {
+            revert ZeroAmount();
+        }
 
         uint256 cooldownPeriod = getBudgetCooldownPeriod();
 
@@ -660,10 +668,9 @@ contract FuulProject is
             uint256 totalAmount = attribution.amountToPartner +
                 attribution.amountToEndUser;
 
-            // Commented to optimize contract size
-            // if (totalAmount == 0) {
-            //     revert ZeroAmount();
-            // }
+            if (totalAmount == 0) {
+                revert ZeroAmount();
+            }
 
             address currency = attribution.currency;
 

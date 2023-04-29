@@ -26,17 +26,9 @@ contract FuulManager is
     // Pauser role
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
-    // Currency token info
-    struct CurrencyToken {
-        TokenType tokenType;
-        uint256 claimLimitPerCooldown;
-        uint256 cumulativeClaimPerCooldown;
-        uint256 claimCooldownPeriodStarted;
-        bool isActive;
-    }
-
-    // Mapping addresses with tokens info
-    mapping(address => CurrencyToken) public currencyTokens;
+    // Interfaces for ERC721 and ERC1155 contracts
+    bytes4 public constant IID_IERC1155 = type(IERC1155).interfaceId;
+    bytes4 public constant IID_IERC721 = type(IERC721).interfaceId;
 
     // Amount of time that must elapse between a project's application to remove funds from its budget and the actual removal of those funds.
     uint256 public projectBudgetCooldown = 30 days;
@@ -44,18 +36,11 @@ contract FuulManager is
     // Amount of time that must elapse after {claimCooldownPeriodStarted} for the cumulative amount to be restarted
     uint256 public claimCooldown = 1 days;
 
-    // Mapping users and currency with total amount claimed
-    mapping(address => mapping(address => uint256)) public usersClaims;
-
-    // Interfaces for ERC721 and ERC1155 contracts
-    bytes4 public constant IID_IERC1155 = type(IERC1155).interfaceId;
-    bytes4 public constant IID_IERC721 = type(IERC721).interfaceId;
+    // Fixed fee for NFT rewards
+    uint256 public nftFixedFeeAmount = 0.1 ether;
 
     // Protocol fee percentage. 1 => 0.01%
     uint8 public protocolFee = 100;
-
-    // Address that will collect protocol fees
-    address public protocolFeeCollector;
 
     // Client fee. 1 => 0.01%
     uint8 public clientFee = 100;
@@ -63,11 +48,16 @@ contract FuulManager is
     // Attributor fee. 1 => 0.01%
     uint8 public attributorFee = 100;
 
-    // Fixed fee for NFT rewards
-    uint256 public nftFixedFeeAmount = 0.1 ether;
+    // Address that will collect protocol fees
+    address public protocolFeeCollector;
 
     // Currency paid for NFT fixed fees
     address public nftFeeCurrency;
+
+    // Mapping users and currency with total amount claimed
+    mapping(address => mapping(address => uint256)) public usersClaims;
+    // Mapping addresses with tokens info
+    mapping(address => CurrencyToken) public currencyTokens;
 
     /*╔═════════════════════════════╗
       ║         CONSTRUCTOR         ║
@@ -279,7 +269,7 @@ contract FuulManager is
      */
     function getTokenType(
         address tokenAddress
-    ) public view returns (TokenType tokenType) {
+    ) external view returns (TokenType tokenType) {
         return currencyTokens[tokenAddress].tokenType;
     }
 
@@ -408,7 +398,8 @@ contract FuulManager is
         AttributionEntity[] memory attributions,
         address attributorFeeCollector
     ) external whenNotPaused nonReentrant onlyRole(ATTRIBUTOR_ROLE) {
-        for (uint256 i = 0; i < attributions.length; i++) {
+        uint256 attributionLength = attributions.length;
+        for (uint256 i = 0; i < attributionLength; i++) {
             IFuulProject.Attribution[]
                 memory projectAttributions = attributions[i]
                     .projectAttributions;
@@ -430,7 +421,9 @@ contract FuulManager is
     function claim(
         ClaimCheck[] calldata claimChecks
     ) external whenNotPaused nonReentrant {
-        for (uint256 i = 0; i < claimChecks.length; i++) {
+        uint256 checksLength = claimChecks.length;
+
+        for (uint256 i = 0; i < checksLength; i++) {
             ClaimCheck memory claimCheck = claimChecks[i];
 
             // Send

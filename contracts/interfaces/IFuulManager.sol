@@ -12,6 +12,14 @@ interface IFuulManager {
         ERC_1155
     }
 
+    struct CurrencyToken {
+        TokenType tokenType;
+        uint256 claimLimitPerCooldown;
+        uint256 cumulativeClaimPerCooldown;
+        uint256 claimCooldownPeriodStarted;
+        bool isActive;
+    }
+
     struct ClaimCheck {
         address projectAddress;
         address currency;

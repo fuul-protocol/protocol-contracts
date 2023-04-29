@@ -29,8 +29,8 @@ interface IFuulProject {
 
     event BudgetDeposited(
         address indexed account,
-        uint256 amount,
-        address currency,
+        uint256 indexed amount,
+        address indexed currency,
         IFuulManager.TokenType tokenType,
         uint256[] tokenIds,
         uint256[] amounts
@@ -38,8 +38,8 @@ interface IFuulProject {
 
     event BudgetRemoved(
         address indexed account,
-        uint256 amount,
-        address currency,
+        uint256 indexed amount,
+        address indexed currency,
         IFuulManager.TokenType tokenType,
         uint256[] tokenIds,
         uint256[] amounts
@@ -47,8 +47,8 @@ interface IFuulProject {
 
     event Claimed(
         address indexed account,
-        address currency,
-        uint256 amount,
+        address indexed currency,
+        uint256 indexed amount,
         uint256[] rewardTokenIds,
         uint256[] amounts
     );
@@ -56,8 +56,8 @@ interface IFuulProject {
     // Array Order: protocol, client, attributor, partner, end user
 
     event Attributed(
-        address currency,
-        uint256 totalAmount,
+        address indexed currency,
+        uint256 indexed totalAmount,
         address[5] receivers,
         uint256[5] amounts,
         bytes32 proof
@@ -65,14 +65,14 @@ interface IFuulProject {
 
     event FeeBudgetDeposited(
         address indexed account,
-        uint256 amount,
-        address currency
+        uint256 indexed amount,
+        address indexed currency
     );
 
     event FeeBudgetRemoved(
         address indexed account,
-        uint256 amount,
-        address currency
+        uint256 indexed amount,
+        address indexed currency
     );
 
     /*╔═════════════════════════════╗

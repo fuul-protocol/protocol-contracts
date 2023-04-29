@@ -4,9 +4,9 @@ pragma solidity ^0.8.18;
 
 interface IFuulFactory {
     event ProjectCreated(
-        uint256 projectId,
-        address deployedAddress,
-        address eventSigner,
+        uint256 indexed projectId,
+        address indexed deployedAddress,
+        address indexed eventSigner,
         string projectInfoURI,
         address clientFeeCollector
     );
