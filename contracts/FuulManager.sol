@@ -40,13 +40,13 @@ contract FuulManager is
     uint256 public nftFixedFeeAmount = 0.1 ether;
 
     // Protocol fee percentage. 1 => 0.01%
-    uint8 public protocolFee = 100;
+    uint256 public protocolFee = 100;
 
     // Client fee. 1 => 0.01%
-    uint8 public clientFee = 100;
+    uint256 public clientFee = 100;
 
     // Attributor fee. 1 => 0.01%
-    uint8 public attributorFee = 100;
+    uint256 public attributorFee = 100;
 
     // Address that will collect protocol fees
     address public protocolFeeCollector;
@@ -163,7 +163,7 @@ contract FuulManager is
      * - Only admins can call this function.
      */
     function setProtocolFee(
-        uint8 _value
+        uint256 _value
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_value == protocolFee) {
             revert InvalidArgument();
@@ -180,7 +180,9 @@ contract FuulManager is
      * - `_value` must be different from the current one.
      * - Only admins can call this function.
      */
-    function setClientFee(uint8 _value) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setClientFee(
+        uint256 _value
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_value == clientFee) {
             revert InvalidArgument();
         }
@@ -197,7 +199,7 @@ contract FuulManager is
      * - Only admins can call this function.
      */
     function setAttributorFee(
-        uint8 _value
+        uint256 _value
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_value == attributorFee) {
             revert InvalidArgument();
@@ -215,7 +217,7 @@ contract FuulManager is
      * - Only admins can call this function.
      */
     function setNftFixedFeeAmounte(
-        uint8 _value
+        uint256 _value
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_value == nftFixedFeeAmount) {
             revert InvalidArgument();
@@ -398,16 +400,19 @@ contract FuulManager is
         AttributionEntity[] memory attributions,
         address attributorFeeCollector
     ) external whenNotPaused nonReentrant onlyRole(ATTRIBUTOR_ROLE) {
-        uint256 attributionLength = attributions.length;
-        for (uint256 i = 0; i < attributionLength; i++) {
-            IFuulProject.Attribution[]
-                memory projectAttributions = attributions[i]
-                    .projectAttributions;
+        unchecked {
+            uint256 attributionLength = attributions.length;
+            for (uint256 i = 0; i < attributionLength; i++) {
+                IFuulProject.Attribution[]
+                    memory projectAttributions = attributions[i]
+                        .projectAttributions;
 
-            IFuulProject(attributions[i].projectAddress).attributeTransactions(
-                projectAttributions,
-                attributorFeeCollector
-            );
+                IFuulProject(attributions[i].projectAddress)
+                    .attributeTransactions(
+                        projectAttributions,
+                        attributorFeeCollector
+                    );
+            }
         }
     }
 

@@ -123,16 +123,18 @@ contract FuulProject is
         string memory _projectInfoURI,
         address _clientFeeCollector
     ) external {
-        require(fuulFactory == address(0), "FuulV1: FORBIDDEN");
+        if (fuulFactory != address(0)) {
+            revert Forbidden();
+        }
+
+        _setupRole(DEFAULT_ADMIN_ROLE, projectAdmin);
+
+        _setupRole(EVENTS_SIGNER_ROLE, _projectEventSigner);
 
         fuulFactory = _msgSender();
         projectInfoURI = _projectInfoURI;
 
         clientFeeCollector = _clientFeeCollector;
-
-        _setupRole(DEFAULT_ADMIN_ROLE, projectAdmin);
-
-        _setupRole(EVENTS_SIGNER_ROLE, _projectEventSigner);
 
         lastStatusHash = keccak256(
             abi.encodePacked(block.prevrandao, block.timestamp)

@@ -87,6 +87,7 @@ interface IFuulProject {
     error ZeroAmount();
     error Unauthorized();
     error AlreadyAttributed();
+    error Forbidden();
 
     /*╔═════════════════════════════╗
       ║       PUBLIC VARIABLES      ║
