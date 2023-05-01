@@ -122,6 +122,7 @@ describe("Fuul Project - Deposit and remove fungible", function () {
     // Remove
     await this.fuulProject.removeFungibleBudget(
       ethers.constants.AddressZero,
+
       this.amount
     );
 
@@ -386,6 +387,7 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     // Remove
     await this.fuulProject.removeNFTBudget(
       this.nft721.address,
+      this.tokenType,
       this.tokenIds,
       []
     );
@@ -423,6 +425,7 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     // Remove
     await this.fuulProject.removeNFTBudget(
       this.nft721.address,
+      this.tokenType,
       this.tokenIds,
       []
     );
@@ -451,14 +454,24 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     // Remove before applying
 
     await expect(
-      this.fuulProject.removeNFTBudget(this.nft721.address, this.tokenIds, [])
+      this.fuulProject.removeNFTBudget(
+        this.nft721.address,
+        this.tokenType,
+        this.tokenIds,
+        []
+      )
     ).to.be.revertedWithCustomError(this.fuulProject, "NoRemovalApplication");
 
     // Apply to remove
     await this.fuulProject.applyToRemoveBudget();
 
     await expect(
-      this.fuulProject.removeNFTBudget(this.nft721.address, this.tokenIds, [])
+      this.fuulProject.removeNFTBudget(
+        this.nft721.address,
+        this.tokenType,
+        this.tokenIds,
+        []
+      )
     ).to.be.revertedWithCustomError(this.fuulProject, "OutsideRemovalWindow");
 
     // Remove outside window
@@ -471,7 +484,12 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     );
 
     await expect(
-      this.fuulProject.removeNFTBudget(this.nft721.address, this.tokenIds, [])
+      this.fuulProject.removeNFTBudget(
+        this.nft721.address,
+        this.tokenType,
+        this.tokenIds,
+        []
+      )
     ).to.be.revertedWithCustomError(this.fuulProject, "OutsideRemovalWindow");
   });
 
@@ -489,7 +507,7 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     await expect(
       this.fuulProject
         .connect(this.user2)
-        .removeNFTBudget(this.nft721.address, this.tokenIds, [])
+        .removeNFTBudget(this.nft721.address, this.tokenType, this.tokenIds, [])
     ).to.be.revertedWith(error);
   });
 
@@ -590,6 +608,7 @@ describe("Fuul Project - Deposit and remove NFT 1155", function () {
     // Remove
     await this.fuulProject.removeNFTBudget(
       this.nft1155.address,
+      this.tokenType,
       this.tokenIds,
       this.amounts
     );
@@ -620,6 +639,7 @@ describe("Fuul Project - Fuul Manager functions", function () {
   it("Fail to attribute and claim if sender is not Fuul Manager", async function () {
     const attribution = {
       currency: this.user1.address,
+      tokenType: 1,
       partner: this.user1.address,
       endUser: this.user1.address,
       amountToPartner: 1,
@@ -637,6 +657,7 @@ describe("Fuul Project - Fuul Manager functions", function () {
     await expect(
       this.fuulProject.claimFromProject(
         this.user1.address,
+        1,
         this.user1.address,
         [],
         []

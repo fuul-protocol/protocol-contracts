@@ -304,7 +304,7 @@ contract FuulManager is
      */
     function getTokenType(
         address tokenAddress
-    ) external view returns (TokenType tokenType) {
+    ) public view returns (TokenType tokenType) {
         return currencyTokens[tokenAddress].tokenType;
     }
 
@@ -466,11 +466,11 @@ contract FuulManager is
             ClaimCheck memory claimCheck = claimChecks[i];
 
             // Send
-            uint256 tokenAmount;
-            address currency;
-            (tokenAmount, currency) = IFuulProject(claimCheck.projectAddress)
+            address currency = claimCheck.currency;
+            uint256 tokenAmount = IFuulProject(claimCheck.projectAddress)
                 .claimFromProject(
-                    claimCheck.currency,
+                    currency,
+                    getTokenType(currency),
                     _msgSender(),
                     claimCheck.tokenIds,
                     claimCheck.amounts

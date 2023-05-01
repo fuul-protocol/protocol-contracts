@@ -426,6 +426,7 @@ describe("Fuul Manager - Attribute", function () {
         {
           ...this.attributionTemplate,
           currency: this.token.address,
+          tokenType: 1,
           amountToPartner: this.attributedAmount,
           amountToEndUser: this.attributedAmount,
           proof:
@@ -434,6 +435,7 @@ describe("Fuul Manager - Attribute", function () {
         {
           ...this.attributionTemplate,
           currency: ethers.constants.AddressZero,
+          tokenType: 0,
           amountToPartner: this.attributedAmount,
           amountToEndUser: this.attributedAmount,
           proof:
@@ -442,6 +444,7 @@ describe("Fuul Manager - Attribute", function () {
         {
           ...this.attributionTemplate,
           currency: this.nft721.address,
+          tokenType: 2,
           amountToPartner: this.tokenIds.length / 2,
           amountToEndUser: this.tokenIds.length / 2,
           proof:
@@ -450,6 +453,7 @@ describe("Fuul Manager - Attribute", function () {
         {
           ...this.attributionTemplate,
           currency: this.nft1155.address,
+          tokenType: 3,
           amountToPartner: this.tokenAmount / 2,
           amountToEndUser: this.tokenAmount / 2,
           proof:
@@ -617,6 +621,7 @@ describe("Fuul Manager - Attribute", function () {
           {
             ...this.attributionTemplate,
             currency,
+            tokenType: 0,
             amountToPartner: this.attributedAmount,
             amountToEndUser: this.attributedAmount,
           },
@@ -628,6 +633,7 @@ describe("Fuul Manager - Attribute", function () {
           {
             ...this.attributionTemplate,
             currency,
+            tokenType: 0,
             amountToPartner: this.attributedAmount,
             amountToEndUser: this.attributedAmount,
           },
@@ -718,6 +724,7 @@ describe("Fuul Manager - Attribute", function () {
         {
           ...this.attributionTemplate,
           currency: this.token.address,
+          tokenType: 1,
           amountToPartner: this.amount,
           amountToEndUser: this.amount,
         },
@@ -737,6 +744,7 @@ describe("Fuul Manager - Attribute", function () {
         {
           ...this.attributionTemplate,
           currency: this.token.address,
+          tokenType: 1,
           amountToPartner: this.amount,
           amountToEndUser: this.amount,
         },
@@ -759,6 +767,7 @@ describe("Fuul Manager - Attribute", function () {
         {
           ...this.attributionTemplate,
           currency: this.token.address,
+          tokenType: 1,
           amountToPartner: this.amount,
           amountToEndUser: this.amount,
         },
@@ -887,6 +896,7 @@ describe("Fuul Manager - Claim", function () {
         {
           ...this.attributionTemplate,
           currency: this.token.address,
+          tokenType: 1,
           amountToPartner: this.attributedAmount,
           amountToEndUser: this.attributedAmount,
           proof:
@@ -895,6 +905,7 @@ describe("Fuul Manager - Claim", function () {
         {
           ...this.attributionTemplate,
           currency: ethers.constants.AddressZero,
+          tokenType: 0,
           amountToPartner: this.attributedAmount,
           amountToEndUser: this.attributedAmount,
           proof:
@@ -903,6 +914,7 @@ describe("Fuul Manager - Claim", function () {
         {
           ...this.attributionTemplate,
           currency: this.nft721.address,
+          tokenType: 2,
           amountToPartner: 2,
           amountToEndUser: 2,
           proof:
@@ -911,6 +923,7 @@ describe("Fuul Manager - Claim", function () {
         {
           ...this.attributionTemplate,
           currency: this.nft1155.address,
+          tokenType: 3,
           amountToPartner: 2,
           amountToEndUser: 2,
           proof:
@@ -929,6 +942,7 @@ describe("Fuul Manager - Claim", function () {
     // Create a new project
 
     const currency = this.token.address;
+    const tokenType = 1;
 
     await this.fuulFactory.createFuulProject(
       this.user1.address,
@@ -955,7 +969,8 @@ describe("Fuul Manager - Claim", function () {
       projectAttributions: [
         {
           ...this.attributionTemplate,
-          currency: currency,
+          currency,
+          tokenType,
           amountToPartner: this.attributedAmount,
           amountToEndUser: this.attributedAmount,
           proof:
@@ -1198,6 +1213,7 @@ describe("Fuul Manager - Claim", function () {
 
   it("Should claim over the limit after passing cooldown period", async function () {
     const currency = this.token.address;
+    const tokenType = 1;
 
     // Claim
     const claimer = this.partner;
@@ -1225,6 +1241,7 @@ describe("Fuul Manager - Claim", function () {
         {
           ...this.attributionTemplate,
           currency,
+          tokenType,
           amountToPartner: this.limitAmount,
           amountToEndUser: 0,
         },
@@ -1293,6 +1310,7 @@ describe("Fuul Manager - Claim", function () {
 
   it("Should fail to claim over the limit", async function () {
     const currency = this.token.address;
+    const tokenType = 1;
 
     amount = 2 * this.limitAmount;
 
@@ -1310,6 +1328,7 @@ describe("Fuul Manager - Claim", function () {
         {
           ...this.attributionTemplate,
           currency,
+          tokenType,
           amountToPartner: amount,
           amountToEndUser: 0,
         },
@@ -1339,6 +1358,7 @@ describe("Fuul Manager - Claim", function () {
 
   it("Should fail to claim over the limit in 2 txs", async function () {
     const currency = this.token.address;
+    const tokenType = 1;
 
     // Claim
     const claimer = this.partner;
@@ -1366,6 +1386,7 @@ describe("Fuul Manager - Claim", function () {
         {
           ...this.attributionTemplate,
           currency,
+          tokenType,
           amountToPartner: this.limitAmount,
           amountToEndUser: 0,
         },

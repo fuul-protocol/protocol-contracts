@@ -11,6 +11,7 @@ interface IFuulProject {
     // Attribution
     struct Attribution {
         address currency;
+        IFuulManager.TokenType tokenType;
         address partner;
         address endUser;
         uint256 amountToPartner;
@@ -88,6 +89,7 @@ interface IFuulProject {
     error Unauthorized();
     error AlreadyAttributed();
     error Forbidden();
+    error InvalidTokenType();
 
     /*╔═════════════════════════════╗
       ║       PUBLIC VARIABLES      ║
@@ -151,6 +153,7 @@ interface IFuulProject {
 
     function removeNFTBudget(
         address currency,
+        IFuulManager.TokenType,
         uint256[] memory rewardTokenIds,
         uint256[] memory amounts
     ) external;
@@ -170,8 +173,9 @@ interface IFuulProject {
 
     function claimFromProject(
         address currency,
+        IFuulManager.TokenType tokenType,
         address receiver,
         uint256[] memory tokenIds,
         uint256[] memory amounts
-    ) external returns (uint256, address);
+    ) external returns (uint256);
 }

@@ -235,11 +235,12 @@ contract FuulProject is
         }
 
         // Commented to optimize contract size
-        // require(
+        // if (
         //     tokenType == IFuulManager.TokenType.NATIVE ||
-        //         tokenType == IFuulManager.TokenType.ERC_20,
-        //     "Currency is not a fungible token"
-        // );
+        //     tokenType == IFuulManager.TokenType.ERC_20
+        // ) {
+        //     revert InvalidTokenType();
+        // }
 
         if (tokenType == IFuulManager.TokenType.NATIVE) {
             if (msg.value != amount) {
@@ -297,12 +298,12 @@ contract FuulProject is
         }
 
         // Commented to optimize contract size
-
-        // require(
+        // if (
         //     tokenType == IFuulManager.TokenType.ERC_721 ||
-        //         tokenType == IFuulManager.TokenType.ERC_1155,
-        //     "Currency is not an NFT token"
-        // );
+        //     tokenType == IFuulManager.TokenType.ERC_1155
+        // ) {
+        //     revert InvalidTokenType();
+        // }
 
         uint256 depositedAmount;
         uint256[] memory tokenAmounts;
@@ -429,25 +430,25 @@ contract FuulProject is
             revert ZeroAmount();
         }
 
-        IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
-            currency
-        );
-
         // Commented to optimize contract size
-
-        // require(
+        // if (
         //     tokenType == IFuulManager.TokenType.NATIVE ||
-        //         tokenType == IFuulManager.TokenType.ERC_20,
-        //     "Currency is not a fungible token"
-        // );
+        //     tokenType == IFuulManager.TokenType.ERC_20
+        // ) {
+        //     revert InvalidTokenType();
+        // }
 
         // Update budget - By underflow it indirectly checks that amount <= currentBudget
         budgets[currency] -= amount;
 
-        if (tokenType == IFuulManager.TokenType.NATIVE) {
+        IFuulManager.TokenType tokenType;
+
+        if (currency == address(0)) {
             payable(_msgSender()).sendValue(amount);
-        } else if (tokenType == IFuulManager.TokenType.ERC_20) {
+            tokenType = IFuulManager.TokenType.NATIVE;
+        } else {
             IERC20(currency).safeTransfer(_msgSender(), amount);
+            tokenType = IFuulManager.TokenType.ERC_20;
         }
 
         uint256[] memory emptyArray;
@@ -477,6 +478,7 @@ contract FuulProject is
      */
     function removeNFTBudget(
         address currency,
+        IFuulManager.TokenType tokenType,
         uint256[] memory tokenIds,
         uint256[] memory amounts
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant canRemove {
@@ -486,16 +488,13 @@ contract FuulProject is
             revert ZeroAmount();
         }
 
-        IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
-            currency
-        );
         // Commented to optimize contract size
-
-        // require(
+        // if (
         //     tokenType == IFuulManager.TokenType.ERC_721 ||
-        //         tokenType == IFuulManager.TokenType.ERC_1155,
-        //     "Currency is not an NFT token"
-        // );
+        //     tokenType == IFuulManager.TokenType.ERC_1155
+        // ) {
+        //     revert InvalidTokenType();
+        // }
 
         uint256 removeAmount;
 
@@ -711,8 +710,7 @@ contract FuulProject is
 
             address currency = attribution.currency;
 
-            IFuulManager.TokenType tokenType = fuulManagerInstance()
-                .getTokenType(currency);
+            IFuulManager.TokenType tokenType = attribution.tokenType;
 
             // Calculate fees and amounts
 
@@ -800,6 +798,7 @@ contract FuulProject is
 
     function claimFromProject(
         address currency,
+        IFuulManager.TokenType tokenType,
         address receiver,
         uint256[] memory tokenIds,
         uint256[] memory amounts
@@ -808,17 +807,13 @@ contract FuulProject is
         onlyFuulManager
         nonReentrant
         whenManagerIsPaused
-        returns (uint256 claimAmount, address claimCurrency)
+        returns (uint256 claimAmount)
     {
         uint256 availableAmount = availableToClaim[receiver][currency];
 
         if (availableAmount == 0) {
             revert ZeroAmount();
         }
-
-        IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
-            currency
-        );
 
         uint256 tokenAmount;
 
@@ -859,7 +854,7 @@ contract FuulProject is
 
         emit Claimed(receiver, currency, tokenAmount, tokenIds, amounts);
 
-        return (tokenAmount, currency);
+        return tokenAmount;
     }
 
     /*╔═════════════════════════════╗
