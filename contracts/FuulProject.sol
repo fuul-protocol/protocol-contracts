@@ -308,16 +308,17 @@ contract FuulProject is
         uint256[] memory tokenAmounts;
 
         if (tokenType == IFuulManager.TokenType.ERC_721) {
-            for (uint256 i = 0; i < tokenIds.length; i++) {
-                _transferERC721Tokens(
-                    currency,
-                    _msgSender(),
-                    address(this),
-                    tokenIds[i]
-                );
-            }
+            uint256 tokenIdsLength = tokenIds.length;
 
-            depositedAmount = tokenIds.length;
+            _transferERC721Tokens(
+                currency,
+                _msgSender(),
+                address(this),
+                tokenIds,
+                tokenIds.length
+            );
+
+            depositedAmount = tokenIdsLength;
         } else if (tokenType == IFuulManager.TokenType.ERC_1155) {
             _transferERC1155Tokens(
                 currency,
@@ -499,14 +500,13 @@ contract FuulProject is
         uint256 removeAmount;
 
         if (tokenType == IFuulManager.TokenType.ERC_721) {
-            for (uint256 i = 0; i < tokenIdsLength; i++) {
-                _transferERC721Tokens(
-                    currency,
-                    address(this),
-                    _msgSender(),
-                    tokenIds[i]
-                );
-            }
+            _transferERC721Tokens(
+                currency,
+                address(this),
+                _msgSender(),
+                tokenIds,
+                tokenIdsLength
+            );
 
             removeAmount = tokenIdsLength;
         } else if (tokenType == IFuulManager.TokenType.ERC_1155) {
@@ -831,16 +831,16 @@ contract FuulProject is
 
             IERC20(currency).safeTransfer(receiver, tokenAmount);
         } else if (tokenType == IFuulManager.TokenType.ERC_721) {
-            tokenAmount = tokenIds.length;
+            uint256 tokenIdsLength = tokenIds.length;
+            tokenAmount = tokenIdsLength;
 
-            for (uint256 i = 0; i < tokenIds.length; i++) {
-                _transferERC721Tokens(
-                    currency,
-                    address(this),
-                    receiver,
-                    tokenIds[i]
-                );
-            }
+            _transferERC721Tokens(
+                currency,
+                address(this),
+                receiver,
+                tokenIds,
+                tokenIdsLength
+            );
         } else if (tokenType == IFuulManager.TokenType.ERC_1155) {
             tokenAmount = _getSumFromArray(amounts);
 
@@ -873,14 +873,18 @@ contract FuulProject is
         address tokenAddress,
         address senderAddress,
         address receiverAddress,
-        uint256 tokenId
+        uint256[] memory tokenIds,
+        uint256 length
     ) internal {
-        // Transfer from does not allow to send more funds than balance
-        IERC721(tokenAddress).safeTransferFrom(
-            senderAddress,
-            receiverAddress,
-            tokenId
-        );
+        unchecked {
+            for (uint256 i = 0; i < length; i++) {
+                IERC721(tokenAddress).safeTransferFrom(
+                    senderAddress,
+                    receiverAddress,
+                    tokenIds[i]
+                );
+            }
+        }
     }
 
     /**

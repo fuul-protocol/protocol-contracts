@@ -101,10 +101,34 @@ Requirements:
 address fuulFactory
 ```
 
+### clientFeeCollector
+
+```solidity
+address clientFeeCollector
+```
+
 ### EVENTS_SIGNER_ROLE
 
 ```solidity
 bytes32 EVENTS_SIGNER_ROLE
+```
+
+### lastStatusHash
+
+```solidity
+bytes32 lastStatusHash
+```
+
+### projectInfoURI
+
+```solidity
+string projectInfoURI
+```
+
+### lastRemovalApplication
+
+```solidity
+uint256 lastRemovalApplication
 ```
 
 ### budgets
@@ -119,28 +143,10 @@ mapping(address => uint256) budgets
 mapping(address => mapping(address => uint256)) availableToClaim
 ```
 
-### projectInfoURI
-
-```solidity
-string projectInfoURI
-```
-
 ### nftFeeBudget
 
 ```solidity
 mapping(address => uint256) nftFeeBudget
-```
-
-### clientFeeCollector
-
-```solidity
-address clientFeeCollector
-```
-
-### lastRemovalApplication
-
-```solidity
-uint256 lastRemovalApplication
 ```
 
 ### attributionProofs
@@ -155,8 +161,16 @@ mapping(bytes32 => bool) attributionProofs
 modifier onlyFuulManager()
 ```
 
-_Modifier that the sender is the fuul manager. Reverts
+_Modifier to check if the sender is {FuulManager} contract. Reverts
 with an Unauthorized error including the sender and the required sender._
+
+### _onlyFuulManager
+
+```solidity
+function _onlyFuulManager() internal view
+```
+
+_Internal function for {onlyFuulManager} modifier. Reverts with a Unauthorized error._
 
 ### whenManagerIsPaused
 
@@ -164,8 +178,26 @@ with an Unauthorized error including the sender and the required sender._
 modifier whenManagerIsPaused()
 ```
 
-_Modifier that the Fuul Manager contract is not paused. Reverts
+_Modifier to check that {FuulManager} contract is not paused. Reverts
 with a ManagerIsPaused error._
+
+### _whenManagerIsPaused
+
+```solidity
+function _whenManagerIsPaused() internal view
+```
+
+_Internal function for {whenManagerIsPaused} modifier. Reverts with a ManagerIsPaused error._
+
+### canRemove
+
+```solidity
+modifier canRemove()
+```
+
+TODO
+
+_Modifier to check if the project can remove funds. Reverts with a OutsideRemovalWindow error._
 
 ### constructor
 
@@ -260,20 +292,34 @@ function applyToRemoveBudget() external
 ```
 
 _Sets timestamp for which users request to remove their budgets.
-    *
+
 Requirements:
 
 - Only admins can call this function._
 
-### getBudgetCooldownPeriod
+### getBudgetRemovePeriod
 
 ```solidity
-function getBudgetCooldownPeriod() public view returns (uint256)
+function getBudgetRemovePeriod() public view returns (uint256 cooldownPeriodEnds, uint256 removePeriodEnds)
 ```
 
-_Returns the timestamp when funds can be removed.
-The period for removing a project's budget begins upon calling the {applyToRemoveBudget} function
-and ends once the {projectBudgetCooldown} period has elapsed._
+_Returns the window when projects can remove funds.
+The cooldown period for removing a project's budget begins upon calling the {applyToRemoveBudget} function
+and ends once the {projectBudgetCooldown} period has elapsed.
+
+The period to remove starts when the cooldown is completed, and ends after {removePeriod}.
+
+It is a public function for the UI to be able to read and display dates._
+
+### canRemoveFunds
+
+```solidity
+function canRemoveFunds() public view returns (bool insideRemovalWindow)
+```
+
+_Returns if the project is inside the removal window.
+It should be after the cooldown is completed and before the removal period ends.
+It is a public function for the UI to be able to check if the project can remove._
 
 ### removeFungibleBudget
 
@@ -308,7 +354,7 @@ Requirements:
 
 - `amount` must be greater than zero.
 - Only admins can remove.
-- Budget remove cooldown period has to be completed._
+- Must be within the Budget removal window._
 
 ### depositFeeBudget
 
@@ -499,6 +545,18 @@ enum TokenType {
 }
 ```
 
+### CurrencyToken
+
+```solidity
+struct CurrencyToken {
+  enum IFuulManager.TokenType tokenType;
+  uint256 claimLimitPerCooldown;
+  uint256 cumulativeClaimPerCooldown;
+  uint256 claimCooldownPeriodStarted;
+  bool isActive;
+}
+```
+
 ### ClaimCheck
 
 ```solidity
@@ -523,9 +581,9 @@ struct AttributionEntity {
 
 ```solidity
 struct FeesInformation {
-  uint8 protocolFee;
-  uint8 attributorFee;
-  uint8 clientFee;
+  uint256 protocolFee;
+  uint256 attributorFee;
+  uint256 clientFee;
   address protocolFeeCollector;
   uint256 nftFixedFeeAmount;
   address nftFeeCurrency;
@@ -562,6 +620,12 @@ error OverTheLimit()
 function projectBudgetCooldown() external view returns (uint256 period)
 ```
 
+### getBudgetRemoveInfo
+
+```solidity
+function getBudgetRemoveInfo() external view returns (uint256 cooldown, uint256 removeWindow)
+```
+
 ### claimCooldown
 
 ```solidity
@@ -577,7 +641,7 @@ function usersClaims(address user, address currency) external view returns (uint
 ### protocolFee
 
 ```solidity
-function protocolFee() external view returns (uint8 fees)
+function protocolFee() external view returns (uint256 fees)
 ```
 
 ### protocolFeeCollector
@@ -595,13 +659,13 @@ function getFeesInformation() external returns (struct IFuulManager.FeesInformat
 ### clientFee
 
 ```solidity
-function clientFee() external view returns (uint8 fees)
+function clientFee() external view returns (uint256 fees)
 ```
 
 ### attributorFee
 
 ```solidity
-function attributorFee() external view returns (uint8 fees)
+function attributorFee() external view returns (uint256 fees)
 ```
 
 ### nftFeeCurrency
@@ -625,19 +689,19 @@ function setProjectBudgetCooldown(uint256 period) external
 ### setProtocolFee
 
 ```solidity
-function setProtocolFee(uint8 value) external
+function setProtocolFee(uint256 value) external
 ```
 
 ### setClientFee
 
 ```solidity
-function setClientFee(uint8 value) external
+function setClientFee(uint256 value) external
 ```
 
 ### setAttributorFee
 
 ```solidity
-function setAttributorFee(uint8 value) external
+function setAttributorFee(uint256 value) external
 ```
 
 ### currencyTokens
@@ -781,10 +845,10 @@ error NoRemovalApplication()
 error IncorrectMsgValue()
 ```
 
-### CooldownPeriodNotFinished
+### OutsideRemovalWindow
 
 ```solidity
-error CooldownPeriodNotFinished()
+error OutsideRemovalWindow()
 ```
 
 ### ZeroAmount
@@ -805,6 +869,12 @@ error Unauthorized()
 error AlreadyAttributed()
 ```
 
+### Forbidden
+
+```solidity
+error Forbidden()
+```
+
 ### fuulFactory
 
 ```solidity
@@ -815,6 +885,12 @@ function fuulFactory() external view returns (address)
 
 ```solidity
 function availableToClaim(address account, address currency) external view returns (uint256)
+```
+
+### lastStatusHash
+
+```solidity
+function lastStatusHash() external view returns (bytes32)
 ```
 
 ### fuulManagerAddress
@@ -871,10 +947,16 @@ function lastRemovalApplication() external view returns (uint256)
 function applyToRemoveBudget() external
 ```
 
-### getBudgetCooldownPeriod
+### getBudgetRemovePeriod
 
 ```solidity
-function getBudgetCooldownPeriod() external view returns (uint256)
+function getBudgetRemovePeriod() external view returns (uint256, uint256)
+```
+
+### canRemoveFunds
+
+```solidity
+function canRemoveFunds() external view returns (bool insideRemovalWindow)
 ```
 
 ### removeFungibleBudget
@@ -915,42 +997,6 @@ bytes32 ATTRIBUTOR_ROLE
 bytes32 PAUSER_ROLE
 ```
 
-### CurrencyToken
-
-```solidity
-struct CurrencyToken {
-  enum IFuulManager.TokenType tokenType;
-  uint256 claimLimitPerCooldown;
-  uint256 cumulativeClaimPerCooldown;
-  uint256 claimCooldownPeriodStarted;
-  bool isActive;
-}
-```
-
-### currencyTokens
-
-```solidity
-mapping(address => struct FuulManager.CurrencyToken) currencyTokens
-```
-
-### projectBudgetCooldown
-
-```solidity
-uint256 projectBudgetCooldown
-```
-
-### claimCooldown
-
-```solidity
-uint256 claimCooldown
-```
-
-### usersClaims
-
-```solidity
-mapping(address => mapping(address => uint256)) usersClaims
-```
-
 ### IID_IERC1155
 
 ```solidity
@@ -963,28 +1009,22 @@ bytes4 IID_IERC1155
 bytes4 IID_IERC721
 ```
 
-### protocolFee
+### projectBudgetCooldown
 
 ```solidity
-uint8 protocolFee
+uint256 projectBudgetCooldown
 ```
 
-### protocolFeeCollector
+### projectRemoveBudgetPeriod
 
 ```solidity
-address protocolFeeCollector
+uint256 projectRemoveBudgetPeriod
 ```
 
-### clientFee
+### claimCooldown
 
 ```solidity
-uint8 clientFee
-```
-
-### attributorFee
-
-```solidity
-uint8 attributorFee
+uint256 claimCooldown
 ```
 
 ### nftFixedFeeAmount
@@ -993,10 +1033,46 @@ uint8 attributorFee
 uint256 nftFixedFeeAmount
 ```
 
+### protocolFee
+
+```solidity
+uint256 protocolFee
+```
+
+### clientFee
+
+```solidity
+uint256 clientFee
+```
+
+### attributorFee
+
+```solidity
+uint256 attributorFee
+```
+
+### protocolFeeCollector
+
+```solidity
+address protocolFeeCollector
+```
+
 ### nftFeeCurrency
 
 ```solidity
 address nftFeeCurrency
+```
+
+### usersClaims
+
+```solidity
+mapping(address => mapping(address => uint256)) usersClaims
+```
+
+### currencyTokens
+
+```solidity
+mapping(address => struct IFuulManager.CurrencyToken) currencyTokens
 ```
 
 ### constructor
@@ -1036,6 +1112,27 @@ Requirements:
 - `_period` must be different from the current one.
 - Only admins can call this function._
 
+### setProjectRemoveBudgetPeriod
+
+```solidity
+function setProjectRemoveBudgetPeriod(uint256 _period) external
+```
+
+_Sets the period for `projectRemoveBudgetPeriod`.
+
+Requirements:
+
+- `_period` must be different from the current one.
+- Only admins can call this function._
+
+### getBudgetRemoveInfo
+
+```solidity
+function getBudgetRemoveInfo() external view returns (uint256 cooldown, uint256 removeWindow)
+```
+
+_Returns removal info. The function purpose is to call only once from {FuulProject} when needing this info._
+
 ### getFeesInformation
 
 ```solidity
@@ -1047,7 +1144,7 @@ _Returns all fees for attribution._
 ### setProtocolFee
 
 ```solidity
-function setProtocolFee(uint8 _value) external
+function setProtocolFee(uint256 _value) external
 ```
 
 _Sets the protocol fees for each attribution.
@@ -1060,7 +1157,7 @@ Requirements:
 ### setClientFee
 
 ```solidity
-function setClientFee(uint8 _value) external
+function setClientFee(uint256 _value) external
 ```
 
 _Sets the fees for the client that was used to create the project.
@@ -1073,7 +1170,7 @@ Requirements:
 ### setAttributorFee
 
 ```solidity
-function setAttributorFee(uint8 _value) external
+function setAttributorFee(uint256 _value) external
 ```
 
 _Sets the fees for the attributor.
@@ -1086,7 +1183,7 @@ Requirements:
 ### setNftFixedFeeAmounte
 
 ```solidity
-function setNftFixedFeeAmounte(uint8 _value) external
+function setNftFixedFeeAmounte(uint256 _value) external
 ```
 
 _Sets the fixed fee amount for NFT rewards.
@@ -1125,7 +1222,7 @@ Requirements:
 ### getTokenType
 
 ```solidity
-function getTokenType(address tokenAddress) public view returns (enum IFuulManager.TokenType tokenType)
+function getTokenType(address tokenAddress) external view returns (enum IFuulManager.TokenType tokenType)
 ```
 
 _Returns TokenType enum from a tokenAddress._
