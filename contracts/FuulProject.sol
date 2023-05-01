@@ -60,8 +60,7 @@ contract FuulProject is
     mapping(bytes32 => bool) public attributionProofs;
 
     /**
-     * @dev Modifier to check if the sender is {FuulManager} contract. Reverts
-     * with an Unauthorized error including the sender and the required sender.
+     * @dev Modifier to check if the sender is {FuulManager} contract.
      */
 
     modifier onlyFuulManager() {
@@ -79,8 +78,7 @@ contract FuulProject is
     }
 
     /**
-     * @dev Modifier to check that {FuulManager} contract is not paused. Reverts
-     * with a ManagerIsPaused error.
+     * @dev Modifier to check that {FuulManager} contract is not paused.
      */
     modifier whenManagerIsPaused() {
         _whenManagerIsPaused();
@@ -98,7 +96,7 @@ contract FuulProject is
 
     /**
     TODO
-     * @dev Modifier to check if the project can remove funds. Reverts with a OutsideRemovalWindow error.
+     * @dev Modifier to check if the project can remove funds. Reverts with an OutsideRemovalWindow error.
      */
     modifier canRemove() {
         canRemoveFunds();
@@ -157,14 +155,14 @@ contract FuulProject is
     /**
      * @dev Returns the address of the active Fuul Manager contract.
      */
-    function fuulManagerAddress() public view returns (address) {
+    function fuulManagerAddress() internal view returns (address) {
         return IFuulFactory(fuulFactory).fuulManager();
     }
 
     /**
      * @dev Returns the instance of the Fuul Manager contract.
      */
-    function fuulManagerInstance() public view returns (IFuulManager) {
+    function fuulManagerInstance() internal view returns (IFuulManager) {
         return IFuulManager(fuulManagerAddress());
     }
 

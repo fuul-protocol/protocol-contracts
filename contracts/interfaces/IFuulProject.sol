@@ -105,14 +105,6 @@ interface IFuulProject {
     function lastStatusHash() external view returns (bytes32);
 
     /*╔═════════════════════════════╗
-      ║     FROM OTHER CONTRACTS    ║
-      ╚═════════════════════════════╝*/
-
-    function fuulManagerAddress() external view returns (address);
-
-    function fuulManagerInstance() external view returns (IFuulManager);
-
-    /*╔═════════════════════════════╗
       ║        PROJECT INFO         ║
       ╚═════════════════════════════╝*/
 
