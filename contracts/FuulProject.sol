@@ -464,13 +464,6 @@ contract FuulProject is
             revert ZeroAmount();
         }
 
-        if (
-            tokenType != IFuulManager.TokenType.ERC_721 &&
-            tokenType != IFuulManager.TokenType.ERC_1155
-        ) {
-            revert InvalidTokenType();
-        }
-
         uint256 removeAmount;
 
         if (tokenType == IFuulManager.TokenType.ERC_721) {
@@ -493,6 +486,8 @@ contract FuulProject is
             );
 
             removeAmount = _getSumFromArray(amounts);
+        } else {
+            revert InvalidTokenType();
         }
 
         // Update budget - By underflow it indirectly checks that amount <= budget

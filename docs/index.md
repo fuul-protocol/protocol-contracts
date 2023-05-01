@@ -341,7 +341,7 @@ Requirements:
 ### removeNFTBudget
 
 ```solidity
-function removeNFTBudget(address currency, uint256[] tokenIds, uint256[] amounts) external
+function removeNFTBudget(address currency, enum IFuulManager.TokenType tokenType, uint256[] tokenIds, uint256[] amounts) external
 ```
 
 _Removes NFT tokens.
@@ -430,7 +430,7 @@ Requirements:
 ### claimFromProject
 
 ```solidity
-function claimFromProject(address currency, address receiver, uint256[] tokenIds, uint256[] amounts) external returns (uint256 claimAmount, address claimCurrency)
+function claimFromProject(address currency, enum IFuulManager.TokenType tokenType, address receiver, uint256[] tokenIds, uint256[] amounts) external returns (uint256 claimAmount)
 ```
 
 _Claims: sends funds to `receiver` that has available to claim funds.
@@ -447,7 +447,7 @@ Requirements:
 ### _transferERC721Tokens
 
 ```solidity
-function _transferERC721Tokens(address tokenAddress, address senderAddress, address receiverAddress, uint256 tokenId) internal
+function _transferERC721Tokens(address tokenAddress, address senderAddress, address receiverAddress, uint256[] tokenIds, uint256 length) internal
 ```
 
 _Helper function to transfer ERC721 tokens._
@@ -771,6 +771,7 @@ function claim(struct IFuulManager.ClaimCheck[] claimChecks) external
 ```solidity
 struct Attribution {
   address currency;
+  enum IFuulManager.TokenType tokenType;
   address partner;
   address endUser;
   uint256 amountToPartner;
@@ -875,6 +876,12 @@ error AlreadyAttributed()
 error Forbidden()
 ```
 
+### InvalidTokenType
+
+```solidity
+error InvalidTokenType()
+```
+
 ### fuulFactory
 
 ```solidity
@@ -968,7 +975,7 @@ function removeFungibleBudget(address currency, uint256 amount) external
 ### removeNFTBudget
 
 ```solidity
-function removeNFTBudget(address currency, uint256[] rewardTokenIds, uint256[] amounts) external
+function removeNFTBudget(address currency, enum IFuulManager.TokenType, uint256[] rewardTokenIds, uint256[] amounts) external
 ```
 
 ### attributeTransactions
@@ -980,7 +987,7 @@ function attributeTransactions(struct IFuulProject.Attribution[] attributions, a
 ### claimFromProject
 
 ```solidity
-function claimFromProject(address currency, address receiver, uint256[] tokenIds, uint256[] amounts) external returns (uint256, address)
+function claimFromProject(address currency, enum IFuulManager.TokenType tokenType, address receiver, uint256[] tokenIds, uint256[] amounts) external returns (uint256)
 ```
 
 ## FuulManager
@@ -1139,7 +1146,7 @@ _Returns removal info. The function purpose is to call only once from {FuulProje
 function getFeesInformation() external view returns (struct IFuulManager.FeesInformation)
 ```
 
-_Returns all fees for attribution._
+_Returns all fees for attribution. The function purpose is to call only once from {FuulProject} when needing this info._
 
 ### setProtocolFee
 
@@ -1222,7 +1229,7 @@ Requirements:
 ### getTokenType
 
 ```solidity
-function getTokenType(address tokenAddress) external view returns (enum IFuulManager.TokenType tokenType)
+function getTokenType(address tokenAddress) public view returns (enum IFuulManager.TokenType tokenType)
 ```
 
 _Returns TokenType enum from a tokenAddress._
@@ -1255,6 +1262,10 @@ function removeCurrencyToken(address tokenAddress) external
 ```
 
 _Removes a currency token.
+
+Notes:
+- Projects will not be able to deposit with the currency token.
+- We don't remove the `currencyToken` object because users will still be able to claim/remove it
 
 Requirements:
 
