@@ -279,11 +279,11 @@ describe("Fuul Project - Deposit and remove fungible", function () {
     await expect(balance).to.equal(0);
   });
 
-  // it("Should fail to deposit with amount equals to zero", async function () {
-  //   await expect(
-  //     this.fuulProject.depositFungibleToken(this.token.address, 0)
-  //   ).to.be.revertedWithCustomError(this.fuulProject, "ZeroAmount");
-  // });
+  it("Should fail to deposit with amount equals to zero", async function () {
+    await expect(
+      this.fuulProject.depositFungibleToken(this.token.address, 0)
+    ).to.be.revertedWithCustomError(this.fuulProject, "ZeroAmount");
+  });
 
   it("Should fail to deposit native token if amount differs to msg.value", async function () {
     await expect(
@@ -520,6 +520,93 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
       this.fuulProject,
       "TokenCurrencyNotAccepted"
     );
+  });
+});
+
+describe("Fuul Project - Deposit and remove unmatching token types", function () {
+  beforeEach(async function () {
+    const { fuulProject, fuulManager, token, nft721 } = await setupTest();
+
+    this.fuulProject = fuulProject;
+    this.fuulManager = fuulManager;
+    this.token = token;
+    this.nft721 = nft721;
+
+    this.fungibleCurrency = ethers.constants.AddressZero;
+
+    // Deposit funginbe
+    this.amount = ethers.utils.parseEther("1000");
+
+    await this.fuulProject.depositFungibleToken(
+      this.fungibleCurrency,
+      this.amount,
+      {
+        value: this.amount,
+      }
+    );
+
+    // Deposit NFTs
+    await this.nft721.setApprovalForAll(this.fuulProject.address, true);
+
+    this.tokenIds = [1, 2, 3, 4, 5];
+
+    await this.fuulManager.addCurrencyToken(this.nft721.address, 10);
+
+    await this.fuulProject.depositNFTToken(
+      this.nft721.address,
+      this.tokenIds,
+      []
+    );
+
+    // Apply to remove
+    await this.fuulProject.applyToRemoveBudget();
+
+    // Increase time
+
+    const projectBudgetCooldown =
+      await this.fuulManager.projectBudgetCooldown();
+
+    await time.increase(projectBudgetCooldown.toNumber() + 1);
+  });
+
+  it("Should fail to remove fungible if currency is an NFT", async function () {
+    await expect(
+      this.fuulProject.removeFungibleBudget(this.nft721.address, 1)
+    ).to.be.revertedWith("SafeERC20: low-level call failed");
+  });
+
+  it("Should fail to remove NFT if token type is invalid", async function () {
+    const tokenType = 0;
+    await expect(
+      this.fuulProject.removeNFTBudget(
+        this.fungibleCurrency,
+        tokenType,
+        this.tokenIds,
+        []
+      )
+    ).to.be.revertedWithCustomError(this.fuulProject, "InvalidTokenType");
+  });
+
+  it("Should fail to remove NFT if currency is fungible", async function () {
+    const erc721TokenType = 3;
+    await expect(
+      this.fuulProject.removeNFTBudget(
+        this.fungibleCurrency,
+        erc721TokenType,
+        this.tokenIds,
+        []
+      )
+    ).to.be.reverted;
+
+    const erc1155TokenType = 4;
+    await expect(
+      this.fuulProject.removeNFTBudget(
+        this.fungibleCurrency,
+        erc1155TokenType,
+        this.tokenIds,
+        []
+      )
+    ).to.be.reverted;
   });
 });
 

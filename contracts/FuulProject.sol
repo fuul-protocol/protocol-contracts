@@ -234,14 +234,6 @@ contract FuulProject is
             revert IFuulManager.TokenCurrencyNotAccepted();
         }
 
-        // Commented to optimize contract size
-        // if (
-        //     tokenType == IFuulManager.TokenType.NATIVE ||
-        //     tokenType == IFuulManager.TokenType.ERC_20
-        // ) {
-        //     revert InvalidTokenType();
-        // }
-
         if (tokenType == IFuulManager.TokenType.NATIVE) {
             if (msg.value != amount) {
                 revert IncorrectMsgValue();
@@ -296,14 +288,6 @@ contract FuulProject is
         if (!isTokenActive) {
             revert IFuulManager.TokenCurrencyNotAccepted();
         }
-
-        // Commented to optimize contract size
-        // if (
-        //     tokenType == IFuulManager.TokenType.ERC_721 ||
-        //     tokenType == IFuulManager.TokenType.ERC_1155
-        // ) {
-        //     revert InvalidTokenType();
-        // }
 
         uint256 depositedAmount;
         uint256[] memory tokenAmounts;
@@ -430,14 +414,6 @@ contract FuulProject is
             revert ZeroAmount();
         }
 
-        // Commented to optimize contract size
-        // if (
-        //     tokenType == IFuulManager.TokenType.NATIVE ||
-        //     tokenType == IFuulManager.TokenType.ERC_20
-        // ) {
-        //     revert InvalidTokenType();
-        // }
-
         // Update budget - By underflow it indirectly checks that amount <= currentBudget
         budgets[currency] -= amount;
 
@@ -488,13 +464,12 @@ contract FuulProject is
             revert ZeroAmount();
         }
 
-        // Commented to optimize contract size
-        // if (
-        //     tokenType == IFuulManager.TokenType.ERC_721 ||
-        //     tokenType == IFuulManager.TokenType.ERC_1155
-        // ) {
-        //     revert InvalidTokenType();
-        // }
+        if (
+            tokenType != IFuulManager.TokenType.ERC_721 &&
+            tokenType != IFuulManager.TokenType.ERC_1155
+        ) {
+            revert InvalidTokenType();
+        }
 
         uint256 removeAmount;
 
