@@ -161,8 +161,7 @@ mapping(bytes32 => bool) attributionProofs
 modifier onlyFuulManager()
 ```
 
-_Modifier to check if the sender is {FuulManager} contract. Reverts
-with an Unauthorized error including the sender and the required sender._
+_Modifier to check if the sender is {FuulManager} contract._
 
 ### _onlyFuulManager
 
@@ -178,8 +177,7 @@ _Internal function for {onlyFuulManager} modifier. Reverts with a Unauthorized e
 modifier whenManagerIsPaused()
 ```
 
-_Modifier to check that {FuulManager} contract is not paused. Reverts
-with a ManagerIsPaused error._
+_Modifier to check that {FuulManager} contract is not paused._
 
 ### _whenManagerIsPaused
 
@@ -197,7 +195,7 @@ modifier canRemove()
 
 TODO
 
-_Modifier to check if the project can remove funds. Reverts with a OutsideRemovalWindow error._
+_Modifier to check if the project can remove funds. Reverts with an OutsideRemovalWindow error._
 
 ### constructor
 
@@ -224,7 +222,7 @@ through the SDK and the URI with the project information_
 ### fuulManagerAddress
 
 ```solidity
-function fuulManagerAddress() public view returns (address)
+function fuulManagerAddress() internal view returns (address)
 ```
 
 _Returns the address of the active Fuul Manager contract._
@@ -232,7 +230,7 @@ _Returns the address of the active Fuul Manager contract._
 ### fuulManagerInstance
 
 ```solidity
-function fuulManagerInstance() public view returns (contract IFuulManager)
+function fuulManagerInstance() internal view returns (contract IFuulManager)
 ```
 
 _Returns the instance of the Fuul Manager contract._
@@ -300,7 +298,7 @@ Requirements:
 ### getBudgetRemovePeriod
 
 ```solidity
-function getBudgetRemovePeriod() public view returns (uint256 cooldownPeriodEnds, uint256 removePeriodEnds)
+function getBudgetRemovePeriod() public view returns (uint256 cooldown, uint256 removePeriodEnds)
 ```
 
 _Returns the window when projects can remove funds.
@@ -314,7 +312,7 @@ It is a public function for the UI to be able to read and display dates._
 ### canRemoveFunds
 
 ```solidity
-function canRemoveFunds() public view returns (bool insideRemovalWindow)
+function canRemoveFunds() public view returns (bool)
 ```
 
 _Returns if the project is inside the removal window.
@@ -898,18 +896,6 @@ function availableToClaim(address account, address currency) external view retur
 
 ```solidity
 function lastStatusHash() external view returns (bytes32)
-```
-
-### fuulManagerAddress
-
-```solidity
-function fuulManagerAddress() external view returns (address)
-```
-
-### fuulManagerInstance
-
-```solidity
-function fuulManagerInstance() external view returns (contract IFuulManager)
 ```
 
 ### projectInfoURI

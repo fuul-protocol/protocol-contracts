@@ -41,7 +41,7 @@ contract FuulProject is
     // Hash for servers to know if they are synced with the last version of the project URI
     bytes32 public lastStatusHash;
 
-    // URI that points to a file with project information (image, name, description, etc)
+    // URI that points to a file with project information (image, name, description, attribution conditions, etc)
     string public projectInfoURI;
 
     // Timestamp for the last application to remove budget
