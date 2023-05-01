@@ -60,7 +60,11 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
         string memory _projectInfoURI,
         address _clientFeeCollector
     ) external {
-        if (_projectAdmin == address(0) || _projectEventSigner == address(0)) {
+        if (
+            _projectAdmin == address(0) ||
+            _projectEventSigner == address(0) ||
+            _clientFeeCollector == address(0)
+        ) {
             revert ZeroAddress();
         }
 
