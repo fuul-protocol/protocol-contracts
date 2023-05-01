@@ -365,6 +365,8 @@ contract FuulProject is
      * and ends once the {projectBudgetCooldown} period has elapsed.
      *
      * The period to remove starts when the cooldown is completed, and ends after {removePeriod}.
+     *
+     * It is a public function for the UI to be able to read and display dates.
      */
     function getBudgetRemovePeriod()
         public
@@ -388,6 +390,7 @@ contract FuulProject is
     /**
      * @dev Returns if the project is inside the removal window.
      * It should be after the cooldown is completed and before the removal period ends.
+     * It is a public function for the UI to be able to check if the project can remove.
      */
     function canRemoveFunds() public view returns (bool insideRemovalWindow) {
         (
