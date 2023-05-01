@@ -168,7 +168,7 @@ contract FuulManager is
       ╚═════════════════════════════╝*/
 
     /**
-     * @dev Returns all fees for attribution.
+     * @dev Returns all fees for attribution. The function purpose is to call only once from {FuulProject} when needing this info.
      *
      */
     function getFeesInformation()
@@ -335,6 +335,10 @@ contract FuulManager is
     /**
      * @dev Removes a currency token.
      *
+     * Notes:
+     * - Projects will not be able to deposit with the currency token.
+     * - We don't remove the `currencyToken` object because users will still be able to claim/remove it
+     *
      * Requirements:
      *
      * - `tokenAddress` must be accepted.
@@ -349,9 +353,6 @@ contract FuulManager is
         CurrencyToken storage currency = currencyTokens[tokenAddress];
 
         currency.isActive = false;
-
-        // Projects will not be able to deposit with the currency token
-        // We keep the tokenType because users will still be able to claim/remove it
     }
 
     /**
@@ -504,7 +505,6 @@ contract FuulManager is
             }
 
             // Update values
-
             usersClaims[_msgSender()][currency] += tokenAmount;
         }
     }
