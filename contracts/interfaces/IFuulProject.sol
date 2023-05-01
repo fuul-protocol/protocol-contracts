@@ -83,7 +83,7 @@ interface IFuulProject {
     error EmptyURI();
     error NoRemovalApplication();
     error IncorrectMsgValue();
-    error CooldownPeriodNotFinished();
+    error OutsideRemovalWindow();
     error ZeroAmount();
     error Unauthorized();
     error AlreadyAttributed();
@@ -143,7 +143,9 @@ interface IFuulProject {
 
     function applyToRemoveBudget() external;
 
-    function getBudgetCooldownPeriod() external view returns (uint256);
+    function getBudgetRemovePeriod() external view returns (uint256, uint256);
+
+    function canRemoveFunds() external view returns (bool insideRemovalWindow);
 
     function removeFungibleBudget(address currency, uint256 amount) external;
 

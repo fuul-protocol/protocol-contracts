@@ -60,7 +60,7 @@ contract FuulProject is
     mapping(bytes32 => bool) public attributionProofs;
 
     /**
-     * @dev Modifier that the sender is the fuul manager. Reverts
+     * @dev Modifier to check if the sender is {FuulManager} contract. Reverts
      * with an Unauthorized error including the sender and the required sender.
      */
 
@@ -79,7 +79,7 @@ contract FuulProject is
     }
 
     /**
-     * @dev Modifier that the Fuul Manager contract is not paused. Reverts
+     * @dev Modifier to check that {FuulManager} contract is not paused. Reverts
      * with a ManagerIsPaused error.
      */
     modifier whenManagerIsPaused() {
@@ -94,6 +94,15 @@ contract FuulProject is
         if (fuulManagerInstance().isPaused()) {
             revert ManagerIsPaused();
         }
+    }
+
+    /**
+    TODO
+     * @dev Modifier to check if the project can remove funds. Reverts with a OutsideRemovalWindow error.
+     */
+    modifier canRemove() {
+        canRemoveFunds();
+        _;
     }
 
     /*╔═════════════════════════════╗
@@ -341,7 +350,7 @@ contract FuulProject is
 
     /**
      * @dev Sets timestamp for which users request to remove their budgets.
-     *     *
+     *
      * Requirements:
      *
      * - Only admins can call this function.
@@ -351,17 +360,49 @@ contract FuulProject is
     }
 
     /**
-     * @dev Returns the timestamp when funds can be removed.
-     * The period for removing a project's budget begins upon calling the {applyToRemoveBudget} function
+     * @dev Returns the window when projects can remove funds.
+     * The cooldown period for removing a project's budget begins upon calling the {applyToRemoveBudget} function
      * and ends once the {projectBudgetCooldown} period has elapsed.
+     *
+     * The period to remove starts when the cooldown is completed, and ends after {removePeriod}.
      */
-    function getBudgetCooldownPeriod() public view returns (uint256) {
+    function getBudgetRemovePeriod()
+        public
+        view
+        returns (uint256 cooldownPeriodEnds, uint256 removePeriodEnds)
+    {
         uint256 _lastApplication = lastRemovalApplication;
 
         if (_lastApplication == 0) {
             revert NoRemovalApplication();
         }
-        return _lastApplication + fuulManagerInstance().projectBudgetCooldown();
+
+        (uint256 budgetCooldown, uint256 removePeriod) = fuulManagerInstance()
+            .getBudgetRemoveInfo();
+
+        uint256 cooldown = _lastApplication + budgetCooldown;
+
+        return (cooldown, cooldown + removePeriod);
+    }
+
+    /**
+     * @dev Returns if the project is inside the removal window.
+     * It should be after the cooldown is completed and before the removal period ends.
+     */
+    function canRemoveFunds() public view returns (bool insideRemovalWindow) {
+        (
+            uint256 cooldownPeriodEnds,
+            uint256 removePeriodEnds
+        ) = getBudgetRemovePeriod();
+
+        if (
+            block.timestamp < cooldownPeriodEnds ||
+            block.timestamp > removePeriodEnds
+        ) {
+            revert OutsideRemovalWindow();
+        }
+
+        return true;
     }
 
     /**
@@ -379,7 +420,7 @@ contract FuulProject is
     function removeFungibleBudget(
         address currency,
         uint256 amount
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant canRemove {
         if (amount == 0) {
             revert ZeroAmount();
         }
@@ -395,10 +436,6 @@ contract FuulProject is
         //         tokenType == IFuulManager.TokenType.ERC_20,
         //     "Currency is not a fungible token"
         // );
-
-        if (block.timestamp < getBudgetCooldownPeriod()) {
-            revert CooldownPeriodNotFinished();
-        }
 
         // Update budget - By underflow it indirectly checks that amount <= currentBudget
         budgets[currency] -= amount;
@@ -432,21 +469,17 @@ contract FuulProject is
      *
      * - `amount` must be greater than zero.
      * - Only admins can remove.
-     * - Budget remove cooldown period has to be completed.
+     * - Must be within the Budget removal window.
      */
     function removeNFTBudget(
         address currency,
         uint256[] memory tokenIds,
         uint256[] memory amounts
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant canRemove {
         uint256 tokenIdsLength = tokenIds.length;
 
         if (tokenIdsLength == 0) {
             revert ZeroAmount();
-        }
-
-        if (block.timestamp < getBudgetCooldownPeriod()) {
-            revert CooldownPeriodNotFinished();
         }
 
         IFuulManager.TokenType tokenType = fuulManagerInstance().getTokenType(
@@ -556,13 +589,9 @@ contract FuulProject is
     function removeFeeBudget(
         address currency,
         uint256 amount
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant canRemove {
         if (amount == 0) {
             revert ZeroAmount();
-        }
-
-        if (block.timestamp < getBudgetCooldownPeriod()) {
-            revert CooldownPeriodNotFinished();
         }
 
         nftFeeBudget[currency] -= amount;

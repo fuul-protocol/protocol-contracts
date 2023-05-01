@@ -56,6 +56,11 @@ interface IFuulManager {
 
     function projectBudgetCooldown() external view returns (uint256 period);
 
+    function getBudgetRemoveInfo()
+        external
+        view
+        returns (uint256 cooldown, uint256 removeWindow);
+
     function claimCooldown() external view returns (uint256 period);
 
     function usersClaims(

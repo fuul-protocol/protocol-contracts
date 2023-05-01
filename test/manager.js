@@ -29,6 +29,14 @@ describe("Fuul Manager - Remove variables management", function () {
     );
   });
 
+  it("Should set new budget removal period", async function () {
+    await this.fuulManager.setProjectRemoveBudgetPeriod(this.newPeriod);
+
+    expect(await this.fuulManager.projectRemoveBudgetPeriod()).to.equal(
+      this.newPeriod
+    );
+  });
+
   it("Should fail to set new periods if not admin role", async function () {
     const error = `AccessControl: account ${this.user2.address.toLowerCase()} is missing role ${
       this.adminRole
@@ -45,6 +53,13 @@ describe("Fuul Manager - Remove variables management", function () {
         .connect(this.user2)
         .setProjectBudgetCooldown(this.newPeriod)
     ).to.be.revertedWith(error);
+
+    // Set budget remove period
+    await expect(
+      this.fuulManager
+        .connect(this.user2)
+        .setProjectRemoveBudgetPeriod(this.newPeriod)
+    ).to.be.revertedWith(error);
   });
 
   it("Should fail to set claim cooldown if incorrect arguments are passed", async function () {
@@ -60,6 +75,14 @@ describe("Fuul Manager - Remove variables management", function () {
 
     await expect(
       this.fuulManager.setProjectBudgetCooldown(newPeriod)
+    ).to.be.revertedWithCustomError(this.fuulManager, "InvalidArgument");
+  });
+
+  it("Should fail to set budget remove period if incorrect arguments are passed", async function () {
+    const newPeriod = await this.fuulManager.projectRemoveBudgetPeriod();
+
+    await expect(
+      this.fuulManager.setProjectRemoveBudgetPeriod(newPeriod)
     ).to.be.revertedWithCustomError(this.fuulManager, "InvalidArgument");
   });
 });

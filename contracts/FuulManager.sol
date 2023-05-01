@@ -33,6 +33,9 @@ contract FuulManager is
     // Amount of time that must elapse between a project's application to remove funds from its budget and the actual removal of those funds.
     uint256 public projectBudgetCooldown = 30 days;
 
+    // Period of time that a project can remove funds after cooldown. If they don't remove in this period, they will have to apply to remove again.
+    uint256 public projectRemoveBudgetPeriod = 30 days;
+
     // Amount of time that must elapse after {claimCooldownPeriodStarted} for the cumulative amount to be restarted
     uint256 public claimCooldown = 1 days;
 
@@ -56,6 +59,7 @@ contract FuulManager is
 
     // Mapping users and currency with total amount claimed
     mapping(address => mapping(address => uint256)) public usersClaims;
+
     // Mapping addresses with tokens info
     mapping(address => CurrencyToken) public currencyTokens;
 
@@ -128,6 +132,35 @@ contract FuulManager is
         }
 
         projectBudgetCooldown = _period;
+    }
+
+    /**
+     * @dev Sets the period for `projectRemoveBudgetPeriod`.
+     *
+     * Requirements:
+     *
+     * - `_period` must be different from the current one.
+     * - Only admins can call this function.
+     */
+    function setProjectRemoveBudgetPeriod(
+        uint256 _period
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (_period == projectRemoveBudgetPeriod) {
+            revert InvalidArgument();
+        }
+
+        projectRemoveBudgetPeriod = _period;
+    }
+
+    /**
+     * @dev Returns removal info. The function purpose is to call only once from {FuulProject} when needing this info.
+     */
+    function getBudgetRemoveInfo()
+        external
+        view
+        returns (uint256 cooldown, uint256 removeWindow)
+    {
+        return (projectBudgetCooldown, projectRemoveBudgetPeriod);
     }
 
     /*╔═════════════════════════════╗

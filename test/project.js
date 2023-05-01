@@ -148,7 +148,7 @@ describe("Fuul Project - Deposit and remove fungible", function () {
     );
   });
 
-  it("Fail to remove if not applied or cooldown is not over", async function () {
+  it("Fail to remove if not applied or cooldown is not over, or removal window ended", async function () {
     // Remove before applying
 
     await expect(
@@ -160,10 +160,18 @@ describe("Fuul Project - Deposit and remove fungible", function () {
 
     await expect(
       this.fuulProject.removeFungibleBudget(this.token.address, this.amount)
-    ).to.be.revertedWithCustomError(
-      this.fuulProject,
-      "CooldownPeriodNotFinished"
+    ).to.be.revertedWithCustomError(this.fuulProject, "OutsideRemovalWindow");
+
+    // Remove outside window
+    const removeInfo = await this.fuulManager.getBudgetRemoveInfo();
+
+    await time.increase(
+      removeInfo[0].toNumber() + removeInfo[1].toNumber() + 1
     );
+
+    await expect(
+      this.fuulProject.removeFungibleBudget(this.token.address, this.amount)
+    ).to.be.revertedWithCustomError(this.fuulProject, "OutsideRemovalWindow");
   });
 
   it("Should deposit correctly & set correct values with currency != 0x", async function () {
@@ -439,7 +447,7 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     );
   });
 
-  it("Fail to remove if not applied or cooldown is not over", async function () {
+  it("Fail to remove if not applied or cooldown is not over, or removal window ended", async function () {
     // Remove before applying
 
     await expect(
@@ -451,10 +459,20 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
 
     await expect(
       this.fuulProject.removeNFTBudget(this.nft721.address, this.tokenIds, [])
-    ).to.be.revertedWithCustomError(
-      this.fuulProject,
-      "CooldownPeriodNotFinished"
+    ).to.be.revertedWithCustomError(this.fuulProject, "OutsideRemovalWindow");
+
+    // Remove outside window
+
+    // Increase time
+    const removeInfo = await this.fuulManager.getBudgetRemoveInfo();
+
+    await time.increase(
+      removeInfo[0].toNumber() + removeInfo[1].toNumber() + 1
     );
+
+    await expect(
+      this.fuulProject.removeNFTBudget(this.nft721.address, this.tokenIds, [])
+    ).to.be.revertedWithCustomError(this.fuulProject, "OutsideRemovalWindow");
   });
 
   it("Should fail to deposit and remove if not admin role", async function () {
@@ -710,7 +728,7 @@ describe("Fuul Project - Deposit and remove fee budget", function () {
     ).to.equal(0);
   });
 
-  it("Fail to remove if not applied or cooldown is not over", async function () {
+  it("Fail to remove if not applied or cooldown is not over, or removal window ended", async function () {
     // Remove before applying
 
     await expect(
@@ -722,10 +740,18 @@ describe("Fuul Project - Deposit and remove fee budget", function () {
 
     await expect(
       this.fuulProject.removeFeeBudget(this.nftFeeCurrency.address, this.amount)
-    ).to.be.revertedWithCustomError(
-      this.fuulProject,
-      "CooldownPeriodNotFinished"
+    ).to.be.revertedWithCustomError(this.fuulProject, "OutsideRemovalWindow");
+
+    // Increase time
+    const removeInfo = await this.fuulManager.getBudgetRemoveInfo();
+
+    await time.increase(
+      removeInfo[0].toNumber() + removeInfo[1].toNumber() + 1
     );
+
+    await expect(
+      this.fuulProject.removeFeeBudget(this.nftFeeCurrency.address, this.amount)
+    ).to.be.revertedWithCustomError(this.fuulProject, "OutsideRemovalWindow");
   });
 
   it("Should remove correctly & set correct values after changing fee currency", async function () {
