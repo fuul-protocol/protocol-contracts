@@ -357,7 +357,7 @@ contract FuulProject is
     function getBudgetRemovePeriod()
         public
         view
-        returns (uint256 cooldownPeriodEnds, uint256 removePeriodEnds)
+        returns (uint256 cooldown, uint256 removePeriodEnds)
     {
         uint256 _lastApplication = lastRemovalApplication;
 
@@ -368,9 +368,10 @@ contract FuulProject is
         (uint256 budgetCooldown, uint256 removePeriod) = fuulManagerInstance()
             .getBudgetRemoveInfo();
 
-        uint256 cooldown = _lastApplication + budgetCooldown;
+        cooldown = _lastApplication + budgetCooldown;
+        removePeriodEnds = cooldown + removePeriod;
 
-        return (cooldown, cooldown + removePeriod);
+        return (cooldown, removePeriodEnds);
     }
 
     /**
@@ -378,7 +379,7 @@ contract FuulProject is
      * It should be after the cooldown is completed and before the removal period ends.
      * It is a public function for the UI to be able to check if the project can remove.
      */
-    function canRemoveFunds() public view returns (bool insideRemovalWindow) {
+    function canRemoveFunds() public view returns (bool) {
         (
             uint256 cooldownPeriodEnds,
             uint256 removePeriodEnds
@@ -600,24 +601,26 @@ contract FuulProject is
             uint256 netAmountToEndUser
         )
     {
+        // Can this be unchecked?
+
         // Calculate the percentage to partners
         uint256 partnerPercentage = (100 * amountToPartner) /
             (amountToPartner + amountToEndUser);
 
         // Get all fees
-        uint256[3] memory allFees = [
+        fees = [
             (feesInfo.protocolFee * totalAmount) / 10000,
             (feesInfo.clientFee * totalAmount) / 10000,
             (feesInfo.attributorFee * totalAmount) / 10000
         ];
 
         // Get net amounts
-        uint256 netTotal = (totalAmount - allFees[0] - allFees[1] - allFees[2]);
-        uint256 netPartnerAmount = (netTotal * partnerPercentage) / 100;
+        uint256 netTotal = (totalAmount - fees[0] - fees[1] - fees[2]);
+        netAmountToPartner = (netTotal * partnerPercentage) / 100;
 
-        uint256 netEndUserAmount = netTotal - netPartnerAmount;
+        netAmountToEndUser = netTotal - netAmountToPartner;
 
-        return (allFees, netPartnerAmount, netEndUserAmount);
+        return (fees, netAmountToPartner, netAmountToEndUser);
     }
 
     /**
@@ -627,14 +630,16 @@ contract FuulProject is
     function _calculateFeesForNFT(
         IFuulManager.FeesInformation memory feesInfo
     ) internal pure returns (uint256[3] memory fees) {
+        // Can this be unchecked?
+
         uint256 totalAmount = feesInfo.nftFixedFeeAmount;
-        uint256[3] memory allFees = [
+        fees = [
             (feesInfo.protocolFee * totalAmount) / 10000,
             (feesInfo.clientFee * totalAmount) / 10000,
             (feesInfo.attributorFee * totalAmount) / 10000
         ];
 
-        return allFees;
+        return fees;
     }
 
     /**
@@ -785,19 +790,17 @@ contract FuulProject is
             revert ZeroAmount();
         }
 
-        uint256 tokenAmount;
-
         if (tokenType == IFuulManager.TokenType.NATIVE) {
-            tokenAmount = availableAmount;
+            claimAmount = availableAmount;
 
-            payable(receiver).sendValue(tokenAmount);
+            payable(receiver).sendValue(claimAmount);
         } else if (tokenType == IFuulManager.TokenType.ERC_20) {
-            tokenAmount = availableAmount;
+            claimAmount = availableAmount;
 
-            IERC20(currency).safeTransfer(receiver, tokenAmount);
+            IERC20(currency).safeTransfer(receiver, claimAmount);
         } else if (tokenType == IFuulManager.TokenType.ERC_721) {
             uint256 tokenIdsLength = tokenIds.length;
-            tokenAmount = tokenIdsLength;
+            claimAmount = tokenIdsLength;
 
             _transferERC721Tokens(
                 currency,
@@ -807,7 +810,7 @@ contract FuulProject is
                 tokenIdsLength
             );
         } else if (tokenType == IFuulManager.TokenType.ERC_1155) {
-            tokenAmount = _getSumFromArray(amounts);
+            claimAmount = _getSumFromArray(amounts);
 
             _transferERC1155Tokens(
                 currency,
@@ -820,11 +823,11 @@ contract FuulProject is
 
         // Update user budget - it will fail from underflow if insufficient funds
 
-        availableToClaim[receiver][currency] -= tokenAmount;
+        availableToClaim[receiver][currency] -= claimAmount;
 
-        emit Claimed(receiver, currency, tokenAmount, tokenIds, amounts);
+        emit Claimed(receiver, currency, claimAmount, tokenIds, amounts);
 
-        return tokenAmount;
+        return claimAmount;
     }
 
     /*╔═════════════════════════════╗
@@ -841,14 +844,12 @@ contract FuulProject is
         uint256[] memory tokenIds,
         uint256 length
     ) internal {
-        unchecked {
-            for (uint256 i = 0; i < length; i++) {
-                IERC721(tokenAddress).safeTransferFrom(
-                    senderAddress,
-                    receiverAddress,
-                    tokenIds[i]
-                );
-            }
+        for (uint256 i = 0; i < length; i++) {
+            IERC721(tokenAddress).safeTransferFrom(
+                senderAddress,
+                receiverAddress,
+                tokenIds[i]
+            );
         }
     }
 
