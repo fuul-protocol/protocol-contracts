@@ -175,10 +175,6 @@ contract FuulProject is
 
         _setProjectURI(_projectInfoURI);
 
-        lastStatusHash = keccak256(
-            abi.encodePacked(block.prevrandao, block.timestamp)
-        );
-
         clientFeeCollector = _clientFeeCollector;
     }
 
@@ -206,6 +202,8 @@ contract FuulProject is
 
     /**
      * @dev Internal function that sets `projectInfoURI` as the information for the project.
+     *
+     * It also sets a new value for {lastStatusHash}.
      *
      * Requirements:
      *
