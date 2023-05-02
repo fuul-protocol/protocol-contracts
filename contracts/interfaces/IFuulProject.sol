@@ -11,12 +11,18 @@ interface IFuulProject {
     // Attribution
     struct Attribution {
         address currency;
-        IFuulManager.TokenType tokenType;
         address partner;
         address endUser;
         uint256 amountToPartner;
         uint256 amountToEndUser;
         bytes32 proof;
+    }
+
+    enum TokenType {
+        NATIVE,
+        ERC_20,
+        ERC_721,
+        ERC_1155
     }
 
     /*╔═════════════════════════════╗
@@ -32,7 +38,7 @@ interface IFuulProject {
         address indexed account,
         uint256 indexed amount,
         address indexed currency,
-        IFuulManager.TokenType tokenType,
+        TokenType tokenType,
         uint256[] tokenIds,
         uint256[] amounts
     );
@@ -41,7 +47,6 @@ interface IFuulProject {
         address indexed account,
         uint256 indexed amount,
         address indexed currency,
-        IFuulManager.TokenType tokenType,
         uint256[] tokenIds,
         uint256[] amounts
     );
@@ -145,7 +150,6 @@ interface IFuulProject {
 
     function removeNFTBudget(
         address currency,
-        IFuulManager.TokenType,
         uint256[] memory rewardTokenIds,
         uint256[] memory amounts
     ) external;
@@ -165,7 +169,6 @@ interface IFuulProject {
 
     function claimFromProject(
         address currency,
-        IFuulManager.TokenType tokenType,
         address receiver,
         uint256[] memory tokenIds,
         uint256[] memory amounts

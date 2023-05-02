@@ -13,6 +13,9 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
+import "@openzeppelin/contracts/interfaces/IERC165.sol";
+import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+
 import "./interfaces/IFuulManager.sol";
 import "./interfaces/IFuulFactory.sol";
 import "./interfaces/IFuulProject.sol";
@@ -27,6 +30,11 @@ contract FuulProject is
     using Counters for Counters.Counter;
     using SafeERC20 for IERC20;
     using Address for address payable;
+    using ERC165Checker for address;
+
+    // Interfaces for ERC721 and ERC1155 contracts
+    bytes4 public constant IID_IERC1155 = type(IERC1155).interfaceId;
+    bytes4 public constant IID_IERC721 = type(IERC721).interfaceId;
 
     // Factory contract address
     address public immutable fuulFactory;
@@ -217,28 +225,28 @@ contract FuulProject is
             revert ZeroAmount();
         }
 
-        (
-            IFuulManager.TokenType tokenType,
-            ,
-            ,
-            ,
-            bool isTokenActive
-        ) = fuulManagerInstance().currencyTokens(currency);
-
-        if (!isTokenActive) {
+        if (!fuulManagerInstance().isCurrencyTokenAccepted(currency)) {
             revert IFuulManager.TokenCurrencyNotAccepted();
         }
 
-        if (tokenType == IFuulManager.TokenType.NATIVE) {
+        TokenType tokenType;
+
+        if (currency == address(0)) {
             if (msg.value != amount) {
                 revert IncorrectMsgValue();
             }
-        } else if (tokenType == IFuulManager.TokenType.ERC_20) {
+            tokenType = TokenType.NATIVE;
+        } else {
+            if (!isERC20(currency)) {
+                revert InvalidTokenType();
+            }
+
             IERC20(currency).safeTransferFrom(
                 _msgSender(),
                 address(this),
                 amount
             );
+            tokenType = TokenType.ERC_20;
         }
 
         // Update balance
@@ -272,22 +280,15 @@ contract FuulProject is
         uint256[] memory tokenIds,
         uint256[] memory amounts
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
-        (
-            IFuulManager.TokenType tokenType,
-            ,
-            ,
-            ,
-            bool isTokenActive
-        ) = fuulManagerInstance().currencyTokens(currency);
-
-        if (!isTokenActive) {
+        if (!fuulManagerInstance().isCurrencyTokenAccepted(currency)) {
             revert IFuulManager.TokenCurrencyNotAccepted();
         }
 
         uint256 depositedAmount;
         uint256[] memory tokenAmounts;
+        TokenType tokenType;
 
-        if (tokenType == IFuulManager.TokenType.ERC_721) {
+        if (currency.supportsInterface(IID_IERC721)) {
             uint256 tokenIdsLength = tokenIds.length;
 
             _transferERC721Tokens(
@@ -299,7 +300,8 @@ contract FuulProject is
             );
 
             depositedAmount = tokenIdsLength;
-        } else if (tokenType == IFuulManager.TokenType.ERC_1155) {
+            tokenType = TokenType.ERC_721;
+        } else if (currency.supportsInterface(IID_IERC1155)) {
             _transferERC1155Tokens(
                 currency,
                 _msgSender(),
@@ -310,6 +312,9 @@ contract FuulProject is
 
             depositedAmount = _getSumFromArray(amounts);
             tokenAmounts = amounts;
+            tokenType = TokenType.ERC_1155;
+        } else {
+            revert InvalidTokenType();
         }
 
         // Update balance
@@ -413,14 +418,13 @@ contract FuulProject is
         // Update budget - By underflow it indirectly checks that amount <= currentBudget
         budgets[currency] -= amount;
 
-        IFuulManager.TokenType tokenType;
-
         if (currency == address(0)) {
             payable(_msgSender()).sendValue(amount);
-            tokenType = IFuulManager.TokenType.NATIVE;
         } else {
+            if (!isERC20(currency)) {
+                revert InvalidTokenType();
+            }
             IERC20(currency).safeTransfer(_msgSender(), amount);
-            tokenType = IFuulManager.TokenType.ERC_20;
         }
 
         uint256[] memory emptyArray;
@@ -429,7 +433,6 @@ contract FuulProject is
             _msgSender(),
             amount,
             currency,
-            tokenType,
             emptyArray,
             emptyArray
         );
@@ -450,7 +453,6 @@ contract FuulProject is
      */
     function removeNFTBudget(
         address currency,
-        IFuulManager.TokenType tokenType,
         uint256[] memory tokenIds,
         uint256[] memory amounts
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant canRemove {
@@ -462,7 +464,7 @@ contract FuulProject is
 
         uint256 removeAmount;
 
-        if (tokenType == IFuulManager.TokenType.ERC_721) {
+        if (currency.supportsInterface(IID_IERC721)) {
             _transferERC721Tokens(
                 currency,
                 address(this),
@@ -472,7 +474,7 @@ contract FuulProject is
             );
 
             removeAmount = tokenIdsLength;
-        } else if (tokenType == IFuulManager.TokenType.ERC_1155) {
+        } else if (currency.supportsInterface(IID_IERC1155)) {
             _transferERC1155Tokens(
                 currency,
                 address(this),
@@ -493,7 +495,6 @@ contract FuulProject is
             _msgSender(),
             removeAmount,
             currency,
-            tokenType,
             tokenIds,
             amounts
         );
@@ -680,8 +681,6 @@ contract FuulProject is
 
             address currency = attribution.currency;
 
-            IFuulManager.TokenType tokenType = attribution.tokenType;
-
             // Calculate fees and amounts
 
             uint256[3] memory fees;
@@ -689,10 +688,7 @@ contract FuulProject is
             uint256 amountToEndUser;
             address feeCurrency;
 
-            if (
-                tokenType == IFuulManager.TokenType.NATIVE ||
-                tokenType == IFuulManager.TokenType.ERC_20
-            ) {
+            if (currency == address(0) || isERC20(currency)) {
                 (
                     fees,
                     amountToPartner,
@@ -706,6 +702,7 @@ contract FuulProject is
 
                 feeCurrency = currency;
             } else {
+                // It is not necessary to check if it's an NFT address. If it has budget and it is not a fungible, then it's an NFT
                 fees = _calculateFeesForNFT(feesInfo);
                 amountToPartner = attribution.amountToPartner;
                 amountToEndUser = attribution.amountToEndUser;
@@ -768,7 +765,6 @@ contract FuulProject is
 
     function claimFromProject(
         address currency,
-        IFuulManager.TokenType tokenType,
         address receiver,
         uint256[] memory tokenIds,
         uint256[] memory amounts
@@ -785,15 +781,15 @@ contract FuulProject is
             revert ZeroAmount();
         }
 
-        if (tokenType == IFuulManager.TokenType.NATIVE) {
+        if (currency == address(0)) {
             claimAmount = availableAmount;
 
             payable(receiver).sendValue(claimAmount);
-        } else if (tokenType == IFuulManager.TokenType.ERC_20) {
+        } else if (isERC20(currency)) {
             claimAmount = availableAmount;
 
             IERC20(currency).safeTransfer(receiver, claimAmount);
-        } else if (tokenType == IFuulManager.TokenType.ERC_721) {
+        } else if (currency.supportsInterface(IID_IERC721)) {
             uint256 tokenIdsLength = tokenIds.length;
             claimAmount = tokenIdsLength;
 
@@ -804,7 +800,7 @@ contract FuulProject is
                 tokenIds,
                 tokenIdsLength
             );
-        } else if (tokenType == IFuulManager.TokenType.ERC_1155) {
+        } else if (currency.supportsInterface(IID_IERC1155)) {
             claimAmount = _getSumFromArray(amounts);
 
             _transferERC1155Tokens(
@@ -814,6 +810,8 @@ contract FuulProject is
                 tokenIds,
                 amounts
             );
+        } else {
+            revert InvalidTokenType();
         }
 
         // Update user budget - it will fail from underflow if insufficient funds
@@ -883,6 +881,19 @@ contract FuulProject is
         }
 
         return result;
+    }
+
+    /**
+     * @dev Returns whether the address is an ERC20 token.
+     */
+    function isERC20(address tokenAddress) internal view returns (bool) {
+        IERC20 token = IERC20(tokenAddress);
+        try token.totalSupply() {
+            try token.allowance(_msgSender(), address(this)) {
+                return true;
+            } catch {}
+        } catch {}
+        return false;
     }
 
     /*╔═════════════════════════════╗

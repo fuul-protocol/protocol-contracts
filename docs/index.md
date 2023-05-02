@@ -93,889 +93,6 @@ Requirements:
 - {_fuulManager} must be different from the current one.
 - Only admins can call this function._
 
-## FuulProject
-
-### fuulFactory
-
-```solidity
-address fuulFactory
-```
-
-### clientFeeCollector
-
-```solidity
-address clientFeeCollector
-```
-
-### EVENTS_SIGNER_ROLE
-
-```solidity
-bytes32 EVENTS_SIGNER_ROLE
-```
-
-### lastStatusHash
-
-```solidity
-bytes32 lastStatusHash
-```
-
-### projectInfoURI
-
-```solidity
-string projectInfoURI
-```
-
-### lastRemovalApplication
-
-```solidity
-uint256 lastRemovalApplication
-```
-
-### budgets
-
-```solidity
-mapping(address => uint256) budgets
-```
-
-### availableToClaim
-
-```solidity
-mapping(address => mapping(address => uint256)) availableToClaim
-```
-
-### nftFeeBudget
-
-```solidity
-mapping(address => uint256) nftFeeBudget
-```
-
-### attributionProofs
-
-```solidity
-mapping(bytes32 => bool) attributionProofs
-```
-
-### onlyFuulManager
-
-```solidity
-modifier onlyFuulManager()
-```
-
-_Modifier to check if the sender is {FuulManager} contract._
-
-### _onlyFuulManager
-
-```solidity
-function _onlyFuulManager() internal view
-```
-
-_Internal function for {onlyFuulManager} modifier. Reverts with a Unauthorized error._
-
-### whenManagerIsPaused
-
-```solidity
-modifier whenManagerIsPaused()
-```
-
-_Modifier to check that {FuulManager} contract is not paused._
-
-### _whenManagerIsPaused
-
-```solidity
-function _whenManagerIsPaused() internal view
-```
-
-_Internal function for {whenManagerIsPaused} modifier. Reverts with a ManagerIsPaused error._
-
-### canRemove
-
-```solidity
-modifier canRemove()
-```
-
-TODO
-
-_Modifier to check if the project can remove funds. Reverts with an OutsideRemovalWindow error._
-
-### constructor
-
-```solidity
-constructor() public
-```
-
-_Sets the value for {fuulFactory}.
-
-This value is immutable: it can only be set once during
-construction._
-
-### initialize
-
-```solidity
-function initialize(address projectAdmin, address _projectEventSigner, string _projectInfoURI, address _clientFeeCollector) external
-```
-
-_Initializes the contract when the Factory deploys a new clone}.
-
-Grants roles for project admin, the address allowed to send events 
-through the SDK and the URI with the project information_
-
-### fuulManagerAddress
-
-```solidity
-function fuulManagerAddress() internal view returns (address)
-```
-
-_Returns the address of the active Fuul Manager contract._
-
-### fuulManagerInstance
-
-```solidity
-function fuulManagerInstance() internal view returns (contract IFuulManager)
-```
-
-_Returns the instance of the Fuul Manager contract._
-
-### setProjectURI
-
-```solidity
-function setProjectURI(string _projectURI) external
-```
-
-_Sets `projectInfoURI` as the information for the project.
-
-Emits {ProjectInfoUpdated}.
-
-Requirements:
-
-- `_projectURI` must not be an empty string.
-- Only admins can call this function._
-
-### depositFungibleToken
-
-```solidity
-function depositFungibleToken(address currency, uint256 amount) external payable
-```
-
-_Deposits fungible tokens.
-They can be native or ERC20 tokens.
-
-Emits {BudgetDeposited}.
-
-Requirements:
-
-- `amount` must be greater than zero.
-- Only admins can deposit.
-- Token currency must be accepted in {Fuul Manager}_
-
-### depositNFTToken
-
-```solidity
-function depositNFTToken(address currency, uint256[] tokenIds, uint256[] amounts) external
-```
-
-_Deposits NFTs.
-They can be ERC1155 or ERC721 tokens.
-`amounts` parameter is only used when dealing with ERC1155 tokens.
-
-Emits {BudgetDeposited}.
-
-Requirements:
-
-- Only admins can deposit._
-
-### applyToRemoveBudget
-
-```solidity
-function applyToRemoveBudget() external
-```
-
-_Sets timestamp for which users request to remove their budgets.
-
-Requirements:
-
-- Only admins can call this function._
-
-### getBudgetRemovePeriod
-
-```solidity
-function getBudgetRemovePeriod() public view returns (uint256 cooldown, uint256 removePeriodEnds)
-```
-
-_Returns the window when projects can remove funds.
-The cooldown period for removing a project's budget begins upon calling the {applyToRemoveBudget} function
-and ends once the {projectBudgetCooldown} period has elapsed.
-
-The period to remove starts when the cooldown is completed, and ends after {removePeriod}.
-
-It is a public function for the UI to be able to read and display dates._
-
-### canRemoveFunds
-
-```solidity
-function canRemoveFunds() public view returns (bool)
-```
-
-_Returns if the project is inside the removal window.
-It should be after the cooldown is completed and before the removal period ends.
-It is a public function for the UI to be able to check if the project can remove._
-
-### removeFungibleBudget
-
-```solidity
-function removeFungibleBudget(address currency, uint256 amount) external
-```
-
-_Removes fungible tokens.
-They can be native or ERC20 tokens.
-
-Emits {BudgetRemoved}.
-
-Requirements:
-
-- `amount` must be greater than zero.
-- Only admins can remove.
-- Budget remove cooldown period has to be completed._
-
-### removeNFTBudget
-
-```solidity
-function removeNFTBudget(address currency, enum IFuulManager.TokenType tokenType, uint256[] tokenIds, uint256[] amounts) external
-```
-
-_Removes NFT tokens.
-They can be ERC1155 or ERC721 tokens.
-`amounts` parameter is only used when dealing with ERC1155 tokens.
-
-Emits {BudgetRemoved}.
-
-Requirements:
-
-- `amount` must be greater than zero.
-- Only admins can remove.
-- Must be within the Budget removal window._
-
-### depositFeeBudget
-
-```solidity
-function depositFeeBudget(uint256 amount) external payable
-```
-
-_Deposits budget to pay for fees when rewarding NFTs.
-The currency is defined in the {FuulManager} contract.
-
-Emits {FeeBudgetDeposit}.
-
-Requirements:
-
-- `amount` must be greater than zero.
-- Only admins can deposit._
-
-### removeFeeBudget
-
-```solidity
-function removeFeeBudget(address currency, uint256 amount) external
-```
-
-_Removes fee budget for NFT rewards.
-
-Emits {FeeBudgetRemoved}.
-
-Notes: Currency is an argument because if the default is changed in {FuulManager}, projects will still be able to remove
-
-Requirements:
-
-- `amount` must be greater than zero.
-- Only admins can remove.
-- Budget remove cooldown period has to be completed._
-
-### _calculateAmountsForFungibleToken
-
-```solidity
-function _calculateAmountsForFungibleToken(struct IFuulManager.FeesInformation feesInfo, uint256 totalAmount, uint256 amountToPartner, uint256 amountToEndUser) internal pure returns (uint256[3] fees, uint256 netAmountToPartner, uint256 netAmountToEndUser)
-```
-
-_Internal function to calculate fees and amounts for fungible token reward._
-
-### _calculateFeesForNFT
-
-```solidity
-function _calculateFeesForNFT(struct IFuulManager.FeesInformation feesInfo) internal pure returns (uint256[3] fees)
-```
-
-_Internal function to calculate fees for non fungible token reward._
-
-### attributeTransactions
-
-```solidity
-function attributeTransactions(struct IFuulProject.Attribution[] attributions, address attributorFeeCollector) external
-```
-
-_Attributes: removes amounts from budget and adds them to corresponding partners, users and fee collectors.
-
-Emits {Attributed}.
-
-Notes:
-- When rewards are fungible tokens, fees will be a percentage of the payment and it will be substracted from the payment.
-- When rewards are NFTs, fees will be a fixed amount and the {nftFeeBudget} will be used.
-
-Requirements:
-
-- Currency budgets have to be greater than amounts attributed.
-- The sum of  {amountToPartner} and {amountToEndUser} of each {Attribution} must be greater than zero.
-- Only {FuulManager} can attribute.
-- {FuulManager} must not be paused._
-
-### claimFromProject
-
-```solidity
-function claimFromProject(address currency, enum IFuulManager.TokenType tokenType, address receiver, uint256[] tokenIds, uint256[] amounts) external returns (uint256 claimAmount)
-```
-
-_Claims: sends funds to `receiver` that has available to claim funds.
-
-`tokenIds` parameter is only used when dealing with ERC1155 and ERC721 tokens.
-`amounts` parameter is only used when dealing with ERC1155 tokens.
-
-Requirements:
-
-- `receiver` must have available funds to claim for {currency}.
-- Only {FuulManager} can call this function.
-- {FuulManager} must not be paused._
-
-### _transferERC721Tokens
-
-```solidity
-function _transferERC721Tokens(address tokenAddress, address senderAddress, address receiverAddress, uint256[] tokenIds, uint256 length) internal
-```
-
-_Helper function to transfer ERC721 tokens._
-
-### _transferERC1155Tokens
-
-```solidity
-function _transferERC1155Tokens(address tokenAddress, address senderAddress, address receiverAddress, uint256[] tokenIds, uint256[] amounts) internal
-```
-
-_Helper function to transfer ERC1155 tokens._
-
-### _getSumFromArray
-
-```solidity
-function _getSumFromArray(uint256[] amounts) internal pure returns (uint256 result)
-```
-
-_Helper function to sum all amounts inside the array._
-
-### supportsInterface
-
-```solidity
-function supportsInterface(bytes4 interfaceId) public view virtual returns (bool)
-```
-
-_See {IERC165-supportsInterface}._
-
-## IFuulFactory
-
-### ProjectCreated
-
-```solidity
-event ProjectCreated(uint256 projectId, address deployedAddress, address eventSigner, string projectInfoURI, address clientFeeCollector)
-```
-
-### createFuulProject
-
-```solidity
-function createFuulProject(address _projectAdmin, address _projectEventSigner, string _projectInfoURI, address _clientFeeCollector) external
-```
-
-### ZeroAddress
-
-```solidity
-error ZeroAddress()
-```
-
-### projects
-
-```solidity
-function projects(uint256 projectId) external returns (address)
-```
-
-### totalProjectsCreated
-
-```solidity
-function totalProjectsCreated() external view returns (uint256)
-```
-
-### getUserProjectByIndex
-
-```solidity
-function getUserProjectByIndex(address account, uint256 index) external view returns (address)
-```
-
-### getUserProjectCount
-
-```solidity
-function getUserProjectCount(address account) external view returns (uint256)
-```
-
-### fuulManager
-
-```solidity
-function fuulManager() external view returns (address)
-```
-
-### setFuulManager
-
-```solidity
-function setFuulManager(address _fuulManager) external
-```
-
-## IFuulManager
-
-### TokenType
-
-```solidity
-enum TokenType {
-  NATIVE,
-  ERC_20,
-  ERC_721,
-  ERC_1155
-}
-```
-
-### CurrencyToken
-
-```solidity
-struct CurrencyToken {
-  enum IFuulManager.TokenType tokenType;
-  uint256 claimLimitPerCooldown;
-  uint256 cumulativeClaimPerCooldown;
-  uint256 claimCooldownPeriodStarted;
-  bool isActive;
-}
-```
-
-### ClaimCheck
-
-```solidity
-struct ClaimCheck {
-  address projectAddress;
-  address currency;
-  uint256[] tokenIds;
-  uint256[] amounts;
-}
-```
-
-### AttributionEntity
-
-```solidity
-struct AttributionEntity {
-  address projectAddress;
-  struct IFuulProject.Attribution[] projectAttributions;
-}
-```
-
-### FeesInformation
-
-```solidity
-struct FeesInformation {
-  uint256 protocolFee;
-  uint256 attributorFee;
-  uint256 clientFee;
-  address protocolFeeCollector;
-  uint256 nftFixedFeeAmount;
-  address nftFeeCurrency;
-}
-```
-
-### InvalidArgument
-
-```solidity
-error InvalidArgument()
-```
-
-### TokenCurrencyAlreadyAccepted
-
-```solidity
-error TokenCurrencyAlreadyAccepted()
-```
-
-### TokenCurrencyNotAccepted
-
-```solidity
-error TokenCurrencyNotAccepted()
-```
-
-### OverTheLimit
-
-```solidity
-error OverTheLimit()
-```
-
-### projectBudgetCooldown
-
-```solidity
-function projectBudgetCooldown() external view returns (uint256 period)
-```
-
-### getBudgetRemoveInfo
-
-```solidity
-function getBudgetRemoveInfo() external view returns (uint256 cooldown, uint256 removeWindow)
-```
-
-### claimCooldown
-
-```solidity
-function claimCooldown() external view returns (uint256 period)
-```
-
-### usersClaims
-
-```solidity
-function usersClaims(address user, address currency) external view returns (uint256)
-```
-
-### protocolFee
-
-```solidity
-function protocolFee() external view returns (uint256 fees)
-```
-
-### protocolFeeCollector
-
-```solidity
-function protocolFeeCollector() external view returns (address)
-```
-
-### getFeesInformation
-
-```solidity
-function getFeesInformation() external returns (struct IFuulManager.FeesInformation)
-```
-
-### clientFee
-
-```solidity
-function clientFee() external view returns (uint256 fees)
-```
-
-### attributorFee
-
-```solidity
-function attributorFee() external view returns (uint256 fees)
-```
-
-### nftFeeCurrency
-
-```solidity
-function nftFeeCurrency() external view returns (address)
-```
-
-### setClaimCooldown
-
-```solidity
-function setClaimCooldown(uint256 _period) external
-```
-
-### setProjectBudgetCooldown
-
-```solidity
-function setProjectBudgetCooldown(uint256 period) external
-```
-
-### setProtocolFee
-
-```solidity
-function setProtocolFee(uint256 value) external
-```
-
-### setClientFee
-
-```solidity
-function setClientFee(uint256 value) external
-```
-
-### setAttributorFee
-
-```solidity
-function setAttributorFee(uint256 value) external
-```
-
-### currencyTokens
-
-```solidity
-function currencyTokens(address currencyToken) external view returns (enum IFuulManager.TokenType, uint256, uint256, uint256, bool)
-```
-
-### getTokenType
-
-```solidity
-function getTokenType(address currencyToken) external view returns (enum IFuulManager.TokenType tokenType)
-```
-
-### isCurrencyTokenAccepted
-
-```solidity
-function isCurrencyTokenAccepted(address currencyToken) external view returns (bool isAccepted)
-```
-
-### addCurrencyToken
-
-```solidity
-function addCurrencyToken(address tokenAddress, uint256 claimLimitPerCooldown) external
-```
-
-### removeCurrencyToken
-
-```solidity
-function removeCurrencyToken(address tokenAddress) external
-```
-
-### setCurrencyTokenLimit
-
-```solidity
-function setCurrencyTokenLimit(address tokenAddress, uint256 limit) external
-```
-
-### pauseAll
-
-```solidity
-function pauseAll() external
-```
-
-### unpauseAll
-
-```solidity
-function unpauseAll() external
-```
-
-### isPaused
-
-```solidity
-function isPaused() external view returns (bool)
-```
-
-### claim
-
-```solidity
-function claim(struct IFuulManager.ClaimCheck[] claimChecks) external
-```
-
-## IFuulProject
-
-### Attribution
-
-```solidity
-struct Attribution {
-  address currency;
-  enum IFuulManager.TokenType tokenType;
-  address partner;
-  address endUser;
-  uint256 amountToPartner;
-  uint256 amountToEndUser;
-  bytes32 proof;
-}
-```
-
-### ProjectInfoUpdated
-
-```solidity
-event ProjectInfoUpdated(string projectInfoURI)
-```
-
-### BudgetDeposited
-
-```solidity
-event BudgetDeposited(address account, uint256 amount, address currency, enum IFuulManager.TokenType tokenType, uint256[] tokenIds, uint256[] amounts)
-```
-
-### BudgetRemoved
-
-```solidity
-event BudgetRemoved(address account, uint256 amount, address currency, enum IFuulManager.TokenType tokenType, uint256[] tokenIds, uint256[] amounts)
-```
-
-### Claimed
-
-```solidity
-event Claimed(address account, address currency, uint256 amount, uint256[] rewardTokenIds, uint256[] amounts)
-```
-
-### Attributed
-
-```solidity
-event Attributed(address currency, uint256 totalAmount, address[5] receivers, uint256[5] amounts, bytes32 proof)
-```
-
-### FeeBudgetDeposited
-
-```solidity
-event FeeBudgetDeposited(address account, uint256 amount, address currency)
-```
-
-### FeeBudgetRemoved
-
-```solidity
-event FeeBudgetRemoved(address account, uint256 amount, address currency)
-```
-
-### ManagerIsPaused
-
-```solidity
-error ManagerIsPaused()
-```
-
-### EmptyURI
-
-```solidity
-error EmptyURI()
-```
-
-### NoRemovalApplication
-
-```solidity
-error NoRemovalApplication()
-```
-
-### IncorrectMsgValue
-
-```solidity
-error IncorrectMsgValue()
-```
-
-### OutsideRemovalWindow
-
-```solidity
-error OutsideRemovalWindow()
-```
-
-### ZeroAmount
-
-```solidity
-error ZeroAmount()
-```
-
-### Unauthorized
-
-```solidity
-error Unauthorized()
-```
-
-### AlreadyAttributed
-
-```solidity
-error AlreadyAttributed()
-```
-
-### Forbidden
-
-```solidity
-error Forbidden()
-```
-
-### InvalidTokenType
-
-```solidity
-error InvalidTokenType()
-```
-
-### fuulFactory
-
-```solidity
-function fuulFactory() external view returns (address)
-```
-
-### availableToClaim
-
-```solidity
-function availableToClaim(address account, address currency) external view returns (uint256)
-```
-
-### lastStatusHash
-
-```solidity
-function lastStatusHash() external view returns (bytes32)
-```
-
-### projectInfoURI
-
-```solidity
-function projectInfoURI() external view returns (string)
-```
-
-### setProjectURI
-
-```solidity
-function setProjectURI(string _projectURI) external
-```
-
-### clientFeeCollector
-
-```solidity
-function clientFeeCollector() external view returns (address)
-```
-
-### depositFungibleToken
-
-```solidity
-function depositFungibleToken(address currency, uint256 amount) external payable
-```
-
-### depositNFTToken
-
-```solidity
-function depositNFTToken(address currency, uint256[] rewardTokenIds, uint256[] amounts) external
-```
-
-### lastRemovalApplication
-
-```solidity
-function lastRemovalApplication() external view returns (uint256)
-```
-
-### applyToRemoveBudget
-
-```solidity
-function applyToRemoveBudget() external
-```
-
-### getBudgetRemovePeriod
-
-```solidity
-function getBudgetRemovePeriod() external view returns (uint256, uint256)
-```
-
-### canRemoveFunds
-
-```solidity
-function canRemoveFunds() external view returns (bool insideRemovalWindow)
-```
-
-### removeFungibleBudget
-
-```solidity
-function removeFungibleBudget(address currency, uint256 amount) external
-```
-
-### removeNFTBudget
-
-```solidity
-function removeNFTBudget(address currency, enum IFuulManager.TokenType, uint256[] rewardTokenIds, uint256[] amounts) external
-```
-
-### attributeTransactions
-
-```solidity
-function attributeTransactions(struct IFuulProject.Attribution[] attributions, address attributorFeeCollector) external
-```
-
-### claimFromProject
-
-```solidity
-function claimFromProject(address currency, enum IFuulManager.TokenType tokenType, address receiver, uint256[] tokenIds, uint256[] amounts) external returns (uint256)
-```
-
 ## FuulManager
 
 ### ATTRIBUTOR_ROLE
@@ -988,18 +105,6 @@ bytes32 ATTRIBUTOR_ROLE
 
 ```solidity
 bytes32 PAUSER_ROLE
-```
-
-### IID_IERC1155
-
-```solidity
-bytes4 IID_IERC1155
-```
-
-### IID_IERC721
-
-```solidity
-bytes4 IID_IERC721
 ```
 
 ### projectBudgetCooldown
@@ -1212,14 +317,6 @@ Requirements:
 - `_value` must be different from the current one.
 - Only admins can call this function._
 
-### getTokenType
-
-```solidity
-function getTokenType(address tokenAddress) public view returns (enum IFuulManager.TokenType tokenType)
-```
-
-_Returns TokenType enum from a tokenAddress._
-
 ### isCurrencyTokenAccepted
 
 ```solidity
@@ -1336,14 +433,6 @@ Requirements:
 
 - Contract should not be paused._
 
-### isERC20
-
-```solidity
-function isERC20(address tokenAddress) internal view returns (bool)
-```
-
-_Returns whether the address is an ERC20 token._
-
 ### isContract
 
 ```solidity
@@ -1366,6 +455,899 @@ Requirements:
 - `tokenAddress` must be a contract (excepting for the zero address).
 - `tokenAddress` must not be accepted yet.
 - `claimLimitPerCooldown` should be greater than zero._
+
+## FuulProject
+
+### IID_IERC1155
+
+```solidity
+bytes4 IID_IERC1155
+```
+
+### IID_IERC721
+
+```solidity
+bytes4 IID_IERC721
+```
+
+### fuulFactory
+
+```solidity
+address fuulFactory
+```
+
+### clientFeeCollector
+
+```solidity
+address clientFeeCollector
+```
+
+### EVENTS_SIGNER_ROLE
+
+```solidity
+bytes32 EVENTS_SIGNER_ROLE
+```
+
+### lastStatusHash
+
+```solidity
+bytes32 lastStatusHash
+```
+
+### projectInfoURI
+
+```solidity
+string projectInfoURI
+```
+
+### lastRemovalApplication
+
+```solidity
+uint256 lastRemovalApplication
+```
+
+### budgets
+
+```solidity
+mapping(address => uint256) budgets
+```
+
+### availableToClaim
+
+```solidity
+mapping(address => mapping(address => uint256)) availableToClaim
+```
+
+### nftFeeBudget
+
+```solidity
+mapping(address => uint256) nftFeeBudget
+```
+
+### attributionProofs
+
+```solidity
+mapping(bytes32 => bool) attributionProofs
+```
+
+### onlyFuulManager
+
+```solidity
+modifier onlyFuulManager()
+```
+
+_Modifier to check if the sender is {FuulManager} contract._
+
+### _onlyFuulManager
+
+```solidity
+function _onlyFuulManager() internal view
+```
+
+_Internal function for {onlyFuulManager} modifier. Reverts with a Unauthorized error._
+
+### whenManagerIsPaused
+
+```solidity
+modifier whenManagerIsPaused()
+```
+
+_Modifier to check that {FuulManager} contract is not paused._
+
+### _whenManagerIsPaused
+
+```solidity
+function _whenManagerIsPaused() internal view
+```
+
+_Internal function for {whenManagerIsPaused} modifier. Reverts with a ManagerIsPaused error._
+
+### canRemove
+
+```solidity
+modifier canRemove()
+```
+
+TODO
+
+_Modifier to check if the project can remove funds. Reverts with an OutsideRemovalWindow error._
+
+### constructor
+
+```solidity
+constructor() public
+```
+
+_Sets the value for {fuulFactory}.
+This value is immutable._
+
+### initialize
+
+```solidity
+function initialize(address projectAdmin, address _projectEventSigner, string _projectInfoURI, address _clientFeeCollector) external
+```
+
+_Initializes the contract when the Factory deploys a new clone}.
+
+Grants roles for project admin, the address allowed to send events 
+through the SDK and the URI with the project information_
+
+### fuulManagerAddress
+
+```solidity
+function fuulManagerAddress() internal view returns (address)
+```
+
+_Returns the address of the active Fuul Manager contract._
+
+### fuulManagerInstance
+
+```solidity
+function fuulManagerInstance() internal view returns (contract IFuulManager)
+```
+
+_Returns the instance of the Fuul Manager contract._
+
+### setProjectURI
+
+```solidity
+function setProjectURI(string _projectURI) external
+```
+
+_Sets `projectInfoURI` as the information for the project.
+
+Emits {ProjectInfoUpdated}.
+
+Requirements:
+
+- `_projectURI` must not be an empty string.
+- Only admins can call this function._
+
+### depositFungibleToken
+
+```solidity
+function depositFungibleToken(address currency, uint256 amount) external payable
+```
+
+_Deposits fungible tokens.
+They can be native or ERC20 tokens.
+
+Emits {BudgetDeposited}.
+
+Requirements:
+
+- `amount` must be greater than zero.
+- Only admins can deposit.
+- Token currency must be accepted in {Fuul Manager}_
+
+### depositNFTToken
+
+```solidity
+function depositNFTToken(address currency, uint256[] tokenIds, uint256[] amounts) external
+```
+
+_Deposits NFTs.
+They can be ERC1155 or ERC721 tokens.
+`amounts` parameter is only used when dealing with ERC1155 tokens.
+
+Emits {BudgetDeposited}.
+
+Requirements:
+
+- Only admins can deposit._
+
+### applyToRemoveBudget
+
+```solidity
+function applyToRemoveBudget() external
+```
+
+_Sets timestamp for which users request to remove their budgets.
+
+Requirements:
+
+- Only admins can call this function._
+
+### getBudgetRemovePeriod
+
+```solidity
+function getBudgetRemovePeriod() public view returns (uint256 cooldown, uint256 removePeriodEnds)
+```
+
+_Returns the window when projects can remove funds.
+The cooldown period for removing a project's budget begins upon calling the {applyToRemoveBudget} function
+and ends once the {projectBudgetCooldown} period has elapsed.
+
+The period to remove starts when the cooldown is completed, and ends after {removePeriod}.
+
+It is a public function for the UI to be able to read and display dates._
+
+### canRemoveFunds
+
+```solidity
+function canRemoveFunds() public view returns (bool)
+```
+
+_Returns if the project is inside the removal window.
+It should be after the cooldown is completed and before the removal period ends.
+It is a public function for the UI to be able to check if the project can remove._
+
+### removeFungibleBudget
+
+```solidity
+function removeFungibleBudget(address currency, uint256 amount) external
+```
+
+_Removes fungible tokens.
+They can be native or ERC20 tokens.
+
+Emits {BudgetRemoved}.
+
+Requirements:
+
+- `amount` must be greater than zero.
+- Only admins can remove.
+- Budget remove cooldown period has to be completed._
+
+### removeNFTBudget
+
+```solidity
+function removeNFTBudget(address currency, uint256[] tokenIds, uint256[] amounts) external
+```
+
+_Removes NFT tokens.
+They can be ERC1155 or ERC721 tokens.
+`amounts` parameter is only used when dealing with ERC1155 tokens.
+
+Emits {BudgetRemoved}.
+
+Requirements:
+
+- `amount` must be greater than zero.
+- Only admins can remove.
+- Must be within the Budget removal window._
+
+### depositFeeBudget
+
+```solidity
+function depositFeeBudget(uint256 amount) external payable
+```
+
+_Deposits budget to pay for fees when rewarding NFTs.
+The currency is defined in the {FuulManager} contract.
+
+Emits {FeeBudgetDeposit}.
+
+Requirements:
+
+- `amount` must be greater than zero.
+- Only admins can deposit._
+
+### removeFeeBudget
+
+```solidity
+function removeFeeBudget(address currency, uint256 amount) external
+```
+
+_Removes fee budget for NFT rewards.
+
+Emits {FeeBudgetRemoved}.
+
+Notes: Currency is an argument because if the default is changed in {FuulManager}, projects will still be able to remove
+
+Requirements:
+
+- `amount` must be greater than zero.
+- Only admins can remove.
+- Budget remove cooldown period has to be completed._
+
+### _calculateAmountsForFungibleToken
+
+```solidity
+function _calculateAmountsForFungibleToken(struct IFuulManager.FeesInformation feesInfo, uint256 totalAmount, uint256 amountToPartner, uint256 amountToEndUser) internal pure returns (uint256[3] fees, uint256 netAmountToPartner, uint256 netAmountToEndUser)
+```
+
+_Internal function to calculate fees and amounts for fungible token reward._
+
+### _calculateFeesForNFT
+
+```solidity
+function _calculateFeesForNFT(struct IFuulManager.FeesInformation feesInfo) internal pure returns (uint256[3] fees)
+```
+
+_Internal function to calculate fees for non fungible token reward._
+
+### attributeTransactions
+
+```solidity
+function attributeTransactions(struct IFuulProject.Attribution[] attributions, address attributorFeeCollector) external
+```
+
+_Attributes: removes amounts from budget and adds them to corresponding partners, users and fee collectors.
+
+Emits {Attributed}.
+
+Notes:
+- When rewards are fungible tokens, fees will be a percentage of the payment and it will be substracted from the payment.
+- When rewards are NFTs, fees will be a fixed amount and the {nftFeeBudget} will be used.
+
+Requirements:
+
+- Currency budgets have to be greater than amounts attributed.
+- The sum of  {amountToPartner} and {amountToEndUser} of each {Attribution} must be greater than zero.
+- Only {FuulManager} can attribute.
+- {FuulManager} must not be paused._
+
+### claimFromProject
+
+```solidity
+function claimFromProject(address currency, address receiver, uint256[] tokenIds, uint256[] amounts) external returns (uint256 claimAmount)
+```
+
+_Claims: sends funds to `receiver` that has available to claim funds.
+
+`tokenIds` parameter is only used when dealing with ERC1155 and ERC721 tokens.
+`amounts` parameter is only used when dealing with ERC1155 tokens.
+
+Requirements:
+
+- `receiver` must have available funds to claim for {currency}.
+- Only {FuulManager} can call this function.
+- {FuulManager} must not be paused._
+
+### _transferERC721Tokens
+
+```solidity
+function _transferERC721Tokens(address tokenAddress, address senderAddress, address receiverAddress, uint256[] tokenIds, uint256 length) internal
+```
+
+_Helper function to transfer ERC721 tokens._
+
+### _transferERC1155Tokens
+
+```solidity
+function _transferERC1155Tokens(address tokenAddress, address senderAddress, address receiverAddress, uint256[] tokenIds, uint256[] amounts) internal
+```
+
+_Helper function to transfer ERC1155 tokens._
+
+### _getSumFromArray
+
+```solidity
+function _getSumFromArray(uint256[] amounts) internal pure returns (uint256 result)
+```
+
+_Helper function to sum all amounts inside the array._
+
+### isERC20
+
+```solidity
+function isERC20(address tokenAddress) internal view returns (bool)
+```
+
+_Returns whether the address is an ERC20 token._
+
+### supportsInterface
+
+```solidity
+function supportsInterface(bytes4 interfaceId) public view virtual returns (bool)
+```
+
+_See {IERC165-supportsInterface}._
+
+## IFuulFactory
+
+### ProjectCreated
+
+```solidity
+event ProjectCreated(uint256 projectId, address deployedAddress, address eventSigner, string projectInfoURI, address clientFeeCollector)
+```
+
+### createFuulProject
+
+```solidity
+function createFuulProject(address _projectAdmin, address _projectEventSigner, string _projectInfoURI, address _clientFeeCollector) external
+```
+
+### ZeroAddress
+
+```solidity
+error ZeroAddress()
+```
+
+### projects
+
+```solidity
+function projects(uint256 projectId) external returns (address)
+```
+
+### totalProjectsCreated
+
+```solidity
+function totalProjectsCreated() external view returns (uint256)
+```
+
+### getUserProjectByIndex
+
+```solidity
+function getUserProjectByIndex(address account, uint256 index) external view returns (address)
+```
+
+### getUserProjectCount
+
+```solidity
+function getUserProjectCount(address account) external view returns (uint256)
+```
+
+### fuulManager
+
+```solidity
+function fuulManager() external view returns (address)
+```
+
+### setFuulManager
+
+```solidity
+function setFuulManager(address _fuulManager) external
+```
+
+## IFuulManager
+
+### CurrencyToken
+
+```solidity
+struct CurrencyToken {
+  uint256 claimLimitPerCooldown;
+  uint256 cumulativeClaimPerCooldown;
+  uint256 claimCooldownPeriodStarted;
+  bool isActive;
+}
+```
+
+### ClaimCheck
+
+```solidity
+struct ClaimCheck {
+  address projectAddress;
+  address currency;
+  uint256[] tokenIds;
+  uint256[] amounts;
+}
+```
+
+### AttributionEntity
+
+```solidity
+struct AttributionEntity {
+  address projectAddress;
+  struct IFuulProject.Attribution[] projectAttributions;
+}
+```
+
+### FeesInformation
+
+```solidity
+struct FeesInformation {
+  uint256 protocolFee;
+  uint256 attributorFee;
+  uint256 clientFee;
+  address protocolFeeCollector;
+  uint256 nftFixedFeeAmount;
+  address nftFeeCurrency;
+}
+```
+
+### InvalidArgument
+
+```solidity
+error InvalidArgument()
+```
+
+### TokenCurrencyAlreadyAccepted
+
+```solidity
+error TokenCurrencyAlreadyAccepted()
+```
+
+### TokenCurrencyNotAccepted
+
+```solidity
+error TokenCurrencyNotAccepted()
+```
+
+### OverTheLimit
+
+```solidity
+error OverTheLimit()
+```
+
+### projectBudgetCooldown
+
+```solidity
+function projectBudgetCooldown() external view returns (uint256 period)
+```
+
+### getBudgetRemoveInfo
+
+```solidity
+function getBudgetRemoveInfo() external view returns (uint256 cooldown, uint256 removeWindow)
+```
+
+### claimCooldown
+
+```solidity
+function claimCooldown() external view returns (uint256 period)
+```
+
+### usersClaims
+
+```solidity
+function usersClaims(address user, address currency) external view returns (uint256)
+```
+
+### protocolFee
+
+```solidity
+function protocolFee() external view returns (uint256 fees)
+```
+
+### protocolFeeCollector
+
+```solidity
+function protocolFeeCollector() external view returns (address)
+```
+
+### getFeesInformation
+
+```solidity
+function getFeesInformation() external returns (struct IFuulManager.FeesInformation)
+```
+
+### clientFee
+
+```solidity
+function clientFee() external view returns (uint256 fees)
+```
+
+### attributorFee
+
+```solidity
+function attributorFee() external view returns (uint256 fees)
+```
+
+### nftFeeCurrency
+
+```solidity
+function nftFeeCurrency() external view returns (address)
+```
+
+### setClaimCooldown
+
+```solidity
+function setClaimCooldown(uint256 _period) external
+```
+
+### setProjectBudgetCooldown
+
+```solidity
+function setProjectBudgetCooldown(uint256 period) external
+```
+
+### setProtocolFee
+
+```solidity
+function setProtocolFee(uint256 value) external
+```
+
+### setClientFee
+
+```solidity
+function setClientFee(uint256 value) external
+```
+
+### setAttributorFee
+
+```solidity
+function setAttributorFee(uint256 value) external
+```
+
+### currencyTokens
+
+```solidity
+function currencyTokens(address currencyToken) external view returns (uint256, uint256, uint256, bool)
+```
+
+### isCurrencyTokenAccepted
+
+```solidity
+function isCurrencyTokenAccepted(address currencyToken) external view returns (bool isAccepted)
+```
+
+### addCurrencyToken
+
+```solidity
+function addCurrencyToken(address tokenAddress, uint256 claimLimitPerCooldown) external
+```
+
+### removeCurrencyToken
+
+```solidity
+function removeCurrencyToken(address tokenAddress) external
+```
+
+### setCurrencyTokenLimit
+
+```solidity
+function setCurrencyTokenLimit(address tokenAddress, uint256 limit) external
+```
+
+### pauseAll
+
+```solidity
+function pauseAll() external
+```
+
+### unpauseAll
+
+```solidity
+function unpauseAll() external
+```
+
+### isPaused
+
+```solidity
+function isPaused() external view returns (bool)
+```
+
+### claim
+
+```solidity
+function claim(struct IFuulManager.ClaimCheck[] claimChecks) external
+```
+
+## IFuulProject
+
+### Attribution
+
+```solidity
+struct Attribution {
+  address currency;
+  address partner;
+  address endUser;
+  uint256 amountToPartner;
+  uint256 amountToEndUser;
+  bytes32 proof;
+}
+```
+
+### TokenType
+
+```solidity
+enum TokenType {
+  NATIVE,
+  ERC_20,
+  ERC_721,
+  ERC_1155
+}
+```
+
+### ProjectInfoUpdated
+
+```solidity
+event ProjectInfoUpdated(string projectInfoURI)
+```
+
+### BudgetDeposited
+
+```solidity
+event BudgetDeposited(address account, uint256 amount, address currency, enum IFuulProject.TokenType tokenType, uint256[] tokenIds, uint256[] amounts)
+```
+
+### BudgetRemoved
+
+```solidity
+event BudgetRemoved(address account, uint256 amount, address currency, uint256[] tokenIds, uint256[] amounts)
+```
+
+### Claimed
+
+```solidity
+event Claimed(address account, address currency, uint256 amount, uint256[] rewardTokenIds, uint256[] amounts)
+```
+
+### Attributed
+
+```solidity
+event Attributed(address currency, uint256 totalAmount, address[5] receivers, uint256[5] amounts, bytes32 proof)
+```
+
+### FeeBudgetDeposited
+
+```solidity
+event FeeBudgetDeposited(address account, uint256 amount, address currency)
+```
+
+### FeeBudgetRemoved
+
+```solidity
+event FeeBudgetRemoved(address account, uint256 amount, address currency)
+```
+
+### ManagerIsPaused
+
+```solidity
+error ManagerIsPaused()
+```
+
+### EmptyURI
+
+```solidity
+error EmptyURI()
+```
+
+### NoRemovalApplication
+
+```solidity
+error NoRemovalApplication()
+```
+
+### IncorrectMsgValue
+
+```solidity
+error IncorrectMsgValue()
+```
+
+### OutsideRemovalWindow
+
+```solidity
+error OutsideRemovalWindow()
+```
+
+### ZeroAmount
+
+```solidity
+error ZeroAmount()
+```
+
+### Unauthorized
+
+```solidity
+error Unauthorized()
+```
+
+### AlreadyAttributed
+
+```solidity
+error AlreadyAttributed()
+```
+
+### Forbidden
+
+```solidity
+error Forbidden()
+```
+
+### InvalidTokenType
+
+```solidity
+error InvalidTokenType()
+```
+
+### fuulFactory
+
+```solidity
+function fuulFactory() external view returns (address)
+```
+
+### availableToClaim
+
+```solidity
+function availableToClaim(address account, address currency) external view returns (uint256)
+```
+
+### lastStatusHash
+
+```solidity
+function lastStatusHash() external view returns (bytes32)
+```
+
+### projectInfoURI
+
+```solidity
+function projectInfoURI() external view returns (string)
+```
+
+### setProjectURI
+
+```solidity
+function setProjectURI(string _projectURI) external
+```
+
+### clientFeeCollector
+
+```solidity
+function clientFeeCollector() external view returns (address)
+```
+
+### depositFungibleToken
+
+```solidity
+function depositFungibleToken(address currency, uint256 amount) external payable
+```
+
+### depositNFTToken
+
+```solidity
+function depositNFTToken(address currency, uint256[] rewardTokenIds, uint256[] amounts) external
+```
+
+### lastRemovalApplication
+
+```solidity
+function lastRemovalApplication() external view returns (uint256)
+```
+
+### applyToRemoveBudget
+
+```solidity
+function applyToRemoveBudget() external
+```
+
+### getBudgetRemovePeriod
+
+```solidity
+function getBudgetRemovePeriod() external view returns (uint256, uint256)
+```
+
+### canRemoveFunds
+
+```solidity
+function canRemoveFunds() external view returns (bool insideRemovalWindow)
+```
+
+### removeFungibleBudget
+
+```solidity
+function removeFungibleBudget(address currency, uint256 amount) external
+```
+
+### removeNFTBudget
+
+```solidity
+function removeNFTBudget(address currency, uint256[] rewardTokenIds, uint256[] amounts) external
+```
+
+### attributeTransactions
+
+```solidity
+function attributeTransactions(struct IFuulProject.Attribution[] attributions, address attributorFeeCollector) external
+```
+
+### claimFromProject
+
+```solidity
+function claimFromProject(address currency, address receiver, uint256[] tokenIds, uint256[] amounts) external returns (uint256)
+```
 
 ## MockNFT1155Rewards
 

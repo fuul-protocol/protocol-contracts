@@ -5,15 +5,7 @@ import "./IFuulProject.sol";
 pragma solidity ^0.8.18;
 
 interface IFuulManager {
-    enum TokenType {
-        NATIVE,
-        ERC_20,
-        ERC_721,
-        ERC_1155
-    }
-
     struct CurrencyToken {
-        TokenType tokenType;
         uint256 claimLimitPerCooldown;
         uint256 cumulativeClaimPerCooldown;
         uint256 claimCooldownPeriodStarted;
@@ -104,11 +96,7 @@ interface IFuulManager {
 
     function currencyTokens(
         address currencyToken
-    ) external view returns (TokenType, uint256, uint256, uint256, bool);
-
-    function getTokenType(
-        address currencyToken
-    ) external view returns (TokenType tokenType);
+    ) external view returns (uint256, uint256, uint256, bool);
 
     function isCurrencyTokenAccepted(
         address currencyToken

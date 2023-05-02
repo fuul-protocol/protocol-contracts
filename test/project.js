@@ -120,11 +120,20 @@ describe("Fuul Project - Deposit and remove fungible", function () {
     await time.increase(projectBudgetCooldown.toNumber() + 1);
 
     // Remove
-    await this.fuulProject.removeFungibleBudget(
-      ethers.constants.AddressZero,
-
-      this.amount
-    );
+    await expect(
+      this.fuulProject.removeFungibleBudget(
+        ethers.constants.AddressZero,
+        this.amount
+      )
+    )
+      .to.emit(this.fuulProject, "BudgetRemoved")
+      .withArgs(
+        this.user1.address,
+        this.amount,
+        ethers.constants.AddressZero,
+        [],
+        []
+      );
 
     // Budget info
 
@@ -387,7 +396,6 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     // Remove
     await this.fuulProject.removeNFTBudget(
       this.nft721.address,
-      this.tokenType,
       this.tokenIds,
       []
     );
@@ -425,7 +433,6 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     // Remove
     await this.fuulProject.removeNFTBudget(
       this.nft721.address,
-      this.tokenType,
       this.tokenIds,
       []
     );
@@ -454,24 +461,14 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     // Remove before applying
 
     await expect(
-      this.fuulProject.removeNFTBudget(
-        this.nft721.address,
-        this.tokenType,
-        this.tokenIds,
-        []
-      )
+      this.fuulProject.removeNFTBudget(this.nft721.address, this.tokenIds, [])
     ).to.be.revertedWithCustomError(this.fuulProject, "NoRemovalApplication");
 
     // Apply to remove
     await this.fuulProject.applyToRemoveBudget();
 
     await expect(
-      this.fuulProject.removeNFTBudget(
-        this.nft721.address,
-        this.tokenType,
-        this.tokenIds,
-        []
-      )
+      this.fuulProject.removeNFTBudget(this.nft721.address, this.tokenIds, [])
     ).to.be.revertedWithCustomError(this.fuulProject, "OutsideRemovalWindow");
 
     // Remove outside window
@@ -484,12 +481,7 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     );
 
     await expect(
-      this.fuulProject.removeNFTBudget(
-        this.nft721.address,
-        this.tokenType,
-        this.tokenIds,
-        []
-      )
+      this.fuulProject.removeNFTBudget(this.nft721.address, this.tokenIds, [])
     ).to.be.revertedWithCustomError(this.fuulProject, "OutsideRemovalWindow");
   });
 
@@ -507,7 +499,7 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     await expect(
       this.fuulProject
         .connect(this.user2)
-        .removeNFTBudget(this.nft721.address, this.tokenType, this.tokenIds, [])
+        .removeNFTBudget(this.nft721.address, this.tokenIds, [])
     ).to.be.revertedWith(error);
   });
 
@@ -525,12 +517,14 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
 
 describe("Fuul Project - Deposit and remove unmatching token types", function () {
   beforeEach(async function () {
-    const { fuulProject, fuulManager, token, nft721 } = await setupTest();
+    const { fuulProject, fuulManager, token, nft721, nft1155 } =
+      await setupTest();
 
     this.fuulProject = fuulProject;
     this.fuulManager = fuulManager;
     this.token = token;
     this.nft721 = nft721;
+    this.nft1155 = nft1155;
 
     this.fungibleCurrency = ethers.constants.AddressZero;
 
@@ -572,41 +566,41 @@ describe("Fuul Project - Deposit and remove unmatching token types", function ()
   it("Should fail to remove fungible if currency is an NFT", async function () {
     await expect(
       this.fuulProject.removeFungibleBudget(this.nft721.address, 1)
-    ).to.be.revertedWith("SafeERC20: low-level call failed");
+    ).to.be.revertedWithCustomError(this.fuulProject, "InvalidTokenType");
   });
 
   it("Should fail to remove NFT if token type is invalid", async function () {
     const tokenType = 0;
     await expect(
-      this.fuulProject.removeNFTBudget(
-        this.fungibleCurrency,
-        tokenType,
-        this.tokenIds,
-        []
-      )
+      this.fuulProject.removeNFTBudget(this.fungibleCurrency, this.tokenIds, [])
     ).to.be.revertedWithCustomError(this.fuulProject, "InvalidTokenType");
   });
 
   it("Should fail to remove NFT if currency is fungible", async function () {
-    const erc721TokenType = 3;
     await expect(
-      this.fuulProject.removeNFTBudget(
-        this.fungibleCurrency,
-        erc721TokenType,
-        this.tokenIds,
-        []
-      )
+      this.fuulProject.removeNFTBudget(this.fungibleCurrency, this.tokenIds, [])
     ).to.be.reverted;
 
-    const erc1155TokenType = 4;
     await expect(
-      this.fuulProject.removeNFTBudget(
-        this.fungibleCurrency,
-        erc1155TokenType,
-        this.tokenIds,
-        []
-      )
-    ).to.be.reverted;
+      this.fuulProject.removeNFTBudget(this.token.address, this.tokenIds, [])
+    ).to.be.revertedWithCustomError(this.fuulProject, "InvalidTokenType");
+  });
+
+  it("Should fail to deposit NFT if currency is fungible", async function () {
+    await expect(
+      this.fuulProject.depositNFTToken(this.fungibleCurrency, this.tokenIds, [])
+    ).to.be.revertedWithCustomError(this.fuulProject, "InvalidTokenType");
+
+    const erc1155TokenType = 3;
+    await expect(
+      this.fuulProject.depositNFTToken(this.token.address, this.tokenIds, [])
+    ).to.be.revertedWithCustomError(this.fuulProject, "InvalidTokenType");
+  });
+
+  it("Should fail to deposit fungible if currency is an NFT", async function () {
+    await expect(
+      this.fuulProject.depositFungibleToken(this.nft721.address, 1)
+    ).to.be.revertedWithCustomError(this.fuulProject, "InvalidTokenType");
   });
 });
 
@@ -695,7 +689,6 @@ describe("Fuul Project - Deposit and remove NFT 1155", function () {
     // Remove
     await this.fuulProject.removeNFTBudget(
       this.nft1155.address,
-      this.tokenType,
       this.tokenIds,
       this.amounts
     );
@@ -726,7 +719,6 @@ describe("Fuul Project - Fuul Manager functions", function () {
   it("Fail to attribute and claim if sender is not Fuul Manager", async function () {
     const attribution = {
       currency: this.user1.address,
-      tokenType: 1,
       partner: this.user1.address,
       endUser: this.user1.address,
       amountToPartner: 1,
@@ -744,7 +736,6 @@ describe("Fuul Project - Fuul Manager functions", function () {
     await expect(
       this.fuulProject.claimFromProject(
         this.user1.address,
-        1,
         this.user1.address,
         [],
         []

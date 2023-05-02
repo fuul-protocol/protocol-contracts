@@ -5,12 +5,6 @@ import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 
-import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/interfaces/IERC165.sol";
-import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
-
 import "./interfaces/IFuulManager.sol";
 
 contract FuulManager is
@@ -19,16 +13,10 @@ contract FuulManager is
     ReentrancyGuard,
     Pausable
 {
-    using ERC165Checker for address;
-
     // Attributor role
     bytes32 public constant ATTRIBUTOR_ROLE = keccak256("ATTRIBUTOR_ROLE");
     // Pauser role
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
-
-    // Interfaces for ERC721 and ERC1155 contracts
-    bytes4 public constant IID_IERC1155 = type(IERC1155).interfaceId;
-    bytes4 public constant IID_IERC721 = type(IERC721).interfaceId;
 
     // Amount of time that must elapse between a project's application to remove funds from its budget and the actual removal of those funds.
     uint256 public projectBudgetCooldown = 30 days;
@@ -300,15 +288,6 @@ contract FuulManager is
       ╚═════════════════════════════╝*/
 
     /**
-     * @dev Returns TokenType enum from a tokenAddress.
-     */
-    function getTokenType(
-        address tokenAddress
-    ) public view returns (TokenType tokenType) {
-        return currencyTokens[tokenAddress].tokenType;
-    }
-
-    /**
      * @dev Returns whether the currency token is accepted.
      */
     function isCurrencyTokenAccepted(
@@ -470,7 +449,6 @@ contract FuulManager is
             uint256 tokenAmount = IFuulProject(claimCheck.projectAddress)
                 .claimFromProject(
                     currency,
-                    getTokenType(currency),
                     _msgSender(),
                     claimCheck.tokenIds,
                     claimCheck.amounts
@@ -514,19 +492,6 @@ contract FuulManager is
       ╚═════════════════════════════╝*/
 
     /**
-     * @dev Returns whether the address is an ERC20 token.
-     */
-    function isERC20(address tokenAddress) internal view returns (bool) {
-        IERC20 token = IERC20(tokenAddress);
-        try token.totalSupply() {
-            try token.allowance(_msgSender(), address(this)) {
-                return true;
-            } catch {}
-        } catch {}
-        return false;
-    }
-
-    /**
      * @dev Returns whether the address is a contract.
      */
     function isContract(address _addr) internal view returns (bool) {
@@ -563,22 +528,7 @@ contract FuulManager is
             revert InvalidArgument();
         }
 
-        TokenType tokenType;
-
-        if (tokenAddress == address(0)) {
-            tokenType = TokenType(0);
-        } else if (isERC20(tokenAddress)) {
-            tokenType = TokenType(1);
-        } else if (tokenAddress.supportsInterface(IID_IERC721)) {
-            tokenType = TokenType(2);
-        } else if (tokenAddress.supportsInterface(IID_IERC1155)) {
-            tokenType = TokenType(3);
-        } else {
-            revert InvalidArgument();
-        }
-
         currencyTokens[tokenAddress] = CurrencyToken({
-            tokenType: tokenType,
             claimLimitPerCooldown: claimLimitPerCooldown,
             cumulativeClaimPerCooldown: 0,
             claimCooldownPeriodStarted: block.timestamp,
