@@ -82,7 +82,6 @@ describe("Fuul Project - Deposit and remove fungible", function () {
         this.user1.address,
         this.amount,
         ethers.constants.AddressZero,
-        0,
         [],
         []
       );
@@ -195,7 +194,7 @@ describe("Fuul Project - Deposit and remove fungible", function () {
       this.fuulProject.depositFungibleToken(this.token.address, this.amount)
     )
       .to.emit(this.fuulProject, "BudgetDeposited")
-      .withArgs(this.user1.address, this.amount, this.token.address, 1, [], []);
+      .withArgs(this.user1.address, this.amount, this.token.address, [], []);
 
     // Budget info
 
@@ -338,8 +337,6 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     this.user2 = user2;
     this.adminRole = adminRole;
 
-    this.tokenType = 2;
-
     // Add token
 
     await this.fuulManager.addCurrencyToken(nft721.address, 100);
@@ -359,7 +356,6 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
         this.user1.address,
         this.tokenIds.length,
         this.nft721.address,
-        this.tokenType,
         this.tokenIds,
         []
       );
@@ -566,14 +562,13 @@ describe("Fuul Project - Deposit and remove unmatching token types", function ()
   it("Should fail to remove fungible if currency is an NFT", async function () {
     await expect(
       this.fuulProject.removeFungibleBudget(this.nft721.address, 1)
-    ).to.be.revertedWithCustomError(this.fuulProject, "InvalidTokenType");
+    ).to.be.revertedWithCustomError(this.fuulProject, "InvalidCurrency");
   });
 
   it("Should fail to remove NFT if token type is invalid", async function () {
-    const tokenType = 0;
     await expect(
       this.fuulProject.removeNFTBudget(this.fungibleCurrency, this.tokenIds, [])
-    ).to.be.revertedWithCustomError(this.fuulProject, "InvalidTokenType");
+    ).to.be.revertedWithCustomError(this.fuulProject, "InvalidCurrency");
   });
 
   it("Should fail to remove NFT if currency is fungible", async function () {
@@ -583,40 +578,34 @@ describe("Fuul Project - Deposit and remove unmatching token types", function ()
 
     await expect(
       this.fuulProject.removeNFTBudget(this.token.address, this.tokenIds, [])
-    ).to.be.revertedWithCustomError(this.fuulProject, "InvalidTokenType");
+    ).to.be.revertedWithCustomError(this.fuulProject, "InvalidCurrency");
   });
 
   it("Should fail to deposit NFT if currency is fungible", async function () {
     await expect(
       this.fuulProject.depositNFTToken(this.fungibleCurrency, this.tokenIds, [])
-    ).to.be.revertedWithCustomError(this.fuulProject, "InvalidTokenType");
+    ).to.be.revertedWithCustomError(this.fuulProject, "InvalidCurrency");
 
-    const erc1155TokenType = 3;
     await expect(
       this.fuulProject.depositNFTToken(this.token.address, this.tokenIds, [])
-    ).to.be.revertedWithCustomError(this.fuulProject, "InvalidTokenType");
+    ).to.be.revertedWithCustomError(this.fuulProject, "InvalidCurrency");
   });
 
   it("Should fail to deposit fungible if currency is an NFT", async function () {
     await expect(
       this.fuulProject.depositFungibleToken(this.nft721.address, 1)
-    ).to.be.revertedWithCustomError(this.fuulProject, "InvalidTokenType");
+    ).to.be.revertedWithCustomError(this.fuulProject, "InvalidCurrency");
   });
 });
 
 describe("Fuul Project - Deposit and remove NFT 1155", function () {
   beforeEach(async function () {
-    const { fuulProject, fuulManager, nft1155, user1, user2, adminRole } =
-      await setupTest();
+    const { fuulProject, fuulManager, nft1155, user1 } = await setupTest();
 
     this.fuulProject = fuulProject;
     this.fuulManager = fuulManager;
     this.nft1155 = nft1155;
     this.user1 = user1;
-    this.user2 = user2;
-    this.adminRole = adminRole;
-
-    this.tokenType = 3;
 
     // Add token
 
@@ -647,7 +636,6 @@ describe("Fuul Project - Deposit and remove NFT 1155", function () {
         this.user1.address,
         this.tokenAmount,
         this.nft1155.address,
-        this.tokenType,
         this.tokenIds,
         this.amounts
       );

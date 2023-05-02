@@ -18,13 +18,6 @@ interface IFuulProject {
         bytes32 proof;
     }
 
-    enum TokenType {
-        NATIVE,
-        ERC_20,
-        ERC_721,
-        ERC_1155
-    }
-
     /*╔═════════════════════════════╗
       ║           EVENTS            ║
       ╚═════════════════════════════╝*/
@@ -38,7 +31,6 @@ interface IFuulProject {
         address indexed account,
         uint256 indexed amount,
         address indexed currency,
-        TokenType tokenType,
         uint256[] tokenIds,
         uint256[] amounts
     );
@@ -94,7 +86,7 @@ interface IFuulProject {
     error Unauthorized();
     error AlreadyAttributed();
     error Forbidden();
-    error InvalidTokenType();
+    error InvalidCurrency();
 
     /*╔═════════════════════════════╗
       ║       PUBLIC VARIABLES      ║

@@ -230,22 +230,18 @@ contract FuulProject is
             revert IFuulManager.TokenCurrencyNotAccepted();
         }
 
-        TokenType tokenType;
-
         if (currency == address(0)) {
             if (msg.value != amount) {
                 revert IncorrectMsgValue();
             }
-            tokenType = TokenType.NATIVE;
-        } else if (!isERC20(currency)) {
+        } else if (isERC20(currency)) {
             IERC20(currency).safeTransferFrom(
                 _msgSender(),
                 address(this),
                 amount
             );
-            tokenType = TokenType.ERC_20;
         } else {
-            revert InvalidTokenType();
+            revert InvalidCurrency();
         }
 
         // Update balance
@@ -257,7 +253,6 @@ contract FuulProject is
             _msgSender(),
             amount,
             currency,
-            tokenType,
             emptyArray,
             emptyArray
         );
@@ -286,7 +281,6 @@ contract FuulProject is
 
         uint256 depositedAmount;
         uint256[] memory tokenAmounts;
-        TokenType tokenType;
 
         if (currency.supportsInterface(IID_IERC721)) {
             uint256 tokenIdsLength = tokenIds.length;
@@ -300,7 +294,6 @@ contract FuulProject is
             );
 
             depositedAmount = tokenIdsLength;
-            tokenType = TokenType.ERC_721;
         } else if (currency.supportsInterface(IID_IERC1155)) {
             _transferERC1155Tokens(
                 currency,
@@ -312,9 +305,8 @@ contract FuulProject is
 
             depositedAmount = _getSumFromArray(amounts);
             tokenAmounts = amounts;
-            tokenType = TokenType.ERC_1155;
         } else {
-            revert InvalidTokenType();
+            revert InvalidCurrency();
         }
 
         // Update balance
@@ -324,7 +316,6 @@ contract FuulProject is
             _msgSender(),
             depositedAmount,
             currency,
-            tokenType,
             tokenIds,
             tokenAmounts
         );
@@ -421,11 +412,10 @@ contract FuulProject is
 
         if (currency == address(0)) {
             payable(_msgSender()).sendValue(amount);
-        } else {
-            if (!isERC20(currency)) {
-                revert InvalidTokenType();
-            }
+        } else if (isERC20(currency)) {
             IERC20(currency).safeTransfer(_msgSender(), amount);
+        } else {
+            revert InvalidCurrency();
         }
 
         uint256[] memory emptyArray;
@@ -487,7 +477,7 @@ contract FuulProject is
 
             removeAmount = _getSumFromArray(amounts);
         } else {
-            revert InvalidTokenType();
+            revert InvalidCurrency();
         }
 
         // Update budget - By underflow it indirectly checks that amount <= budget
@@ -813,7 +803,7 @@ contract FuulProject is
                 amounts
             );
         } else {
-            revert InvalidTokenType();
+            revert InvalidCurrency();
         }
 
         // Update user budget - it will fail from underflow if insufficient funds
