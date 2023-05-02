@@ -125,6 +125,12 @@ address clientFeeCollector
 bytes32 EVENTS_SIGNER_ROLE
 ```
 
+### attributionProofs
+
+```solidity
+mapping(bytes32 => bool) attributionProofs
+```
+
 ### lastStatusHash
 
 ```solidity
@@ -161,12 +167,6 @@ mapping(address => mapping(address => uint256)) availableToClaim
 mapping(address => uint256) nftFeeBudget
 ```
 
-### attributionProofs
-
-```solidity
-mapping(bytes32 => bool) attributionProofs
-```
-
 ### onlyFuulManager
 
 ```solidity
@@ -197,7 +197,7 @@ _Modifier to check that {FuulManager} contract is not paused._
 function _whenManagerIsPaused() internal view
 ```
 
-_Internal function for {whenManagerIsPaused} modifier. Reverts with a ManagerIsPaused error._
+_Internal function for {whenManagerIsPaused} modifier. Reverts with a {ManagerIsPaused} error._
 
 ### canRemove
 
@@ -205,9 +205,39 @@ _Internal function for {whenManagerIsPaused} modifier. Reverts with a ManagerIsP
 modifier canRemove()
 ```
 
-TODO
+_Modifier to check if the project can remove funds. Reverts with an {OutsideRemovalWindow} error._
 
-_Modifier to check if the project can remove funds. Reverts with an OutsideRemovalWindow error._
+### isCurrencyAccepted
+
+```solidity
+modifier isCurrencyAccepted(address currency)
+```
+
+_Modifier to check if the currency is accepted in {FuulManager}._
+
+### _isCurrencyAccepted
+
+```solidity
+function _isCurrencyAccepted(address currency) internal view
+```
+
+_Internal function for {isCurrencyAccepted} modifier. Reverts with a {TokenCurrencyNotAccepted} error._
+
+### nonZeroAmount
+
+```solidity
+modifier nonZeroAmount(uint256 amount)
+```
+
+_Modifier to check if the uint amount is zero._
+
+### _nonZeroAmount
+
+```solidity
+function _nonZeroAmount(uint256 amount) internal view
+```
+
+_Internal function for {nonZeroAmount} modifier. Reverts with a {TokenCurrencyNotAccepted} error._
 
 ### constructor
 
@@ -229,21 +259,33 @@ _Initializes the contract when the Factory deploys a new clone}.
 Grants roles for project admin, the address allowed to send events 
 through the SDK and the URI with the project information_
 
-### fuulManagerAddress
+### _fuulManagerAddress
 
 ```solidity
-function fuulManagerAddress() internal view returns (address)
+function _fuulManagerAddress() internal view returns (address)
 ```
 
 _Returns the address of the active Fuul Manager contract._
 
-### fuulManagerInstance
+### _fuulManagerInstance
 
 ```solidity
-function fuulManagerInstance() internal view returns (contract IFuulManager)
+function _fuulManagerInstance() internal view returns (contract IFuulManager)
 ```
 
 _Returns the instance of the Fuul Manager contract._
+
+### _setProjectURI
+
+```solidity
+function _setProjectURI(string _projectURI) internal
+```
+
+_Internal function that sets `projectInfoURI` as the information for the project.
+
+Requirements:
+
+- `_projectURI` must not be an empty string._
 
 ### setProjectURI
 
@@ -257,7 +299,6 @@ Emits {ProjectInfoUpdated}.
 
 Requirements:
 
-- `_projectURI` must not be an empty string.
 - Only admins can call this function._
 
 ### depositFungibleToken
@@ -782,33 +823,34 @@ struct Attribution {
 }
 ```
 
-### TokenType
-
-```solidity
-enum TokenType {
-  NATIVE,
-  ERC_20,
-  ERC_721,
-  ERC_1155
-}
-```
-
 ### ProjectInfoUpdated
 
 ```solidity
 event ProjectInfoUpdated(string projectInfoURI)
 ```
 
-### BudgetDeposited
+### FungibleBudgetDeposited
 
 ```solidity
-event BudgetDeposited(address account, uint256 amount, address currency, enum IFuulProject.TokenType tokenType, uint256[] tokenIds, uint256[] amounts)
+event FungibleBudgetDeposited(address account, uint256 amount, address currency)
 ```
 
-### BudgetRemoved
+### NFTBudgetDeposited
 
 ```solidity
-event BudgetRemoved(address account, uint256 amount, address currency, uint256[] tokenIds, uint256[] amounts)
+event NFTBudgetDeposited(address account, uint256 amount, address currency, uint256[] tokenIds, uint256[] amounts)
+```
+
+### FungibleBudgetRemoved
+
+```solidity
+event FungibleBudgetRemoved(address account, uint256 amount, address currency)
+```
+
+### NFTBudgetRemoved
+
+```solidity
+event NFTBudgetRemoved(address account, uint256 amount, address currency, uint256[] tokenIds, uint256[] amounts)
 ```
 
 ### Claimed
@@ -889,10 +931,10 @@ error AlreadyAttributed()
 error Forbidden()
 ```
 
-### InvalidTokenType
+### InvalidCurrency
 
 ```solidity
-error InvalidTokenType()
+error InvalidCurrency()
 ```
 
 ### fuulFactory
@@ -905,12 +947,6 @@ function fuulFactory() external view returns (address)
 
 ```solidity
 function availableToClaim(address account, address currency) external view returns (uint256)
-```
-
-### lastStatusHash
-
-```solidity
-function lastStatusHash() external view returns (bytes32)
 ```
 
 ### projectInfoURI
@@ -929,6 +965,12 @@ function setProjectURI(string _projectURI) external
 
 ```solidity
 function clientFeeCollector() external view returns (address)
+```
+
+### lastStatusHash
+
+```solidity
+function lastStatusHash() external view returns (bytes32)
 ```
 
 ### depositFungibleToken
@@ -1331,14 +1373,6 @@ Requirements:
 
 - Contract should not be paused._
 
-### isContract
-
-```solidity
-function isContract(address _addr) internal view returns (bool)
-```
-
-_Returns whether the address is a contract._
-
 ### _addCurrencyToken
 
 ```solidity
@@ -1350,7 +1384,6 @@ corresponding `claimLimitPerCooldown`.
 
 Requirements:
 
-- `tokenAddress` must be a contract (excepting for the zero address).
 - `tokenAddress` must not be accepted yet.
 - `claimLimitPerCooldown` should be greater than zero._
 

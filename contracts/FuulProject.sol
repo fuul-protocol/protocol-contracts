@@ -76,7 +76,7 @@ contract FuulProject is
      * @dev Internal function for {onlyFuulManager} modifier. Reverts with a Unauthorized error.
      */
     function _onlyFuulManager() internal view {
-        if (_msgSender() != fuulManagerAddress()) {
+        if (_msgSender() != _fuulManagerAddress()) {
             revert Unauthorized();
         }
     }
@@ -93,7 +93,7 @@ contract FuulProject is
      * @dev Internal function for {whenManagerIsPaused} modifier. Reverts with a {ManagerIsPaused} error.
      */
     function _whenManagerIsPaused() internal view {
-        if (fuulManagerInstance().isPaused()) {
+        if (_fuulManagerInstance().isPaused()) {
             revert ManagerIsPaused();
         }
     }
@@ -118,7 +118,7 @@ contract FuulProject is
      * @dev Internal function for {isCurrencyAccepted} modifier. Reverts with a {TokenCurrencyNotAccepted} error.
      */
     function _isCurrencyAccepted(address currency) internal view {
-        if (!fuulManagerInstance().isCurrencyTokenAccepted(currency)) {
+        if (!_fuulManagerInstance().isCurrencyTokenAccepted(currency)) {
             revert IFuulManager.TokenCurrencyNotAccepted();
         }
     }
@@ -173,13 +173,13 @@ contract FuulProject is
 
         _setupRole(EVENTS_SIGNER_ROLE, _projectEventSigner);
 
-        projectInfoURI = _projectInfoURI;
-
-        clientFeeCollector = _clientFeeCollector;
+        _setProjectURI(_projectInfoURI);
 
         lastStatusHash = keccak256(
             abi.encodePacked(block.prevrandao, block.timestamp)
         );
+
+        clientFeeCollector = _clientFeeCollector;
     }
 
     /*╔═════════════════════════════╗
@@ -189,15 +189,15 @@ contract FuulProject is
     /**
      * @dev Returns the address of the active Fuul Manager contract.
      */
-    function fuulManagerAddress() internal view returns (address) {
+    function _fuulManagerAddress() internal view returns (address) {
         return IFuulFactory(fuulFactory).fuulManager();
     }
 
     /**
      * @dev Returns the instance of the Fuul Manager contract.
      */
-    function fuulManagerInstance() internal view returns (IFuulManager) {
-        return IFuulManager(fuulManagerAddress());
+    function _fuulManagerInstance() internal view returns (IFuulManager) {
+        return IFuulManager(_fuulManagerAddress());
     }
 
     /*╔═════════════════════════════╗
@@ -205,18 +205,13 @@ contract FuulProject is
       ╚═════════════════════════════╝*/
 
     /**
-     * @dev Sets `projectInfoURI` as the information for the project.
-     *
-     * Emits {ProjectInfoUpdated}.
+     * @dev Internal function that sets `projectInfoURI` as the information for the project.
      *
      * Requirements:
      *
      * - `_projectURI` must not be an empty string.
-     * - Only admins can call this function.
      */
-    function setProjectURI(
-        string memory _projectURI
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function _setProjectURI(string memory _projectURI) internal {
         if (bytes(_projectURI).length == 0) {
             revert EmptyURI();
         }
@@ -226,7 +221,21 @@ contract FuulProject is
         lastStatusHash = keccak256(
             abi.encodePacked(block.prevrandao, block.timestamp)
         );
+    }
 
+    /**
+     * @dev Sets `projectInfoURI` as the information for the project.
+     *
+     * Emits {ProjectInfoUpdated}.
+     *
+     * Requirements:
+     *
+     * - Only admins can call this function.
+     */
+    function setProjectURI(
+        string memory _projectURI
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setProjectURI(_projectURI);
         emit ProjectInfoUpdated(_projectURI);
     }
 
@@ -377,7 +386,7 @@ contract FuulProject is
             revert NoRemovalApplication();
         }
 
-        (uint256 budgetCooldown, uint256 removePeriod) = fuulManagerInstance()
+        (uint256 budgetCooldown, uint256 removePeriod) = _fuulManagerInstance()
             .getBudgetRemoveInfo();
 
         cooldown = _lastApplication + budgetCooldown;
@@ -529,7 +538,7 @@ contract FuulProject is
         nonReentrant
         nonZeroAmount(amount)
     {
-        address currency = fuulManagerInstance().nftFeeCurrency();
+        address currency = _fuulManagerInstance().nftFeeCurrency();
 
         if (currency == address(0)) {
             if (msg.value != amount) {
@@ -669,7 +678,7 @@ contract FuulProject is
         Attribution[] calldata attributions,
         address attributorFeeCollector
     ) external onlyFuulManager nonReentrant whenManagerIsPaused {
-        IFuulManager.FeesInformation memory feesInfo = fuulManagerInstance()
+        IFuulManager.FeesInformation memory feesInfo = _fuulManagerInstance()
             .getFeesInformation();
 
         for (uint256 i = 0; i < attributions.length; i++) {
