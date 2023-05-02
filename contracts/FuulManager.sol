@@ -156,8 +156,9 @@ contract FuulManager is
       ╚═════════════════════════════╝*/
 
     /**
-     * @dev Returns all fees for attribution. The function purpose is to call only once from {FuulProject} when needing this info.
-     *
+     * @dev Returns all fees for attribution.
+     * The function purpose is to call only once from {FuulProject} when needing this info.
+     * Reverts with a ManagerIsPaused error.
      */
     function getFeesInformation()
         external

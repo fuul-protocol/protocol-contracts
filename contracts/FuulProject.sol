@@ -64,41 +64,6 @@ contract FuulProject is
     mapping(address => uint256) public nftFeeBudget;
 
     /**
-     * @dev Modifier to check if the sender is {FuulManager} contract.
-     */
-
-    modifier onlyFuulManager() {
-        _onlyFuulManager();
-        _;
-    }
-
-    /**
-     * @dev Internal function for {onlyFuulManager} modifier. Reverts with a Unauthorized error.
-     */
-    function _onlyFuulManager() internal view {
-        if (_msgSender() != _fuulManagerAddress()) {
-            revert Unauthorized();
-        }
-    }
-
-    /**
-     * @dev Modifier to check that {FuulManager} contract is not paused.
-     */
-    modifier whenManagerIsPaused() {
-        _whenManagerIsPaused();
-        _;
-    }
-
-    /**
-     * @dev Internal function for {whenManagerIsPaused} modifier. Reverts with a {ManagerIsPaused} error.
-     */
-    function _whenManagerIsPaused() internal view {
-        if (_fuulManagerInstance().isPaused()) {
-            revert ManagerIsPaused();
-        }
-    }
-
-    /**
      * @dev Modifier to check if the project can remove funds. Reverts with an {OutsideRemovalWindow} error.
      */
     modifier canRemove() {
@@ -597,6 +562,15 @@ contract FuulProject is
       ╚═════════════════════════════╝*/
 
     /**
+     * @dev Internal function for to check if the sender is the manager. Reverts with a Unauthorized error.
+     */
+    function _onlyFuulManager(address _managerAddress) internal view {
+        if (_msgSender() != _managerAddress) {
+            revert Unauthorized();
+        }
+    }
+
+    /**
      * @dev Internal function to calculate fees and amounts for fungible token reward.
      */
 
@@ -669,7 +643,6 @@ contract FuulProject is
      * - Currency budgets have to be greater than amounts attributed.
      * - The sum of {amountToPartner} and {amountToEndUser} for each {Attribution} must be greater than zero.
      * - Only {FuulManager} can attribute.
-     * - {FuulManager} must not be paused.
      * - Proof must not exist (be previously attributed).
 
      */
@@ -677,9 +650,15 @@ contract FuulProject is
     function attributeTransactions(
         Attribution[] calldata attributions,
         address attributorFeeCollector
-    ) external onlyFuulManager nonReentrant whenManagerIsPaused {
-        IFuulManager.FeesInformation memory feesInfo = _fuulManagerInstance()
-            .getFeesInformation();
+    ) external nonReentrant {
+        address fuulManagerAddress = _fuulManagerAddress();
+
+        _onlyFuulManager(fuulManagerAddress);
+        // The `attributeTransactions` function in {FuulManager} already checks if manager is paused
+
+        IFuulManager.FeesInformation memory feesInfo = IFuulManager(
+            fuulManagerAddress
+        ).getFeesInformation();
 
         for (uint256 i = 0; i < attributions.length; i++) {
             Attribution memory attribution = attributions[i];
@@ -784,13 +763,12 @@ contract FuulProject is
         address receiver,
         uint256[] memory tokenIds,
         uint256[] memory amounts
-    )
-        external
-        onlyFuulManager
-        nonReentrant
-        whenManagerIsPaused
-        returns (uint256 claimAmount)
-    {
+    ) external nonReentrant returns (uint256 claimAmount) {
+        address fuulManagerAddress = _fuulManagerAddress();
+        _onlyFuulManager(fuulManagerAddress);
+
+        // The `claim` function in {FuulManager} already checks if manager is paused
+
         uint256 availableAmount = availableToClaim[receiver][currency];
 
         _nonZeroAmount(availableAmount);
