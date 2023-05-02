@@ -631,9 +631,9 @@ contract FuulProject is
 
     /**
      * @dev Attributes: removes amounts from budget and adds them to corresponding partners, users and fee collectors.
-     * 
+     *
      * Emits {Attributed}.
-     * 
+     *
      * Notes:
      * - When rewards are fungible tokens, fees will be a percentage of the payment and it will be substracted from the payment.
      * - When rewards are NFTs, fees will be a fixed amount and the {nftFeeBudget} will be used.
@@ -644,7 +644,7 @@ contract FuulProject is
      * - The sum of {amountToPartner} and {amountToEndUser} for each {Attribution} must be greater than zero.
      * - Only {FuulManager} can attribute.
      * - Proof must not exist (be previously attributed).
-
+     * - {FuulManager} must not be paused. This is checked through The `attributeTransactions` function in {FuulManager}.
      */
 
     function attributeTransactions(
@@ -654,7 +654,6 @@ contract FuulProject is
         address fuulManagerAddress = _fuulManagerAddress();
 
         _onlyFuulManager(fuulManagerAddress);
-        // The `attributeTransactions` function in {FuulManager} already checks if manager is paused
 
         IFuulManager.FeesInformation memory feesInfo = IFuulManager(
             fuulManagerAddress
@@ -755,6 +754,7 @@ contract FuulProject is
      *
      * - `receiver` must have available funds to claim for {currency}.
      * - Only {FuulManager} can call this function.
+     * - {FuulManager} must not be paused. This is checked through The `claim` function in {FuulManager}.
      */
 
     function claimFromProject(
@@ -765,8 +765,6 @@ contract FuulProject is
     ) external nonReentrant returns (uint256 claimAmount) {
         address fuulManagerAddress = _fuulManagerAddress();
         _onlyFuulManager(fuulManagerAddress);
-
-        // The `claim` function in {FuulManager} already checks if manager is paused
 
         uint256 availableAmount = availableToClaim[receiver][currency];
 
