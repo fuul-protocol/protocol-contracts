@@ -413,19 +413,16 @@ contract FuulManager is
         AttributionEntity[] memory attributions,
         address attributorFeeCollector
     ) external whenNotPaused nonReentrant onlyRole(ATTRIBUTOR_ROLE) {
-        unchecked {
-            uint256 attributionLength = attributions.length;
-            for (uint256 i = 0; i < attributionLength; i++) {
-                IFuulProject.Attribution[]
-                    memory projectAttributions = attributions[i]
-                        .projectAttributions;
+        uint256 attributionLength = attributions.length;
+        for (uint256 i = 0; i < attributionLength; i++) {
+            IFuulProject.Attribution[]
+                memory projectAttributions = attributions[i]
+                    .projectAttributions;
 
-                IFuulProject(attributions[i].projectAddress)
-                    .attributeTransactions(
-                        projectAttributions,
-                        attributorFeeCollector
-                    );
-            }
+            IFuulProject(attributions[i].projectAddress).attributeTransactions(
+                projectAttributions,
+                attributorFeeCollector
+            );
         }
     }
 
@@ -492,23 +489,11 @@ contract FuulManager is
       ╚═════════════════════════════╝*/
 
     /**
-     * @dev Returns whether the address is a contract.
-     */
-    function isContract(address _addr) internal view returns (bool) {
-        uint32 size;
-        assembly {
-            size := extcodesize(_addr)
-        }
-        return (size > 0);
-    }
-
-    /**
      * @dev Adds a new `tokenAddress` to accepted currencies with its
      * corresponding `claimLimitPerCooldown`.
      *
      * Requirements:
      *
-     * - `tokenAddress` must be a contract (excepting for the zero address).
      * - `tokenAddress` must not be accepted yet.
      * - `claimLimitPerCooldown` should be greater than zero.
      */
@@ -516,10 +501,6 @@ contract FuulManager is
         address tokenAddress,
         uint256 claimLimitPerCooldown
     ) internal {
-        if (tokenAddress != address(0) && !isContract(tokenAddress)) {
-            revert InvalidArgument();
-        }
-
         if (isCurrencyTokenAccepted(tokenAddress)) {
             revert TokenCurrencyAlreadyAccepted();
         }

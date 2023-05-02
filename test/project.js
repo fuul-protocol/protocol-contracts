@@ -77,14 +77,8 @@ describe("Fuul Project - Deposit and remove fungible", function () {
         }
       )
     )
-      .to.emit(this.fuulProject, "BudgetDeposited")
-      .withArgs(
-        this.user1.address,
-        this.amount,
-        ethers.constants.AddressZero,
-        [],
-        []
-      );
+      .to.emit(this.fuulProject, "FungibleBudgetDeposited")
+      .withArgs(this.user1.address, this.amount, ethers.constants.AddressZero);
 
     // Budget info
 
@@ -125,14 +119,8 @@ describe("Fuul Project - Deposit and remove fungible", function () {
         this.amount
       )
     )
-      .to.emit(this.fuulProject, "BudgetRemoved")
-      .withArgs(
-        this.user1.address,
-        this.amount,
-        ethers.constants.AddressZero,
-        [],
-        []
-      );
+      .to.emit(this.fuulProject, "FungibleBudgetRemoved")
+      .withArgs(this.user1.address, this.amount, ethers.constants.AddressZero);
 
     // Budget info
 
@@ -193,8 +181,8 @@ describe("Fuul Project - Deposit and remove fungible", function () {
     await expect(
       this.fuulProject.depositFungibleToken(this.token.address, this.amount)
     )
-      .to.emit(this.fuulProject, "BudgetDeposited")
-      .withArgs(this.user1.address, this.amount, this.token.address, [], []);
+      .to.emit(this.fuulProject, "FungibleBudgetDeposited")
+      .withArgs(this.user1.address, this.amount, this.token.address);
 
     // Budget info
 
@@ -351,7 +339,7 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     await expect(
       this.fuulProject.depositNFTToken(this.nft721.address, this.tokenIds, [])
     )
-      .to.emit(this.fuulProject, "BudgetDeposited")
+      .to.emit(this.fuulProject, "NFTBudgetDeposited")
       .withArgs(
         this.user1.address,
         this.tokenIds.length,
@@ -390,11 +378,18 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     await time.increase(projectBudgetCooldown.toNumber() + 1);
 
     // Remove
-    await this.fuulProject.removeNFTBudget(
-      this.nft721.address,
-      this.tokenIds,
-      []
-    );
+    // Remove
+    await expect(
+      this.fuulProject.removeNFTBudget(this.nft721.address, this.tokenIds, [])
+    )
+      .to.emit(this.fuulProject, "NFTBudgetRemoved")
+      .withArgs(
+        this.user1.address,
+        this.tokenIds.length,
+        this.nft721.address,
+        this.tokenIds,
+        []
+      );
 
     // Budget info
     expect(await this.fuulProject.budgets(this.nft721.address)).to.equal(0);
@@ -631,7 +626,7 @@ describe("Fuul Project - Deposit and remove NFT 1155", function () {
         this.amounts
       )
     )
-      .to.emit(this.fuulProject, "BudgetDeposited")
+      .to.emit(this.fuulProject, "NFTBudgetDeposited")
       .withArgs(
         this.user1.address,
         this.tokenAmount,

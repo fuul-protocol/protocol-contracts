@@ -3,18 +3,15 @@ pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "@openzeppelin/contracts/interfaces/IERC165.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
 import "./interfaces/IFuulManager.sol";
 import "./interfaces/IFuulFactory.sol";
@@ -27,7 +24,6 @@ contract FuulProject is
     ERC1155Holder,
     ReentrancyGuard
 {
-    using Counters for Counters.Counter;
     using SafeERC20 for IERC20;
     using Address for address payable;
     using ERC165Checker for address;
@@ -46,6 +42,9 @@ contract FuulProject is
     bytes32 public constant EVENTS_SIGNER_ROLE =
         keccak256("EVENTS_SIGNER_ROLE");
 
+    // Mapping attribution proofs with already processed
+    mapping(bytes32 => bool) public attributionProofs;
+
     // Hash for servers to know if they are synced with the last version of the project URI
     bytes32 public lastStatusHash;
 
@@ -61,11 +60,8 @@ contract FuulProject is
     // Mapping owner address to currency to earnings
     mapping(address => mapping(address => uint256)) public availableToClaim;
 
-    // Mapping currency with fees when rewarding NFTs
+    // Mapping currency with fees when rewarding NFTs. Using mappings to be able to withdraw after fee currency changes
     mapping(address => uint256) public nftFeeBudget;
-
-    // Mapping attribution proofs with already processed
-    mapping(bytes32 => bool) public attributionProofs;
 
     /**
      * @dev Modifier to check if the sender is {FuulManager} contract.
@@ -94,7 +90,7 @@ contract FuulProject is
     }
 
     /**
-     * @dev Internal function for {whenManagerIsPaused} modifier. Reverts with a ManagerIsPaused error.
+     * @dev Internal function for {whenManagerIsPaused} modifier. Reverts with a {ManagerIsPaused} error.
      */
     function _whenManagerIsPaused() internal view {
         if (fuulManagerInstance().isPaused()) {
@@ -103,12 +99,45 @@ contract FuulProject is
     }
 
     /**
-    TODO
-     * @dev Modifier to check if the project can remove funds. Reverts with an OutsideRemovalWindow error.
+     * @dev Modifier to check if the project can remove funds. Reverts with an {OutsideRemovalWindow} error.
      */
     modifier canRemove() {
         canRemoveFunds();
         _;
+    }
+
+    /**
+     * @dev Modifier to check if the currency is accepted in {FuulManager}.
+     */
+    modifier isCurrencyAccepted(address currency) {
+        _isCurrencyAccepted(currency);
+        _;
+    }
+
+    /**
+     * @dev Internal function for {isCurrencyAccepted} modifier. Reverts with a {TokenCurrencyNotAccepted} error.
+     */
+    function _isCurrencyAccepted(address currency) internal view {
+        if (!fuulManagerInstance().isCurrencyTokenAccepted(currency)) {
+            revert IFuulManager.TokenCurrencyNotAccepted();
+        }
+    }
+
+    /**
+     * @dev Modifier to check if the uint amount is zero.
+     */
+    modifier nonZeroAmount(uint256 amount) {
+        _nonZeroAmount(amount);
+        _;
+    }
+
+    /**
+     * @dev Internal function for {nonZeroAmount} modifier. Reverts with a {TokenCurrencyNotAccepted} error.
+     */
+    function _nonZeroAmount(uint256 amount) internal view {
+        if (amount == 0) {
+            revert ZeroAmount();
+        }
     }
 
     /*╔═════════════════════════════╗
@@ -221,15 +250,14 @@ contract FuulProject is
     function depositFungibleToken(
         address currency,
         uint256 amount
-    ) external payable onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
-        if (amount == 0) {
-            revert ZeroAmount();
-        }
-
-        if (!fuulManagerInstance().isCurrencyTokenAccepted(currency)) {
-            revert IFuulManager.TokenCurrencyNotAccepted();
-        }
-
+    )
+        external
+        payable
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        nonReentrant
+        isCurrencyAccepted(currency)
+        nonZeroAmount(amount)
+    {
         if (currency == address(0)) {
             if (msg.value != amount) {
                 revert IncorrectMsgValue();
@@ -247,15 +275,7 @@ contract FuulProject is
         // Update balance
         budgets[currency] += amount;
 
-        uint256[] memory emptyArray;
-
-        emit BudgetDeposited(
-            _msgSender(),
-            amount,
-            currency,
-            emptyArray,
-            emptyArray
-        );
+        emit FungibleBudgetDeposited(_msgSender(), amount, currency);
     }
 
     /**
@@ -274,11 +294,12 @@ contract FuulProject is
         address currency,
         uint256[] memory tokenIds,
         uint256[] memory amounts
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
-        if (!fuulManagerInstance().isCurrencyTokenAccepted(currency)) {
-            revert IFuulManager.TokenCurrencyNotAccepted();
-        }
-
+    )
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        nonReentrant
+        isCurrencyAccepted(currency)
+    {
         uint256 depositedAmount;
         uint256[] memory tokenAmounts;
 
@@ -312,7 +333,7 @@ contract FuulProject is
         // Update balance
         budgets[currency] += depositedAmount;
 
-        emit BudgetDeposited(
+        emit NFTBudgetDeposited(
             _msgSender(),
             depositedAmount,
             currency,
@@ -402,11 +423,13 @@ contract FuulProject is
     function removeFungibleBudget(
         address currency,
         uint256 amount
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant canRemove {
-        if (amount == 0) {
-            revert ZeroAmount();
-        }
-
+    )
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        nonReentrant
+        canRemove
+        nonZeroAmount(amount)
+    {
         // Update budget - By underflow it indirectly checks that amount <= currentBudget
         budgets[currency] -= amount;
 
@@ -418,15 +441,7 @@ contract FuulProject is
             revert InvalidCurrency();
         }
 
-        uint256[] memory emptyArray;
-
-        emit BudgetRemoved(
-            _msgSender(),
-            amount,
-            currency,
-            emptyArray,
-            emptyArray
-        );
+        emit FungibleBudgetRemoved(_msgSender(), amount, currency);
     }
 
     /**
@@ -450,9 +465,7 @@ contract FuulProject is
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant canRemove {
         uint256 tokenIdsLength = tokenIds.length;
 
-        if (tokenIdsLength == 0) {
-            revert ZeroAmount();
-        }
+        _nonZeroAmount(tokenIdsLength);
 
         uint256 removeAmount;
 
@@ -483,7 +496,7 @@ contract FuulProject is
         // Update budget - By underflow it indirectly checks that amount <= budget
         budgets[currency] -= removeAmount;
 
-        emit BudgetRemoved(
+        emit NFTBudgetRemoved(
             _msgSender(),
             removeAmount,
             currency,
@@ -509,11 +522,13 @@ contract FuulProject is
      */
     function depositFeeBudget(
         uint256 amount
-    ) external payable onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
-        if (amount == 0) {
-            revert ZeroAmount();
-        }
-
+    )
+        external
+        payable
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        nonReentrant
+        nonZeroAmount(amount)
+    {
         address currency = fuulManagerInstance().nftFeeCurrency();
 
         if (currency == address(0)) {
@@ -550,11 +565,13 @@ contract FuulProject is
     function removeFeeBudget(
         address currency,
         uint256 amount
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant canRemove {
-        if (amount == 0) {
-            revert ZeroAmount();
-        }
-
+    )
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        nonReentrant
+        canRemove
+        nonZeroAmount(amount)
+    {
         nftFeeBudget[currency] -= amount;
 
         if (currency == address(0)) {
@@ -667,9 +684,7 @@ contract FuulProject is
             uint256 totalAmount = attribution.amountToPartner +
                 attribution.amountToEndUser;
 
-            if (totalAmount == 0) {
-                revert ZeroAmount();
-            }
+            _nonZeroAmount(totalAmount);
 
             address currency = attribution.currency;
 
@@ -769,9 +784,7 @@ contract FuulProject is
     {
         uint256 availableAmount = availableToClaim[receiver][currency];
 
-        if (availableAmount == 0) {
-            revert ZeroAmount();
-        }
+        _nonZeroAmount(availableAmount);
 
         if (currency == address(0)) {
             claimAmount = availableAmount;

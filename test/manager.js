@@ -267,11 +267,6 @@ describe("Fuul Manager - Token currency management", function () {
     await expect(
       this.fuulManager.addCurrencyToken(this.newCurrency, 0)
     ).to.be.revertedWithCustomError(this.fuulManager, "InvalidArgument");
-
-    // EOA Address
-    await expect(
-      this.fuulManager.addCurrencyToken(this.user2.address, this.limitAmount)
-    ).to.be.revertedWithCustomError(this.fuulManager, "InvalidArgument");
   });
 
   it("Should fail to remove currency and not accepted", async function () {

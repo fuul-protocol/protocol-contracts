@@ -27,7 +27,13 @@ interface IFuulProject {
 
     event ProjectInfoUpdated(string projectInfoURI);
 
-    event BudgetDeposited(
+    event FungibleBudgetDeposited(
+        address indexed account,
+        uint256 indexed amount,
+        address indexed currency
+    );
+
+    event NFTBudgetDeposited(
         address indexed account,
         uint256 indexed amount,
         address indexed currency,
@@ -35,7 +41,13 @@ interface IFuulProject {
         uint256[] amounts
     );
 
-    event BudgetRemoved(
+    event FungibleBudgetRemoved(
+        address indexed account,
+        uint256 indexed amount,
+        address indexed currency
+    );
+
+    event NFTBudgetRemoved(
         address indexed account,
         uint256 indexed amount,
         address indexed currency,
@@ -99,8 +111,6 @@ interface IFuulProject {
         address currency
     ) external view returns (uint256);
 
-    function lastStatusHash() external view returns (bytes32);
-
     /*╔═════════════════════════════╗
       ║        PROJECT INFO         ║
       ╚═════════════════════════════╝*/
@@ -110,6 +120,8 @@ interface IFuulProject {
     function setProjectURI(string memory _projectURI) external;
 
     function clientFeeCollector() external view returns (address);
+
+    function lastStatusHash() external view returns (bytes32);
 
     /*╔═════════════════════════════╗
       ║           DEPOSIT           ║
