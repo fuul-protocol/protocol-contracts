@@ -755,7 +755,6 @@ contract FuulProject is
      *
      * - `receiver` must have available funds to claim for {currency}.
      * - Only {FuulManager} can call this function.
-     * - {FuulManager} must not be paused.
      */
 
     function claimFromProject(
