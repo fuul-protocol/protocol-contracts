@@ -29,7 +29,7 @@ contract FuulProject is
     using Address for address payable;
 
     // Factory contract address
-    address public fuulFactory;
+    address public immutable fuulFactory;
 
     // Address that will receive client fees (client that created the project)
     address public clientFeeCollector;
@@ -109,12 +109,10 @@ contract FuulProject is
 
     /**
      * @dev Sets the value for {fuulFactory}.
-     *
-     * This value is immutable: it can only be set once during
-     * construction.
+     * This value is immutable.
      */
     constructor() {
-        fuulFactory = address(0);
+        fuulFactory = _msgSender();
     }
 
     /**
@@ -130,7 +128,7 @@ contract FuulProject is
         string memory _projectInfoURI,
         address _clientFeeCollector
     ) external {
-        if (fuulFactory != address(0)) {
+        if (fuulFactory != _msgSender()) {
             revert Forbidden();
         }
 
@@ -138,7 +136,6 @@ contract FuulProject is
 
         _setupRole(EVENTS_SIGNER_ROLE, _projectEventSigner);
 
-        fuulFactory = _msgSender();
         projectInfoURI = _projectInfoURI;
 
         clientFeeCollector = _clientFeeCollector;
