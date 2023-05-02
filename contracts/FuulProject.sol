@@ -134,7 +134,7 @@ contract FuulProject is
     /**
      * @dev Internal function for {nonZeroAmount} modifier. Reverts with a {TokenCurrencyNotAccepted} error.
      */
-    function _nonZeroAmount(uint256 amount) internal view {
+    function _nonZeroAmount(uint256 amount) internal pure {
         if (amount == 0) {
             revert ZeroAmount();
         }
@@ -287,14 +287,16 @@ contract FuulProject is
 
     /**
      * @dev Deposits NFTs.
-     * They can be ERC1155 or ERC721 tokens.
-     * `amounts` parameter is only used when dealing with ERC1155 tokens.
+     *
+     * Note: `amounts` parameter is only used when dealing with ERC1155 tokens.
      *
      * Emits {BudgetDeposited}.
      *
      * Requirements:
      *
+     * - `tokenIds` must not be an empty string.
      * - Only admins can deposit.
+     * - Token currency must be accepted in {Fuul Manager}
      * - Currency must be an ERC721 or ERC1155.
      */
     function depositNFTToken(
@@ -307,12 +309,13 @@ contract FuulProject is
         nonReentrant
         isCurrencyAccepted(currency)
     {
-        uint256 depositedAmount;
+        // Set default values as if it's an ERC721
+        uint256 depositedAmount = tokenIds.length;
         uint256[] memory tokenAmounts;
 
-        if (currency.supportsInterface(IID_IERC721)) {
-            uint256 tokenIdsLength = tokenIds.length;
+        _nonZeroAmount(depositedAmount);
 
+        if (currency.supportsInterface(IID_IERC721)) {
             _transferERC721Tokens(
                 currency,
                 _msgSender(),
@@ -320,8 +323,6 @@ contract FuulProject is
                 tokenIds,
                 tokenIds.length
             );
-
-            depositedAmount = tokenIdsLength;
         } else if (currency.supportsInterface(IID_IERC1155)) {
             _transferERC1155Tokens(
                 currency,
@@ -331,6 +332,7 @@ contract FuulProject is
                 amounts
             );
 
+            // Change values for ERC1155
             depositedAmount = _getSumFromArray(amounts);
             tokenAmounts = amounts;
         } else {
