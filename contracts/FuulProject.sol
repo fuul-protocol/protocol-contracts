@@ -216,6 +216,7 @@ contract FuulProject is
      * - `amount` must be greater than zero.
      * - Only admins can deposit.
      * - Token currency must be accepted in {Fuul Manager}
+     * - Currency must be the address zero (nativa token) or ERC20.
      */
     function depositFungibleToken(
         address currency,
@@ -236,17 +237,15 @@ contract FuulProject is
                 revert IncorrectMsgValue();
             }
             tokenType = TokenType.NATIVE;
-        } else {
-            if (!isERC20(currency)) {
-                revert InvalidTokenType();
-            }
-
+        } else if (!isERC20(currency)) {
             IERC20(currency).safeTransferFrom(
                 _msgSender(),
                 address(this),
                 amount
             );
             tokenType = TokenType.ERC_20;
+        } else {
+            revert InvalidTokenType();
         }
 
         // Update balance
@@ -274,6 +273,7 @@ contract FuulProject is
      * Requirements:
      *
      * - Only admins can deposit.
+     * - Currency must be an ERC721 or ERC1155.
      */
     function depositNFTToken(
         address currency,
@@ -405,7 +405,8 @@ contract FuulProject is
      *
      * - `amount` must be greater than zero.
      * - Only admins can remove.
-     * - Budget remove cooldown period has to be completed.
+     * - Must be within the Budget removal window.
+     * - Currency must be the address zero (nativa token) or ERC20.
      */
     function removeFungibleBudget(
         address currency,
@@ -450,6 +451,7 @@ contract FuulProject is
      * - `amount` must be greater than zero.
      * - Only admins can remove.
      * - Must be within the Budget removal window.
+     * - Currency must be an ERC721 or ERC1155.
      */
     function removeNFTBudget(
         address currency,
@@ -553,7 +555,7 @@ contract FuulProject is
      *
      * - `amount` must be greater than zero.
      * - Only admins can remove.
-     * - Budget remove cooldown period has to be completed.
+     * - Must be within the Budget removal window.
      */
     function removeFeeBudget(
         address currency,
@@ -580,7 +582,6 @@ contract FuulProject is
 
     /**
      * @dev Internal function to calculate fees and amounts for fungible token reward.
-     *
      */
 
     function _calculateAmountsForFungibleToken(
@@ -650,9 +651,10 @@ contract FuulProject is
      * Requirements:
      *
      * - Currency budgets have to be greater than amounts attributed.
-     * - The sum of  {amountToPartner} and {amountToEndUser} of each {Attribution} must be greater than zero.
+     * - The sum of {amountToPartner} and {amountToEndUser} for each {Attribution} must be greater than zero.
      * - Only {FuulManager} can attribute.
      * - {FuulManager} must not be paused.
+     * - Proof must not exist (be previously attributed).
 
      */
 

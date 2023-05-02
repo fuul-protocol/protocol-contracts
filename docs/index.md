@@ -93,369 +93,6 @@ Requirements:
 - {_fuulManager} must be different from the current one.
 - Only admins can call this function._
 
-## FuulManager
-
-### ATTRIBUTOR_ROLE
-
-```solidity
-bytes32 ATTRIBUTOR_ROLE
-```
-
-### PAUSER_ROLE
-
-```solidity
-bytes32 PAUSER_ROLE
-```
-
-### projectBudgetCooldown
-
-```solidity
-uint256 projectBudgetCooldown
-```
-
-### projectRemoveBudgetPeriod
-
-```solidity
-uint256 projectRemoveBudgetPeriod
-```
-
-### claimCooldown
-
-```solidity
-uint256 claimCooldown
-```
-
-### nftFixedFeeAmount
-
-```solidity
-uint256 nftFixedFeeAmount
-```
-
-### protocolFee
-
-```solidity
-uint256 protocolFee
-```
-
-### clientFee
-
-```solidity
-uint256 clientFee
-```
-
-### attributorFee
-
-```solidity
-uint256 attributorFee
-```
-
-### protocolFeeCollector
-
-```solidity
-address protocolFeeCollector
-```
-
-### nftFeeCurrency
-
-```solidity
-address nftFeeCurrency
-```
-
-### usersClaims
-
-```solidity
-mapping(address => mapping(address => uint256)) usersClaims
-```
-
-### currencyTokens
-
-```solidity
-mapping(address => struct IFuulManager.CurrencyToken) currencyTokens
-```
-
-### constructor
-
-```solidity
-constructor(address _attributor, address _pauser, address acceptedERC20CurrencyToken, uint256 initialTokenLimit, uint256 initialNativeTokenLimit, address _protocolFeeCollector, address _nftFeeCurrency) public
-```
-
-_Grants roles to `_attributor`, `_pauser` and DEFAULT_ADMIN_ROLE to the deployer.
-
-Adds the initial `acceptedERC20CurrencyToken` as an accepted currency with its `initialTokenLimit`.
-Adds the zero address (native token) as an accepted currency with its `initialNativeTokenLimit`._
-
-### setClaimCooldown
-
-```solidity
-function setClaimCooldown(uint256 _period) external
-```
-
-_Sets the period for `claimCooldown`.
-
-Requirements:
-
-- `_period` must be different from the current one.
-- Only admins can call this function._
-
-### setProjectBudgetCooldown
-
-```solidity
-function setProjectBudgetCooldown(uint256 _period) external
-```
-
-_Sets the period for `projectBudgetCooldown`.
-
-Requirements:
-
-- `_period` must be different from the current one.
-- Only admins can call this function._
-
-### setProjectRemoveBudgetPeriod
-
-```solidity
-function setProjectRemoveBudgetPeriod(uint256 _period) external
-```
-
-_Sets the period for `projectRemoveBudgetPeriod`.
-
-Requirements:
-
-- `_period` must be different from the current one.
-- Only admins can call this function._
-
-### getBudgetRemoveInfo
-
-```solidity
-function getBudgetRemoveInfo() external view returns (uint256 cooldown, uint256 removeWindow)
-```
-
-_Returns removal info. The function purpose is to call only once from {FuulProject} when needing this info._
-
-### getFeesInformation
-
-```solidity
-function getFeesInformation() external view returns (struct IFuulManager.FeesInformation)
-```
-
-_Returns all fees for attribution. The function purpose is to call only once from {FuulProject} when needing this info._
-
-### setProtocolFee
-
-```solidity
-function setProtocolFee(uint256 _value) external
-```
-
-_Sets the protocol fees for each attribution.
-
-Requirements:
-
-- `_value` must be different from the current one.
-- Only admins can call this function._
-
-### setClientFee
-
-```solidity
-function setClientFee(uint256 _value) external
-```
-
-_Sets the fees for the client that was used to create the project.
-
-Requirements:
-
-- `_value` must be different from the current one.
-- Only admins can call this function._
-
-### setAttributorFee
-
-```solidity
-function setAttributorFee(uint256 _value) external
-```
-
-_Sets the fees for the attributor.
-
-Requirements:
-
-- `_value` must be different from the current one.
-- Only admins can call this function._
-
-### setNftFixedFeeAmounte
-
-```solidity
-function setNftFixedFeeAmounte(uint256 _value) external
-```
-
-_Sets the fixed fee amount for NFT rewards.
-
-Requirements:
-
-- `_value` must be different from the current one.
-- Only admins can call this function._
-
-### setNftFeeCurrency
-
-```solidity
-function setNftFeeCurrency(address newCurrency) external
-```
-
-_Sets the currency that will be used to pay NFT rewards fees.
-
-Requirements:
-
-- `_value` must be different from the current one.
-- Only admins can call this function._
-
-### setProtocolFeeCollector
-
-```solidity
-function setProtocolFeeCollector(address newCollector) external
-```
-
-_Sets the protocol fee collector address.
-
-Requirements:
-
-- `_value` must be different from the current one.
-- Only admins can call this function._
-
-### isCurrencyTokenAccepted
-
-```solidity
-function isCurrencyTokenAccepted(address tokenAddress) public view returns (bool isAccepted)
-```
-
-_Returns whether the currency token is accepted._
-
-### addCurrencyToken
-
-```solidity
-function addCurrencyToken(address tokenAddress, uint256 claimLimitPerCooldown) external
-```
-
-_Adds a currency token.
-See {_addCurrencyToken}
-
-Requirements:
-
-- Only admins can call this function._
-
-### removeCurrencyToken
-
-```solidity
-function removeCurrencyToken(address tokenAddress) external
-```
-
-_Removes a currency token.
-
-Notes:
-- Projects will not be able to deposit with the currency token.
-- We don't remove the `currencyToken` object because users will still be able to claim/remove it
-
-Requirements:
-
-- `tokenAddress` must be accepted.
-- Only admins can call this function._
-
-### setCurrencyTokenLimit
-
-```solidity
-function setCurrencyTokenLimit(address tokenAddress, uint256 limit) external
-```
-
-_Sets a new `claimLimitPerCooldown` for a currency token.
-
-Notes:
-We are not checking that the tokenAddress is accepted because
-users can claim from unaccepted currencies.
-
-Requirements:
-
-- `limit` must be greater than zero.
-- `limit` must be different from the current one.
-- Only admins can call this function._
-
-### pauseAll
-
-```solidity
-function pauseAll() external
-```
-
-_Pauses the contract and all {FuulProject}s.
-See {Pausable.sol}
-
-Requirements:
-
-- Only addresses with the PAUSER_ROLE can call this function._
-
-### unpauseAll
-
-```solidity
-function unpauseAll() external
-```
-
-_Unpauses the contract and all {FuulProject}s.
-See {Pausable.sol}
-
-Requirements:
-
-- Only addresses with the PAUSER_ROLE can call this function._
-
-### isPaused
-
-```solidity
-function isPaused() external view returns (bool)
-```
-
-_Returns whether the contract is paused.
-See {Pausable.sol}_
-
-### attributeTransactions
-
-```solidity
-function attributeTransactions(struct IFuulManager.AttributionEntity[] attributions, address attributorFeeCollector) external
-```
-
-_Attributes: calls the `attributeTransactions` function in {FuulProject} from an array of {AttributionEntity}.
-
-Requirements:
-
-- Contract should not be paused.
-- Only addresses with the ATTRIBUTOR_ROLE can call this function._
-
-### claim
-
-```solidity
-function claim(struct IFuulManager.ClaimCheck[] claimChecks) external
-```
-
-_Claims: calls the `claimFromProject` function in {FuulProject} from an array of of {ClaimCheck}.
-
-Requirements:
-
-- Contract should not be paused._
-
-### isContract
-
-```solidity
-function isContract(address _addr) internal view returns (bool)
-```
-
-_Returns whether the address is a contract._
-
-### _addCurrencyToken
-
-```solidity
-function _addCurrencyToken(address tokenAddress, uint256 claimLimitPerCooldown) internal
-```
-
-_Adds a new `tokenAddress` to accepted currencies with its
-corresponding `claimLimitPerCooldown`.
-
-Requirements:
-
-- `tokenAddress` must be a contract (excepting for the zero address).
-- `tokenAddress` must not be accepted yet.
-- `claimLimitPerCooldown` should be greater than zero._
-
 ## FuulProject
 
 ### IID_IERC1155
@@ -638,7 +275,8 @@ Requirements:
 
 - `amount` must be greater than zero.
 - Only admins can deposit.
-- Token currency must be accepted in {Fuul Manager}_
+- Token currency must be accepted in {Fuul Manager}
+- Currency must be the address zero (nativa token) or ERC20._
 
 ### depositNFTToken
 
@@ -654,7 +292,8 @@ Emits {BudgetDeposited}.
 
 Requirements:
 
-- Only admins can deposit._
+- Only admins can deposit.
+- Currency must be an ERC721 or ERC1155._
 
 ### applyToRemoveBudget
 
@@ -707,7 +346,8 @@ Requirements:
 
 - `amount` must be greater than zero.
 - Only admins can remove.
-- Budget remove cooldown period has to be completed._
+- Must be within the Budget removal window.
+- Currency must be the address zero (nativa token) or ERC20._
 
 ### removeNFTBudget
 
@@ -725,7 +365,8 @@ Requirements:
 
 - `amount` must be greater than zero.
 - Only admins can remove.
-- Must be within the Budget removal window._
+- Must be within the Budget removal window.
+- Currency must be an ERC721 or ERC1155._
 
 ### depositFeeBudget
 
@@ -759,7 +400,7 @@ Requirements:
 
 - `amount` must be greater than zero.
 - Only admins can remove.
-- Budget remove cooldown period has to be completed._
+- Must be within the Budget removal window._
 
 ### _calculateAmountsForFungibleToken
 
@@ -794,9 +435,10 @@ Notes:
 Requirements:
 
 - Currency budgets have to be greater than amounts attributed.
-- The sum of  {amountToPartner} and {amountToEndUser} of each {Attribution} must be greater than zero.
+- The sum of {amountToPartner} and {amountToEndUser} for each {Attribution} must be greater than zero.
 - Only {FuulManager} can attribute.
-- {FuulManager} must not be paused._
+- {FuulManager} must not be paused.
+- Proof must not exist (be previously attributed)._
 
 ### claimFromProject
 
@@ -1348,6 +990,369 @@ function attributeTransactions(struct IFuulProject.Attribution[] attributions, a
 ```solidity
 function claimFromProject(address currency, address receiver, uint256[] tokenIds, uint256[] amounts) external returns (uint256)
 ```
+
+## FuulManager
+
+### ATTRIBUTOR_ROLE
+
+```solidity
+bytes32 ATTRIBUTOR_ROLE
+```
+
+### PAUSER_ROLE
+
+```solidity
+bytes32 PAUSER_ROLE
+```
+
+### projectBudgetCooldown
+
+```solidity
+uint256 projectBudgetCooldown
+```
+
+### projectRemoveBudgetPeriod
+
+```solidity
+uint256 projectRemoveBudgetPeriod
+```
+
+### claimCooldown
+
+```solidity
+uint256 claimCooldown
+```
+
+### nftFixedFeeAmount
+
+```solidity
+uint256 nftFixedFeeAmount
+```
+
+### protocolFee
+
+```solidity
+uint256 protocolFee
+```
+
+### clientFee
+
+```solidity
+uint256 clientFee
+```
+
+### attributorFee
+
+```solidity
+uint256 attributorFee
+```
+
+### protocolFeeCollector
+
+```solidity
+address protocolFeeCollector
+```
+
+### nftFeeCurrency
+
+```solidity
+address nftFeeCurrency
+```
+
+### usersClaims
+
+```solidity
+mapping(address => mapping(address => uint256)) usersClaims
+```
+
+### currencyTokens
+
+```solidity
+mapping(address => struct IFuulManager.CurrencyToken) currencyTokens
+```
+
+### constructor
+
+```solidity
+constructor(address _attributor, address _pauser, address acceptedERC20CurrencyToken, uint256 initialTokenLimit, uint256 initialNativeTokenLimit, address _protocolFeeCollector, address _nftFeeCurrency) public
+```
+
+_Grants roles to `_attributor`, `_pauser` and DEFAULT_ADMIN_ROLE to the deployer.
+
+Adds the initial `acceptedERC20CurrencyToken` as an accepted currency with its `initialTokenLimit`.
+Adds the zero address (native token) as an accepted currency with its `initialNativeTokenLimit`._
+
+### setClaimCooldown
+
+```solidity
+function setClaimCooldown(uint256 _period) external
+```
+
+_Sets the period for `claimCooldown`.
+
+Requirements:
+
+- `_period` must be different from the current one.
+- Only admins can call this function._
+
+### setProjectBudgetCooldown
+
+```solidity
+function setProjectBudgetCooldown(uint256 _period) external
+```
+
+_Sets the period for `projectBudgetCooldown`.
+
+Requirements:
+
+- `_period` must be different from the current one.
+- Only admins can call this function._
+
+### setProjectRemoveBudgetPeriod
+
+```solidity
+function setProjectRemoveBudgetPeriod(uint256 _period) external
+```
+
+_Sets the period for `projectRemoveBudgetPeriod`.
+
+Requirements:
+
+- `_period` must be different from the current one.
+- Only admins can call this function._
+
+### getBudgetRemoveInfo
+
+```solidity
+function getBudgetRemoveInfo() external view returns (uint256 cooldown, uint256 removeWindow)
+```
+
+_Returns removal info. The function purpose is to call only once from {FuulProject} when needing this info._
+
+### getFeesInformation
+
+```solidity
+function getFeesInformation() external view returns (struct IFuulManager.FeesInformation)
+```
+
+_Returns all fees for attribution. The function purpose is to call only once from {FuulProject} when needing this info._
+
+### setProtocolFee
+
+```solidity
+function setProtocolFee(uint256 _value) external
+```
+
+_Sets the protocol fees for each attribution.
+
+Requirements:
+
+- `_value` must be different from the current one.
+- Only admins can call this function._
+
+### setClientFee
+
+```solidity
+function setClientFee(uint256 _value) external
+```
+
+_Sets the fees for the client that was used to create the project.
+
+Requirements:
+
+- `_value` must be different from the current one.
+- Only admins can call this function._
+
+### setAttributorFee
+
+```solidity
+function setAttributorFee(uint256 _value) external
+```
+
+_Sets the fees for the attributor.
+
+Requirements:
+
+- `_value` must be different from the current one.
+- Only admins can call this function._
+
+### setNftFixedFeeAmounte
+
+```solidity
+function setNftFixedFeeAmounte(uint256 _value) external
+```
+
+_Sets the fixed fee amount for NFT rewards.
+
+Requirements:
+
+- `_value` must be different from the current one.
+- Only admins can call this function._
+
+### setNftFeeCurrency
+
+```solidity
+function setNftFeeCurrency(address newCurrency) external
+```
+
+_Sets the currency that will be used to pay NFT rewards fees.
+
+Requirements:
+
+- `_value` must be different from the current one.
+- Only admins can call this function._
+
+### setProtocolFeeCollector
+
+```solidity
+function setProtocolFeeCollector(address newCollector) external
+```
+
+_Sets the protocol fee collector address.
+
+Requirements:
+
+- `_value` must be different from the current one.
+- Only admins can call this function._
+
+### isCurrencyTokenAccepted
+
+```solidity
+function isCurrencyTokenAccepted(address tokenAddress) public view returns (bool isAccepted)
+```
+
+_Returns whether the currency token is accepted._
+
+### addCurrencyToken
+
+```solidity
+function addCurrencyToken(address tokenAddress, uint256 claimLimitPerCooldown) external
+```
+
+_Adds a currency token.
+See {_addCurrencyToken}
+
+Requirements:
+
+- Only admins can call this function._
+
+### removeCurrencyToken
+
+```solidity
+function removeCurrencyToken(address tokenAddress) external
+```
+
+_Removes a currency token.
+
+Notes:
+- Projects will not be able to deposit with the currency token.
+- We don't remove the `currencyToken` object because users will still be able to claim/remove it
+
+Requirements:
+
+- `tokenAddress` must be accepted.
+- Only admins can call this function._
+
+### setCurrencyTokenLimit
+
+```solidity
+function setCurrencyTokenLimit(address tokenAddress, uint256 limit) external
+```
+
+_Sets a new `claimLimitPerCooldown` for a currency token.
+
+Notes:
+We are not checking that the tokenAddress is accepted because
+users can claim from unaccepted currencies.
+
+Requirements:
+
+- `limit` must be greater than zero.
+- `limit` must be different from the current one.
+- Only admins can call this function._
+
+### pauseAll
+
+```solidity
+function pauseAll() external
+```
+
+_Pauses the contract and all {FuulProject}s.
+See {Pausable.sol}
+
+Requirements:
+
+- Only addresses with the PAUSER_ROLE can call this function._
+
+### unpauseAll
+
+```solidity
+function unpauseAll() external
+```
+
+_Unpauses the contract and all {FuulProject}s.
+See {Pausable.sol}
+
+Requirements:
+
+- Only addresses with the PAUSER_ROLE can call this function._
+
+### isPaused
+
+```solidity
+function isPaused() external view returns (bool)
+```
+
+_Returns whether the contract is paused.
+See {Pausable.sol}_
+
+### attributeTransactions
+
+```solidity
+function attributeTransactions(struct IFuulManager.AttributionEntity[] attributions, address attributorFeeCollector) external
+```
+
+_Attributes: calls the `attributeTransactions` function in {FuulProject} from an array of {AttributionEntity}.
+
+Requirements:
+
+- Contract should not be paused.
+- Only addresses with the ATTRIBUTOR_ROLE can call this function._
+
+### claim
+
+```solidity
+function claim(struct IFuulManager.ClaimCheck[] claimChecks) external
+```
+
+_Claims: calls the `claimFromProject` function in {FuulProject} from an array of of {ClaimCheck}.
+
+Requirements:
+
+- Contract should not be paused._
+
+### isContract
+
+```solidity
+function isContract(address _addr) internal view returns (bool)
+```
+
+_Returns whether the address is a contract._
+
+### _addCurrencyToken
+
+```solidity
+function _addCurrencyToken(address tokenAddress, uint256 claimLimitPerCooldown) internal
+```
+
+_Adds a new `tokenAddress` to accepted currencies with its
+corresponding `claimLimitPerCooldown`.
+
+Requirements:
+
+- `tokenAddress` must be a contract (excepting for the zero address).
+- `tokenAddress` must not be accepted yet.
+- `claimLimitPerCooldown` should be greater than zero._
 
 ## MockNFT1155Rewards
 
