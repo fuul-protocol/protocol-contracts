@@ -26,7 +26,17 @@ interface IFuulFactory {
         address _clientFeeCollector
     ) external;
 
+    /*╔═════════════════════════════╗
+      ║           ERRORS            ║
+      ╚═════════════════════════════╝*/
+
     error ZeroAddress();
+    error TokenCurrencyAlreadyAccepted();
+    error TokenCurrencyNotAccepted();
+
+    /*╔═════════════════════════════╗
+      ║        CREATE PROJECT       ║
+      ╚═════════════════════════════╝*/
 
     function projects(uint256 projectId) external returns (address);
 
@@ -40,6 +50,10 @@ interface IFuulFactory {
     function getUserProjectCount(
         address account
     ) external view returns (uint256);
+
+    /*╔═════════════════════════════╗
+      ║           MANAGER           ║
+      ╚═════════════════════════════╝*/
 
     function fuulManager() external view returns (address);
 
@@ -72,4 +86,16 @@ interface IFuulFactory {
     function setNftFixedFeeAmounte(uint256 _value) external;
 
     function setNftFeeCurrency(address newCurrency) external;
+
+    /*╔═════════════════════════════╗
+      ║       TOKEN CURRENCIES      ║
+      ╚═════════════════════════════╝*/
+
+    function acceptedCurrencies(
+        address tokenAddress
+    ) external view returns (bool);
+
+    function addCurrencyToken(address tokenAddress) external;
+
+    function removeCurrencyToken(address tokenAddress) external;
 }

@@ -46,8 +46,11 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
     // Mapping accounts with created project contract address
     mapping(address => EnumerableSet.AddressSet) userProjects;
 
+    // Mapping token addresses with acceptance or not
+    mapping(address => bool) public acceptedCurrencies;
+
     /**
-     * @dev Sets the values for {fuulManager} and {fuulProjectImplementation}.
+     * @dev Sets the values for `fuulManager`, `fuulProjectImplementation` and the initial values for `protocolFeeCollector` and `nftFeeCurrency`.
      * It grants the DEFAULT_ADMIN_ROLE to the deployer.
      *
      * `fuulProjectImplementation` value is immutable: it can only be set once during
@@ -56,7 +59,8 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
     constructor(
         address _fuulManager,
         address _protocolFeeCollector,
-        address _nftFeeCurrency
+        address _nftFeeCurrency,
+        address acceptedERC20CurrencyToken
     ) {
         fuulManager = _fuulManager;
         fuulProjectImplementation = address(new FuulProject());
@@ -65,6 +69,9 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
 
         protocolFeeCollector = _protocolFeeCollector;
         nftFeeCurrency = _nftFeeCurrency;
+
+        acceptedCurrencies[acceptedERC20CurrencyToken] = true;
+        acceptedCurrencies[address(0)] = true;
     }
 
     /*╔═════════════════════════════╗
@@ -147,6 +154,10 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
     ) public view returns (uint256) {
         return userProjects[account].length();
     }
+
+    /*╔═════════════════════════════╗
+      ║           MANAGER           ║
+      ╚═════════════════════════════╝*/
 
     /**
      * @dev Sets `fuulManager` for all {FuulProject}s to read from.
@@ -302,5 +313,49 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
         }
 
         protocolFeeCollector = newCollector;
+    }
+
+    /*╔═════════════════════════════╗
+      ║       TOKEN CURRENCIES      ║
+      ╚═════════════════════════════╝*/
+
+    /**
+     * @dev Adds a currency token.
+     * See {_addCurrencyToken}
+     *
+     * Requirements:
+     *
+     * - Only admins can call this function.
+     */
+    function addCurrencyToken(
+        address tokenAddress
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (acceptedCurrencies[tokenAddress]) {
+            revert TokenCurrencyAlreadyAccepted();
+        }
+
+        acceptedCurrencies[tokenAddress] = true;
+    }
+
+    /**
+     * @dev Removes a currency token.
+     *
+     * Notes:
+     * - Projects will not be able to deposit with the currency token.
+     * - We don't remove the `currencyToken` object because users will still be able to claim/remove it
+     *
+     * Requirements:
+     *
+     * - `tokenAddress` must be accepted.
+     * - Only admins can call this function.
+     */
+    function removeCurrencyToken(
+        address tokenAddress
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (!acceptedCurrencies[tokenAddress]) {
+            revert TokenCurrencyNotAccepted();
+        }
+
+        acceptedCurrencies[tokenAddress] = false;
     }
 }

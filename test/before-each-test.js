@@ -46,13 +46,15 @@ const deployManager = async function (
 const deployFactory = async function (
   fuulManagerAddress,
   protocolFeeCollector,
-  nftFeeCurrency
+  nftFeeCurrency,
+  tokenAddress
 ) {
   const FuulFactory = await hre.ethers.getContractFactory("FuulFactory");
   const fuulFactory = await FuulFactory.deploy(
     fuulManagerAddress,
     protocolFeeCollector,
-    nftFeeCurrency
+    nftFeeCurrency,
+    tokenAddress
   );
 
   await fuulFactory.deployed();
@@ -95,7 +97,8 @@ const setupTest = async function (deployProject = true) {
   const fuulFactory = await deployFactory(
     fuulManager.address,
     protocolFeeCollector.address,
-    nftFeeCurrency.address
+    nftFeeCurrency.address,
+    token.address
   );
 
   const adminRole = await fuulFactory.DEFAULT_ADMIN_ROLE();

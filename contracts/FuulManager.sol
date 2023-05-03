@@ -31,7 +31,7 @@ contract FuulManager is
     mapping(address => mapping(address => uint256)) public usersClaims;
 
     // Mapping addresses with tokens info
-    mapping(address => CurrencyToken) public currencyTokens;
+    mapping(address => CurrencyTokenLimit) public currencyTokens;
 
     /*╔═════════════════════════════╗
       ║         CONSTRUCTOR         ║
@@ -55,8 +55,8 @@ contract FuulManager is
         _setupRole(ATTRIBUTOR_ROLE, _attributor);
         _setupRole(PAUSER_ROLE, _pauser);
 
-        _addCurrencyToken(acceptedERC20CurrencyToken, initialTokenLimit);
-        _addCurrencyToken(address(0), initialNativeTokenLimit);
+        _addCurrencyLimit(acceptedERC20CurrencyToken, initialTokenLimit);
+        _addCurrencyLimit(address(0), initialNativeTokenLimit);
     }
 
     /*╔═════════════════════════════╗
@@ -133,15 +133,6 @@ contract FuulManager is
       ╚═════════════════════════════╝*/
 
     /**
-     * @dev Returns whether the currency token is accepted.
-     */
-    function isCurrencyTokenAccepted(
-        address tokenAddress
-    ) public view returns (bool isAccepted) {
-        return currencyTokens[tokenAddress].isActive;
-    }
-
-    /**
      * @dev Adds a currency token.
      * See {_addCurrencyToken}
      *
@@ -149,34 +140,11 @@ contract FuulManager is
      *
      * - Only admins can call this function.
      */
-    function addCurrencyToken(
+    function addCurrencyLimit(
         address tokenAddress,
         uint256 claimLimitPerCooldown
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _addCurrencyToken(tokenAddress, claimLimitPerCooldown);
-    }
-
-    /**
-     * @dev Removes a currency token.
-     *
-     * Notes:
-     * - Projects will not be able to deposit with the currency token.
-     * - We don't remove the `currencyToken` object because users will still be able to claim/remove it
-     *
-     * Requirements:
-     *
-     * - `tokenAddress` must be accepted.
-     * - Only admins can call this function.
-     */
-    function removeCurrencyToken(
-        address tokenAddress
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (!isCurrencyTokenAccepted(tokenAddress)) {
-            revert TokenCurrencyNotAccepted();
-        }
-        CurrencyToken storage currency = currencyTokens[tokenAddress];
-
-        currency.isActive = false;
+        _addCurrencyLimit(tokenAddress, claimLimitPerCooldown);
     }
 
     /**
@@ -196,7 +164,7 @@ contract FuulManager is
         address tokenAddress,
         uint256 limit
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        CurrencyToken storage currency = currencyTokens[tokenAddress];
+        CurrencyTokenLimit storage currency = currencyTokens[tokenAddress];
 
         if (limit == 0 || limit == currency.claimLimitPerCooldown) {
             revert InvalidArgument();
@@ -296,7 +264,7 @@ contract FuulManager is
                     claimCheck.amounts
                 );
 
-            CurrencyToken storage currencyInfo = currencyTokens[currency];
+            CurrencyTokenLimit storage currencyInfo = currencyTokens[currency];
 
             // Limit
 
@@ -342,23 +310,18 @@ contract FuulManager is
      * - `tokenAddress` must not be accepted yet.
      * - `claimLimitPerCooldown` should be greater than zero.
      */
-    function _addCurrencyToken(
+    function _addCurrencyLimit(
         address tokenAddress,
         uint256 claimLimitPerCooldown
     ) internal {
-        if (isCurrencyTokenAccepted(tokenAddress)) {
-            revert TokenCurrencyAlreadyAccepted();
-        }
-
         if (claimLimitPerCooldown == 0) {
             revert InvalidArgument();
         }
 
-        currencyTokens[tokenAddress] = CurrencyToken({
+        currencyTokens[tokenAddress] = CurrencyTokenLimit({
             claimLimitPerCooldown: claimLimitPerCooldown,
             cumulativeClaimPerCooldown: 0,
-            claimCooldownPeriodStarted: block.timestamp,
-            isActive: true
+            claimCooldownPeriodStarted: block.timestamp
         });
     }
 }

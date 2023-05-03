@@ -105,27 +105,13 @@ describe("Fuul Manager - Token currency management", function () {
   });
 
   it("Should add new currency", async function () {
-    await this.fuulManager.addCurrencyToken(this.newCurrency, this.limit);
+    await this.fuulManager.addCurrencyLimit(this.newCurrency, this.limit);
 
     const currency = await this.fuulManager.currencyTokens(this.newCurrency);
 
     expect(currency.claimLimitPerCooldown).to.equal(this.limit);
     expect(currency.cumulativeClaimPerCooldown).to.equal(0);
     expect(Number(currency.claimCooldownPeriodStarted)).to.be.greaterThan(0);
-    expect(currency.isActive).to.equal(true);
-
-    expect(
-      await this.fuulManager.isCurrencyTokenAccepted(this.newCurrency)
-    ).to.equal(true);
-  });
-
-  it("Should remove currency", async function () {
-    const removeCurrency = this.token.address;
-    await this.fuulManager.removeCurrencyToken(removeCurrency);
-
-    const currency = await this.fuulManager.currencyTokens(removeCurrency);
-
-    expect(currency.isActive).to.equal(false);
   });
 
   it("Should set new currency limit", async function () {
@@ -137,7 +123,7 @@ describe("Fuul Manager - Token currency management", function () {
     expect(currency.claimLimitPerCooldown).to.equal(limit);
   });
 
-  it("Should fail to add, remove and set limit for a currency if not admin role", async function () {
+  it("Should fail to add and set limit for a currency if not admin role", async function () {
     const error = `AccessControl: account ${this.user2.address.toLowerCase()} is missing role ${
       this.adminRole
     }`;
@@ -146,7 +132,7 @@ describe("Fuul Manager - Token currency management", function () {
     await expect(
       this.fuulManager
         .connect(this.user2)
-        .addCurrencyToken(this.newCurrency, this.limit)
+        .addCurrencyLimit(this.newCurrency, this.limit)
     ).to.be.revertedWith(error);
 
     // Set token limit
@@ -156,39 +142,14 @@ describe("Fuul Manager - Token currency management", function () {
         .connect(this.user2)
         .setCurrencyTokenLimit(this.newCurrency, this.limit)
     ).to.be.revertedWith(error);
-
-    // Remove currency
-    const removeCurrency = this.token.address;
-
-    await expect(
-      this.fuulManager.connect(this.user2).removeCurrencyToken(removeCurrency)
-    ).to.be.revertedWith(error);
   });
 
   it("Should fail to add currency if incorrect arguments are passed", async function () {
-    // Token already accepted
-
-    await expect(
-      this.fuulManager.addCurrencyToken(this.token.address, this.limit)
-    ).to.be.revertedWithCustomError(
-      this.fuulManager,
-      "TokenCurrencyAlreadyAccepted"
-    );
-
     // Limit = 0
 
     await expect(
-      this.fuulManager.addCurrencyToken(this.newCurrency, 0)
+      this.fuulManager.addCurrencyLimit(this.newCurrency, 0)
     ).to.be.revertedWithCustomError(this.fuulManager, "InvalidArgument");
-  });
-
-  it("Should fail to remove currency and not accepted", async function () {
-    await expect(
-      this.fuulManager.removeCurrencyToken(this.user2.address)
-    ).to.be.revertedWithCustomError(
-      this.fuulManager,
-      "TokenCurrencyNotAccepted"
-    );
   });
 
   it("Should fail to set new token limit if incorrect arguments are passed", async function () {
@@ -279,7 +240,7 @@ describe("Fuul Manager - Attribute", function () {
     );
 
     // Deposit ERC721
-    await this.fuulManager.addCurrencyToken(nft721.address, this.amounts);
+    await this.fuulFactory.addCurrencyToken(nft721.address);
 
     await this.nft721.setApprovalForAll(this.fuulProject.address, true);
 
@@ -287,7 +248,7 @@ describe("Fuul Manager - Attribute", function () {
 
     // Deposit ERC1155
 
-    await this.fuulManager.addCurrencyToken(nft1155.address, this.amounts);
+    await this.fuulFactory.addCurrencyToken(nft1155.address);
 
     await this.nft1155.setApprovalForAll(this.fuulProject.address, true);
 
@@ -751,7 +712,9 @@ describe("Fuul Manager - Claim", function () {
     );
 
     // Deposit ERC721
-    await this.fuulManager.addCurrencyToken(nft721.address, this.amounts);
+    await this.fuulFactory.addCurrencyToken(nft721.address);
+
+    await this.fuulManager.addCurrencyLimit(nft721.address, this.tokenAmount);
 
     await this.nft721.setApprovalForAll(this.fuulProject.address, true);
 
@@ -759,7 +722,9 @@ describe("Fuul Manager - Claim", function () {
 
     // Deposit ERC1155
 
-    await this.fuulManager.addCurrencyToken(nft1155.address, this.amounts);
+    await this.fuulFactory.addCurrencyToken(nft1155.address);
+
+    await this.fuulManager.addCurrencyLimit(nft1155.address, this.tokenAmount);
 
     await this.nft1155.setApprovalForAll(this.fuulProject.address, true);
 
@@ -1055,7 +1020,7 @@ describe("Fuul Manager - Claim", function () {
 
     // Remove token
 
-    await this.fuulManager.removeCurrencyToken(currency);
+    await this.fuulFactory.removeCurrencyToken(currency);
 
     const tokenIds = [1, 2];
 

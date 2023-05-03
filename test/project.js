@@ -48,6 +48,7 @@ describe("Fuul Project - Deposit and remove fungible", function () {
   beforeEach(async function () {
     const {
       fuulProject,
+      fuulFactory,
       fuulManager,
       token,
       user1,
@@ -57,6 +58,7 @@ describe("Fuul Project - Deposit and remove fungible", function () {
     } = await setupTest();
 
     this.fuulProject = fuulProject;
+    this.fuulFactory = fuulFactory;
     this.fuulManager = fuulManager;
     this.token = token;
     this.user1 = user1;
@@ -248,7 +250,7 @@ describe("Fuul Project - Deposit and remove fungible", function () {
     );
 
     // Remove token currency
-    await this.fuulManager.removeCurrencyToken(this.token.address);
+    await this.fuulFactory.removeCurrencyToken(this.token.address);
 
     // Apply to remove
     await this.fuulProject.applyToRemoveBudget();
@@ -303,7 +305,7 @@ describe("Fuul Project - Deposit and remove fungible", function () {
   });
 
   it("Should fail to deposit if token currency is removed", async function () {
-    await this.fuulManager.removeCurrencyToken(this.token.address);
+    await this.fuulFactory.removeCurrencyToken(this.token.address);
     await expect(
       this.fuulProject.depositFungibleToken(this.token.address, this.amount)
     ).to.be.revertedWithCustomError(
@@ -315,10 +317,18 @@ describe("Fuul Project - Deposit and remove fungible", function () {
 
 describe("Fuul Project - Deposit and remove NFT 721", function () {
   beforeEach(async function () {
-    const { fuulProject, fuulManager, nft721, user1, user2, adminRole } =
-      await setupTest();
+    const {
+      fuulProject,
+      fuulFactory,
+      fuulManager,
+      nft721,
+      user1,
+      user2,
+      adminRole,
+    } = await setupTest();
 
     this.fuulProject = fuulProject;
+    this.fuulFactory = fuulFactory;
     this.fuulManager = fuulManager;
     this.nft721 = nft721;
     this.user1 = user1;
@@ -327,7 +337,7 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
 
     // Add token
 
-    await this.fuulManager.addCurrencyToken(nft721.address, 100);
+    await this.fuulFactory.addCurrencyToken(nft721.address);
 
     this.tokenIds = [1, 2, 3, 4];
 
@@ -409,7 +419,7 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     );
 
     // Remove token
-    await this.fuulManager.removeCurrencyToken(this.nft721.address);
+    await this.fuulFactory.removeCurrencyToken(this.nft721.address);
 
     // Apply to remove
     await this.fuulProject.applyToRemoveBudget();
@@ -495,7 +505,7 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
   });
 
   it("Should fail to deposit if token currency is removed", async function () {
-    await this.fuulManager.removeCurrencyToken(this.nft721.address);
+    await this.fuulFactory.removeCurrencyToken(this.nft721.address);
 
     await expect(
       this.fuulProject.depositNFTToken(this.nft721.address, this.tokenIds, [])
@@ -508,10 +518,11 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
 
 describe("Fuul Project - Deposit and remove unmatching token types", function () {
   beforeEach(async function () {
-    const { fuulProject, fuulManager, token, nft721, nft1155 } =
+    const { fuulProject, fuulFactory, fuulManager, token, nft721, nft1155 } =
       await setupTest();
 
     this.fuulProject = fuulProject;
+    this.fuulFactory = fuulFactory;
     this.fuulManager = fuulManager;
     this.token = token;
     this.nft721 = nft721;
@@ -535,7 +546,7 @@ describe("Fuul Project - Deposit and remove unmatching token types", function ()
 
     this.tokenIds = [1, 2, 3, 4, 5];
 
-    await this.fuulManager.addCurrencyToken(this.nft721.address, 10);
+    await this.fuulFactory.addCurrencyToken(this.nft721.address);
 
     await this.fuulProject.depositNFTToken(
       this.nft721.address,
@@ -595,16 +606,18 @@ describe("Fuul Project - Deposit and remove unmatching token types", function ()
 
 describe("Fuul Project - Deposit and remove NFT 1155", function () {
   beforeEach(async function () {
-    const { fuulProject, fuulManager, nft1155, user1 } = await setupTest();
+    const { fuulProject, fuulFactory, fuulManager, nft1155, user1 } =
+      await setupTest();
 
     this.fuulProject = fuulProject;
+    this.fuulFactory = fuulFactory;
     this.fuulManager = fuulManager;
     this.nft1155 = nft1155;
     this.user1 = user1;
 
     // Add token
 
-    await this.fuulManager.addCurrencyToken(nft1155.address, 100);
+    await this.fuulFactory.addCurrencyToken(nft1155.address);
 
     this.tokenIds = [1, 2, 3, 4];
 

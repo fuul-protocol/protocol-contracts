@@ -5,11 +5,10 @@ import "./IFuulProject.sol";
 pragma solidity ^0.8.18;
 
 interface IFuulManager {
-    struct CurrencyToken {
+    struct CurrencyTokenLimit {
         uint256 claimLimitPerCooldown;
         uint256 cumulativeClaimPerCooldown;
         uint256 claimCooldownPeriodStarted;
-        bool isActive;
     }
 
     struct ClaimCheck {
@@ -29,8 +28,7 @@ interface IFuulManager {
       ╚═════════════════════════════╝*/
 
     error InvalidArgument();
-    error TokenCurrencyAlreadyAccepted();
-    error TokenCurrencyNotAccepted();
+
     error OverTheLimit();
 
     /*╔═════════════════════════════╗
@@ -65,18 +63,12 @@ interface IFuulManager {
 
     function currencyTokens(
         address currencyToken
-    ) external view returns (uint256, uint256, uint256, bool);
+    ) external view returns (uint256, uint256, uint256);
 
-    function isCurrencyTokenAccepted(
-        address currencyToken
-    ) external view returns (bool isAccepted);
-
-    function addCurrencyToken(
+    function addCurrencyLimit(
         address tokenAddress,
         uint256 claimLimitPerCooldown
     ) external;
-
-    function removeCurrencyToken(address tokenAddress) external;
 
     function setCurrencyTokenLimit(
         address tokenAddress,

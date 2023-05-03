@@ -74,7 +74,7 @@ contract FuulProject is
     }
 
     /**
-     * @dev Modifier to check if the currency is accepted in {FuulManager}.
+     * @dev Modifier to check if the currency is accepted in {FuulFactory}.
      */
     modifier isCurrencyAccepted(address currency) {
         _isCurrencyAccepted(currency);
@@ -82,11 +82,11 @@ contract FuulProject is
     }
 
     /**
-     * @dev Internal function for {isCurrencyAccepted} modifier. Reverts with a {TokenCurrencyNotAccepted} error.
+     * @dev Internal function for {isCurrencyAccepted} modifier. Reverts with a TokenCurrencyNotAccepted error.
      */
     function _isCurrencyAccepted(address currency) internal view {
-        if (!_fuulManagerInstance().isCurrencyTokenAccepted(currency)) {
-            revert IFuulManager.TokenCurrencyNotAccepted();
+        if (!fuulFactoryInstance.acceptedCurrencies(currency)) {
+            revert IFuulFactory.TokenCurrencyNotAccepted();
         }
     }
 

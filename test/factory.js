@@ -148,3 +148,75 @@ describe("Fuul Factory - Fees management", function () {
     ).to.be.revertedWith(error);
   });
 });
+
+describe("Fuul Factory - Token currency management", function () {
+  beforeEach(async function () {
+    const { fuulFactory, nft721, token, user1, user2, adminRole } =
+      await setupTest();
+
+    this.fuulFactory = fuulFactory;
+    this.nft721 = nft721;
+    this.token = token;
+    this.user1 = user1;
+    this.user2 = user2;
+    this.adminRole = adminRole;
+
+    this.newCurrency = this.nft721.address;
+    this.limit = ethers.utils.parseEther("100");
+  });
+
+  it("Should add new currency", async function () {
+    await this.fuulFactory.addCurrencyToken(this.newCurrency);
+
+    expect(
+      await this.fuulFactory.acceptedCurrencies(this.newCurrency)
+    ).to.equal(true);
+  });
+
+  it("Should remove currency", async function () {
+    const removeCurrency = this.token.address;
+    await this.fuulFactory.removeCurrencyToken(removeCurrency);
+
+    expect(await this.fuulFactory.acceptedCurrencies(removeCurrency)).to.equal(
+      false
+    );
+  });
+
+  it("Should fail to add and remove currency if not admin role", async function () {
+    const error = `AccessControl: account ${this.user2.address.toLowerCase()} is missing role ${
+      this.adminRole
+    }`;
+
+    // Add currency
+    await expect(
+      this.fuulFactory.connect(this.user2).addCurrencyToken(this.newCurrency)
+    ).to.be.revertedWith(error);
+
+    // Remove currency
+    const removeCurrency = this.token.address;
+
+    await expect(
+      this.fuulFactory.connect(this.user2).removeCurrencyToken(removeCurrency)
+    ).to.be.revertedWith(error);
+  });
+
+  it("Should fail to add currency if incorrect arguments are passed", async function () {
+    // Token already accepted
+
+    await expect(
+      this.fuulFactory.addCurrencyToken(this.token.address)
+    ).to.be.revertedWithCustomError(
+      this.fuulFactory,
+      "TokenCurrencyAlreadyAccepted"
+    );
+  });
+
+  it("Should fail to remove currency and not accepted", async function () {
+    await expect(
+      this.fuulFactory.removeCurrencyToken(this.user2.address)
+    ).to.be.revertedWithCustomError(
+      this.fuulFactory,
+      "TokenCurrencyNotAccepted"
+    );
+  });
+});
