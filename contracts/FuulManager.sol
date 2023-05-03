@@ -45,7 +45,6 @@ contract FuulManager is
         uint256 initialNativeTokenLimit
     ) {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-
         _setupRole(ATTRIBUTOR_ROLE, _attributor);
         _setupRole(PAUSER_ROLE, _pauser);
 
@@ -81,7 +80,7 @@ contract FuulManager is
 
     /**
      * @dev Adds a currency token.
-     * See {_addCurrencyToken}
+     * See {_addCurrencyToken}.
      *
      * Requirements:
      *
@@ -157,12 +156,12 @@ contract FuulManager is
       ╚═════════════════════════════╝*/
 
     /**
-     * @dev Attributes: calls the `attributeTransactions` function in {FuulProject} from an array of {AttributionEntity}.
+     * @dev Attributes: calls the `attributeTransactions` function in {FuulProject} from an array of `AttributionEntity`.
      *
      * Requirements:
      *
      * - Contract should not be paused.
-     * - Only addresses with the ATTRIBUTOR_ROLE can call this function.
+     * - Only addresses with the `ATTRIBUTOR_ROLE` can call this function.
      */
 
     function attributeTransactions(
@@ -183,7 +182,7 @@ contract FuulManager is
     }
 
     /**
-     * @dev Claims: calls the `claimFromProject` function in {FuulProject} from an array of of {ClaimCheck}.
+     * @dev Claims: calls the `claimFromProject` function in {FuulProject} from an array of of `ClaimCheck`.
      *
      * Requirements:
      *
