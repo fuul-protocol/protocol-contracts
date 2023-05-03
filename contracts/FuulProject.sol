@@ -764,6 +764,7 @@ contract FuulProject is
         } else if (currency.supportsInterface(IID_IERC721)) {
             uint256 tokenIdsLength = tokenIds.length;
 
+            // Check that the amount of tokenIds to claim is equal to the available amount
             if (availableAmount != tokenIdsLength) {
                 revert IFuulManager.InvalidArgument();
             }
@@ -776,6 +777,8 @@ contract FuulProject is
                 tokenIdsLength
             );
         } else if (currency.supportsInterface(IID_IERC1155)) {
+            // Check that the sum of the amounts of tokenIds to claim is equal to the available amount
+
             if (availableAmount != _getSumFromArray(amounts)) {
                 revert IFuulManager.InvalidArgument();
             }
