@@ -19,13 +19,6 @@ interface IFuulFactory {
         address clientFeeCollector
     );
 
-    function createFuulProject(
-        address _projectAdmin,
-        address _projectEventSigner,
-        string memory _projectInfoURI,
-        address _clientFeeCollector
-    ) external;
-
     /*╔═════════════════════════════╗
       ║           ERRORS            ║
       ╚═════════════════════════════╝*/
@@ -37,6 +30,13 @@ interface IFuulFactory {
     /*╔═════════════════════════════╗
       ║        CREATE PROJECT       ║
       ╚═════════════════════════════╝*/
+
+    function createFuulProject(
+        address _projectAdmin,
+        address _projectEventSigner,
+        string memory _projectInfoURI,
+        address _clientFeeCollector
+    ) external;
 
     function projects(uint256 projectId) external returns (address);
 
