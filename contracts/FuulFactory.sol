@@ -110,10 +110,6 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
             revert ZeroAddress();
         }
 
-        if (bytes(_projectInfoURI).length == 0) {
-            revert IFuulProject.EmptyURI();
-        }
-
         address clone = Clones.clone(fuulProjectImplementation);
         FuulProject(clone).initialize(
             _projectAdmin,
@@ -192,8 +188,7 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
 
     /**
      * @dev Returns all fees for attribution.
-     * The function purpose is to pass all data when attributing.
-     * Reverts with a ManagerIsPaused error.
+     * The function purpose is to pass all necessary data to the {FuulProject} when attributing.
      */
     function getFeesInformation()
         external

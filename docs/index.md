@@ -50,6 +50,18 @@ uint256 clientFee
 uint256 attributorFee
 ```
 
+### projectBudgetCooldown
+
+```solidity
+uint256 projectBudgetCooldown
+```
+
+### projectRemoveBudgetPeriod
+
+```solidity
+uint256 projectRemoveBudgetPeriod
+```
+
 ### projects
 
 ```solidity
@@ -142,8 +154,7 @@ function getFeesInformation() external view returns (struct IFuulFactory.FeesInf
 ```
 
 _Returns all fees for attribution.
-The function purpose is to pass all data when attributing.
-Reverts with a ManagerIsPaused error._
+The function purpose is to pass all necessary data to the {FuulProject} when attributing._
 
 ### setProtocolFee
 
@@ -253,74 +264,6 @@ Requirements:
 - `tokenAddress` must be accepted.
 - Only admins can call this function._
 
-## FuulManager
-
-### ATTRIBUTOR_ROLE
-
-```solidity
-bytes32 ATTRIBUTOR_ROLE
-```
-
-### PAUSER_ROLE
-
-```solidity
-bytes32 PAUSER_ROLE
-```
-
-### projectBudgetCooldown
-
-```solidity
-uint256 projectBudgetCooldown
-```
-
-### projectRemoveBudgetPeriod
-
-```solidity
-uint256 projectRemoveBudgetPeriod
-```
-
-### claimCooldown
-
-```solidity
-uint256 claimCooldown
-```
-
-### usersClaims
-
-```solidity
-mapping(address => mapping(address => uint256)) usersClaims
-```
-
-### currencyLimits
-
-```solidity
-mapping(address => struct IFuulManager.CurrencyTokenLimit) currencyLimits
-```
-
-### constructor
-
-```solidity
-constructor(address _attributor, address _pauser, address acceptedERC20CurrencyToken, uint256 initialTokenLimit, uint256 initialNativeTokenLimit) public
-```
-
-_Grants roles to `_attributor`, `_pauser` and DEFAULT_ADMIN_ROLE to the deployer.
-
-Adds the initial `acceptedERC20CurrencyToken` as an accepted currency with its `initialTokenLimit`.
-Adds the zero address (native token) as an accepted currency with its `initialNativeTokenLimit`._
-
-### setClaimCooldown
-
-```solidity
-function setClaimCooldown(uint256 _period) external
-```
-
-_Sets the period for `claimCooldown`.
-
-Requirements:
-
-- `_period` must be different from the current one.
-- Only admins can call this function._
-
 ### setProjectBudgetCooldown
 
 ```solidity
@@ -354,111 +297,6 @@ function getBudgetRemoveInfo() external view returns (uint256 cooldown, uint256 
 ```
 
 _Returns removal info. The function purpose is to call only once from {FuulProject} when needing this info._
-
-### addCurrencyLimit
-
-```solidity
-function addCurrencyLimit(address tokenAddress, uint256 claimLimitPerCooldown) external
-```
-
-_Adds a currency token.
-See {_addCurrencyToken}
-
-Requirements:
-
-- Only admins can call this function._
-
-### setCurrencyTokenLimit
-
-```solidity
-function setCurrencyTokenLimit(address tokenAddress, uint256 limit) external
-```
-
-_Sets a new `claimLimitPerCooldown` for a currency token.
-
-Notes:
-We are not checking that the tokenAddress is accepted because
-users can claim from unaccepted currencies.
-
-Requirements:
-
-- `limit` must be greater than zero.
-- `limit` must be different from the current one.
-- Only admins can call this function._
-
-### pauseAll
-
-```solidity
-function pauseAll() external
-```
-
-_Pauses the contract and all {FuulProject}s.
-See {Pausable.sol}
-
-Requirements:
-
-- Only addresses with the PAUSER_ROLE can call this function._
-
-### unpauseAll
-
-```solidity
-function unpauseAll() external
-```
-
-_Unpauses the contract and all {FuulProject}s.
-See {Pausable.sol}
-
-Requirements:
-
-- Only addresses with the PAUSER_ROLE can call this function._
-
-### isPaused
-
-```solidity
-function isPaused() external view returns (bool)
-```
-
-_Returns whether the contract is paused.
-See {Pausable.sol}_
-
-### attributeTransactions
-
-```solidity
-function attributeTransactions(struct IFuulManager.AttributionEntity[] attributions, address attributorFeeCollector) external
-```
-
-_Attributes: calls the `attributeTransactions` function in {FuulProject} from an array of {AttributionEntity}.
-
-Requirements:
-
-- Contract should not be paused.
-- Only addresses with the ATTRIBUTOR_ROLE can call this function._
-
-### claim
-
-```solidity
-function claim(struct IFuulManager.ClaimCheck[] claimChecks) external
-```
-
-_Claims: calls the `claimFromProject` function in {FuulProject} from an array of of {ClaimCheck}.
-
-Requirements:
-
-- Contract should not be paused._
-
-### _addCurrencyLimit
-
-```solidity
-function _addCurrencyLimit(address tokenAddress, uint256 claimLimitPerCooldown) internal
-```
-
-_Adds a new `tokenAddress` to accepted currencies with its
-corresponding `claimLimitPerCooldown`.
-
-Requirements:
-
-- `tokenAddress` must not be accepted yet.
-- `claimLimitPerCooldown` should be greater than zero._
 
 ## FuulProject
 
@@ -607,14 +445,6 @@ function _fuulManagerAddress() internal view returns (address)
 ```
 
 _Returns the address of the active Fuul Manager contract._
-
-### _fuulManagerInstance
-
-```solidity
-function _fuulManagerInstance() internal view returns (contract IFuulManager)
-```
-
-_Returns the instance of the Fuul Manager contract._
 
 ### _setProjectURI
 
@@ -1056,6 +886,30 @@ function addCurrencyToken(address tokenAddress) external
 function removeCurrencyToken(address tokenAddress) external
 ```
 
+### projectBudgetCooldown
+
+```solidity
+function projectBudgetCooldown() external view returns (uint256 period)
+```
+
+### getBudgetRemoveInfo
+
+```solidity
+function getBudgetRemoveInfo() external view returns (uint256 cooldown, uint256 removeWindow)
+```
+
+### setProjectBudgetCooldown
+
+```solidity
+function setProjectBudgetCooldown(uint256 period) external
+```
+
+### setProjectRemoveBudgetPeriod
+
+```solidity
+function setProjectRemoveBudgetPeriod(uint256 period) external
+```
+
 ## IFuulManager
 
 ### CurrencyTokenLimit
@@ -1100,18 +954,6 @@ error InvalidArgument()
 error OverTheLimit()
 ```
 
-### projectBudgetCooldown
-
-```solidity
-function projectBudgetCooldown() external view returns (uint256 period)
-```
-
-### getBudgetRemoveInfo
-
-```solidity
-function getBudgetRemoveInfo() external view returns (uint256 cooldown, uint256 removeWindow)
-```
-
 ### claimCooldown
 
 ```solidity
@@ -1128,12 +970,6 @@ function usersClaims(address user, address currency) external view returns (uint
 
 ```solidity
 function setClaimCooldown(uint256 _period) external
-```
-
-### setProjectBudgetCooldown
-
-```solidity
-function setProjectBudgetCooldown(uint256 period) external
 ```
 
 ### currencyLimits
@@ -1408,6 +1244,167 @@ function attributeTransactions(struct IFuulProject.Attribution[] attributions, a
 ```solidity
 function claimFromProject(address currency, address receiver, uint256[] tokenIds, uint256[] amounts) external returns (uint256)
 ```
+
+## FuulManager
+
+### ATTRIBUTOR_ROLE
+
+```solidity
+bytes32 ATTRIBUTOR_ROLE
+```
+
+### PAUSER_ROLE
+
+```solidity
+bytes32 PAUSER_ROLE
+```
+
+### claimCooldown
+
+```solidity
+uint256 claimCooldown
+```
+
+### usersClaims
+
+```solidity
+mapping(address => mapping(address => uint256)) usersClaims
+```
+
+### currencyLimits
+
+```solidity
+mapping(address => struct IFuulManager.CurrencyTokenLimit) currencyLimits
+```
+
+### constructor
+
+```solidity
+constructor(address _attributor, address _pauser, address acceptedERC20CurrencyToken, uint256 initialTokenLimit, uint256 initialNativeTokenLimit) public
+```
+
+_Grants roles to `_attributor`, `_pauser` and DEFAULT_ADMIN_ROLE to the deployer.
+
+Adds the initial `acceptedERC20CurrencyToken` as an accepted currency with its `initialTokenLimit`.
+Adds the zero address (native token) as an accepted currency with its `initialNativeTokenLimit`._
+
+### setClaimCooldown
+
+```solidity
+function setClaimCooldown(uint256 _period) external
+```
+
+_Sets the period for `claimCooldown`.
+
+Requirements:
+
+- `_period` must be different from the current one.
+- Only admins can call this function._
+
+### addCurrencyLimit
+
+```solidity
+function addCurrencyLimit(address tokenAddress, uint256 claimLimitPerCooldown) external
+```
+
+_Adds a currency token.
+See {_addCurrencyToken}
+
+Requirements:
+
+- Only admins can call this function._
+
+### setCurrencyTokenLimit
+
+```solidity
+function setCurrencyTokenLimit(address tokenAddress, uint256 limit) external
+```
+
+_Sets a new `claimLimitPerCooldown` for a currency token.
+
+Notes:
+We are not checking that the tokenAddress is accepted because
+users can claim from unaccepted currencies.
+
+Requirements:
+
+- `limit` must be greater than zero.
+- `limit` must be different from the current one.
+- Only admins can call this function._
+
+### pauseAll
+
+```solidity
+function pauseAll() external
+```
+
+_Pauses the contract and all {FuulProject}s.
+See {Pausable.sol}
+
+Requirements:
+
+- Only addresses with the PAUSER_ROLE can call this function._
+
+### unpauseAll
+
+```solidity
+function unpauseAll() external
+```
+
+_Unpauses the contract and all {FuulProject}s.
+See {Pausable.sol}
+
+Requirements:
+
+- Only addresses with the PAUSER_ROLE can call this function._
+
+### isPaused
+
+```solidity
+function isPaused() external view returns (bool)
+```
+
+_Returns whether the contract is paused.
+See {Pausable.sol}_
+
+### attributeTransactions
+
+```solidity
+function attributeTransactions(struct IFuulManager.AttributionEntity[] attributions, address attributorFeeCollector) external
+```
+
+_Attributes: calls the `attributeTransactions` function in {FuulProject} from an array of {AttributionEntity}.
+
+Requirements:
+
+- Contract should not be paused.
+- Only addresses with the ATTRIBUTOR_ROLE can call this function._
+
+### claim
+
+```solidity
+function claim(struct IFuulManager.ClaimCheck[] claimChecks) external
+```
+
+_Claims: calls the `claimFromProject` function in {FuulProject} from an array of of {ClaimCheck}.
+
+Requirements:
+
+- Contract should not be paused._
+
+### _addCurrencyLimit
+
+```solidity
+function _addCurrencyLimit(address tokenAddress, uint256 claimLimitPerCooldown) internal
+```
+
+_Adds a new `tokenAddress` to accepted currencies with its
+corresponding `claimLimitPerCooldown`.
+
+Requirements:
+
+- `tokenAddress` must not be accepted yet.
+- `claimLimitPerCooldown` should be greater than zero._
 
 ## MockNFT1155Rewards
 
