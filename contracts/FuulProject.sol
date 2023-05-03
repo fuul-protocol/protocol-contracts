@@ -253,8 +253,8 @@ contract FuulProject is
      */
     function depositNFTToken(
         address currency,
-        uint256[] memory tokenIds,
-        uint256[] memory amounts
+        uint256[] calldata tokenIds,
+        uint256[] calldata amounts
     )
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
@@ -272,8 +272,7 @@ contract FuulProject is
                 currency,
                 _msgSender(),
                 address(this),
-                tokenIds,
-                tokenIds.length
+                tokenIds
             );
         } else if (currency.supportsInterface(IID_IERC1155)) {
             _transferERC1155Tokens(
@@ -421,8 +420,8 @@ contract FuulProject is
      */
     function removeNFTBudget(
         address currency,
-        uint256[] memory tokenIds,
-        uint256[] memory amounts
+        uint256[] calldata tokenIds,
+        uint256[] calldata amounts
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant canRemove {
         uint256 tokenIdsLength = tokenIds.length;
 
@@ -435,8 +434,7 @@ contract FuulProject is
                 currency,
                 address(this),
                 _msgSender(),
-                tokenIds,
-                tokenIdsLength
+                tokenIds
             );
 
             removeAmount = tokenIdsLength;
@@ -747,8 +745,8 @@ contract FuulProject is
     function claimFromProject(
         address currency,
         address receiver,
-        uint256[] memory tokenIds,
-        uint256[] memory amounts
+        uint256[] calldata tokenIds,
+        uint256[] calldata amounts
     ) external nonReentrant returns (uint256 availableAmount) {
         address fuulManagerAddress = fuulFactoryInstance.fuulManager();
         _onlyFuulManager(fuulManagerAddress);
@@ -769,13 +767,7 @@ contract FuulProject is
                 revert IFuulManager.InvalidArgument();
             }
 
-            _transferERC721Tokens(
-                currency,
-                address(this),
-                receiver,
-                tokenIds,
-                tokenIdsLength
-            );
+            _transferERC721Tokens(currency, address(this), receiver, tokenIds);
         } else if (currency.supportsInterface(IID_IERC1155)) {
             // Check that the sum of the amounts of tokenIds to claim is equal to the available amount
 
@@ -814,15 +806,17 @@ contract FuulProject is
         address tokenAddress,
         address senderAddress,
         address receiverAddress,
-        uint256[] memory tokenIds,
-        uint256 length
+        uint256[] calldata tokenIds
     ) internal {
-        for (uint256 i = 0; i < length; i++) {
+        for (uint256 i = 0; i < tokenIds.length; ) {
             IERC721(tokenAddress).safeTransferFrom(
                 senderAddress,
                 receiverAddress,
                 tokenIds[i]
             );
+            unchecked {
+                i++;
+            }
         }
     }
 
@@ -833,8 +827,8 @@ contract FuulProject is
         address tokenAddress,
         address senderAddress,
         address receiverAddress,
-        uint256[] memory tokenIds,
-        uint256[] memory amounts
+        uint256[] calldata tokenIds,
+        uint256[] calldata amounts
     ) internal {
         // Transfer from does not allow to send more funds than balance
         IERC1155(tokenAddress).safeBatchTransferFrom(
@@ -854,7 +848,7 @@ contract FuulProject is
      * @dev Helper function to sum all amounts inside the array.
      */
     function _getSumFromArray(
-        uint256[] memory amounts
+        uint256[] calldata amounts
     ) internal pure returns (uint256 result) {
         for (uint256 i = 0; i < amounts.length; i++) {
             result += amounts[i];
