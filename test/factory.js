@@ -2,7 +2,7 @@ const { expect } = require("chai");
 
 const { setupTest } = require("./before-each-test");
 
-describe("Fuul Factory", function () {
+describe("Fuul Factory - Create projects", function () {
   beforeEach(async function () {
     const { fuulFactory, user1, user2, adminRole } = await setupTest(
       (deployProject = false)
@@ -58,6 +58,93 @@ describe("Fuul Factory", function () {
 
     await expect(
       this.fuulFactory.connect(this.user2).setFuulManager(this.user2.address)
+    ).to.be.revertedWith(error);
+  });
+});
+
+describe("Fuul Factory - Fees management", function () {
+  beforeEach(async function () {
+    const { fuulFactory, user1, user2, adminRole } = await setupTest();
+
+    this.fuulFactory = fuulFactory;
+    this.user1 = user1;
+    this.user2 = user2;
+    this.adminRole = adminRole;
+
+    this.newFee = 5;
+  });
+
+  it("Should set new fees", async function () {
+    // Protocol Fees
+    await this.fuulFactory.setProtocolFee(this.newFee);
+
+    expect(await this.fuulFactory.protocolFee()).to.equal(this.newFee);
+
+    // Client Fees
+    await this.fuulFactory.setClientFee(this.newFee);
+
+    expect(await this.fuulFactory.clientFee()).to.equal(this.newFee);
+
+    // Attributor Fees
+    await this.fuulFactory.setAttributorFee(this.newFee);
+
+    expect(await this.fuulFactory.attributorFee()).to.equal(this.newFee);
+
+    // NFT Fixed fees
+    await this.fuulFactory.setNftFixedFeeAmounte(this.newFee);
+
+    expect(await this.fuulFactory.nftFixedFeeAmount()).to.equal(this.newFee);
+
+    // NFT fee currency
+    await this.fuulFactory.setNftFeeCurrency(this.user1.address);
+
+    expect(await this.fuulFactory.nftFeeCurrency()).to.equal(
+      this.user1.address
+    );
+
+    // Protocol fee collector
+    await this.fuulFactory.setProtocolFeeCollector(this.user1.address);
+
+    expect(await this.fuulFactory.protocolFeeCollector()).to.equal(
+      this.user1.address
+    );
+  });
+
+  it("Should fail to set new fees if not admin role", async function () {
+    const error = `AccessControl: account ${this.user2.address.toLowerCase()} is missing role ${
+      this.adminRole
+    }`;
+
+    // Protocol Fee
+    await expect(
+      this.fuulFactory.connect(this.user2).setProtocolFee(this.newFee)
+    ).to.be.revertedWith(error);
+
+    // Client Fees
+    await expect(
+      this.fuulFactory.connect(this.user2).setClientFee(this.newFee)
+    ).to.be.revertedWith(error);
+
+    // Attributor Fees
+    await expect(
+      this.fuulFactory.connect(this.user2).setAttributorFee(this.newFee)
+    ).to.be.revertedWith(error);
+
+    // NFT Fixed fees
+    await expect(
+      this.fuulFactory.connect(this.user2).setNftFixedFeeAmounte(this.newFee)
+    ).to.be.revertedWith(error);
+
+    // NFT fee currency
+    await expect(
+      this.fuulFactory.connect(this.user2).setNftFeeCurrency(this.user1.address)
+    ).to.be.revertedWith(error);
+
+    // Protocol fee collector
+    await expect(
+      this.fuulFactory
+        .connect(this.user2)
+        .setProtocolFeeCollector(this.user1.address)
     ).to.be.revertedWith(error);
   });
 });

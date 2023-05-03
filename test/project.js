@@ -732,6 +732,7 @@ describe("Fuul Project - Deposit and remove fee budget", function () {
     const {
       fuulProject,
       fuulManager,
+      fuulFactory,
       user1,
       user2,
       adminRole,
@@ -740,6 +741,8 @@ describe("Fuul Project - Deposit and remove fee budget", function () {
 
     this.fuulProject = fuulProject;
     this.fuulManager = fuulManager;
+    this.fuulFactory = fuulFactory;
+
     this.nftFeeCurrency = nftFeeCurrency;
     this.user1 = user1;
     this.user2 = user2;
@@ -847,7 +850,7 @@ describe("Fuul Project - Deposit and remove fee budget", function () {
     await this.fuulProject.depositFeeBudget(this.amount);
 
     // Change currency
-    await this.fuulManager.setNftFeeCurrency(this.user1.address);
+    await this.fuulFactory.setNftFeeCurrency(this.user1.address);
 
     // Apply to remove
     await this.fuulProject.applyToRemoveBudget();

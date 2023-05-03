@@ -63,6 +63,8 @@ contract FuulProject is
     // Mapping currency with fees when rewarding NFTs. Using mappings to be able to withdraw after fee currency changes
     mapping(address => uint256) public nftFeeBudget;
 
+    IFuulFactory immutable fuulFactoryInstance;
+
     /**
      * @dev Modifier to check if the project can remove funds. Reverts with an {OutsideRemovalWindow} error.
      */
@@ -115,6 +117,8 @@ contract FuulProject is
      */
     constructor() {
         fuulFactory = _msgSender();
+
+        fuulFactoryInstance = IFuulFactory(fuulFactory);
     }
 
     /**
@@ -151,7 +155,7 @@ contract FuulProject is
      * @dev Returns the address of the active Fuul Manager contract.
      */
     function _fuulManagerAddress() internal view returns (address) {
-        return IFuulFactory(fuulFactory).fuulManager();
+        return fuulFactoryInstance.fuulManager();
     }
 
     /**
@@ -503,7 +507,7 @@ contract FuulProject is
         nonReentrant
         nonZeroAmount(amount)
     {
-        address currency = _fuulManagerInstance().nftFeeCurrency();
+        address currency = fuulFactoryInstance.nftFeeCurrency();
 
         if (currency == address(0)) {
             if (msg.value != amount) {
@@ -575,7 +579,7 @@ contract FuulProject is
      */
 
     function _calculateAmountsForFungibleToken(
-        IFuulManager.FeesInformation memory feesInfo,
+        IFuulFactory.FeesInformation memory feesInfo,
         uint256 totalAmount,
         uint256 amountToPartner,
         uint256 amountToEndUser
@@ -615,7 +619,7 @@ contract FuulProject is
      *
      */
     function _calculateFeesForNFT(
-        IFuulManager.FeesInformation memory feesInfo
+        IFuulFactory.FeesInformation memory feesInfo
     ) internal pure returns (uint256[3] memory fees) {
         // Can this be unchecked?
 
@@ -651,13 +655,12 @@ contract FuulProject is
         Attribution[] calldata attributions,
         address attributorFeeCollector
     ) external nonReentrant {
-        address fuulManagerAddress = _fuulManagerAddress();
+        (
+            IFuulFactory.FeesInformation memory feesInfo,
+            address fuulManagerAddress
+        ) = fuulFactoryInstance.getFeesInformation();
 
         _onlyFuulManager(fuulManagerAddress);
-
-        IFuulManager.FeesInformation memory feesInfo = IFuulManager(
-            fuulManagerAddress
-        ).getFeesInformation();
 
         for (uint256 i = 0; i < attributions.length; i++) {
             Attribution memory attribution = attributions[i];

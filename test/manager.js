@@ -87,93 +87,6 @@ describe("Fuul Manager - Remove variables management", function () {
   });
 });
 
-describe("Fuul Manager - Fees management", function () {
-  beforeEach(async function () {
-    const { fuulManager, user1, user2, adminRole } = await setupTest();
-
-    this.fuulManager = fuulManager;
-    this.user1 = user1;
-    this.user2 = user2;
-    this.adminRole = adminRole;
-
-    this.newFee = 5;
-  });
-
-  it("Should set new fees", async function () {
-    // Protocol Fees
-    await this.fuulManager.setProtocolFee(this.newFee);
-
-    expect(await this.fuulManager.protocolFee()).to.equal(this.newFee);
-
-    // Client Fees
-    await this.fuulManager.setClientFee(this.newFee);
-
-    expect(await this.fuulManager.clientFee()).to.equal(this.newFee);
-
-    // Attributor Fees
-    await this.fuulManager.setAttributorFee(this.newFee);
-
-    expect(await this.fuulManager.attributorFee()).to.equal(this.newFee);
-
-    // NFT Fixed fees
-    await this.fuulManager.setNftFixedFeeAmounte(this.newFee);
-
-    expect(await this.fuulManager.nftFixedFeeAmount()).to.equal(this.newFee);
-
-    // NFT fee currency
-    await this.fuulManager.setNftFeeCurrency(this.user1.address);
-
-    expect(await this.fuulManager.nftFeeCurrency()).to.equal(
-      this.user1.address
-    );
-
-    // Protocol fee collector
-    await this.fuulManager.setProtocolFeeCollector(this.user1.address);
-
-    expect(await this.fuulManager.protocolFeeCollector()).to.equal(
-      this.user1.address
-    );
-  });
-
-  it("Should fail to set new fees if not admin role", async function () {
-    const error = `AccessControl: account ${this.user2.address.toLowerCase()} is missing role ${
-      this.adminRole
-    }`;
-
-    // Protocol Fee
-    await expect(
-      this.fuulManager.connect(this.user2).setProtocolFee(this.newFee)
-    ).to.be.revertedWith(error);
-
-    // Client Fees
-    await expect(
-      this.fuulManager.connect(this.user2).setClientFee(this.newFee)
-    ).to.be.revertedWith(error);
-
-    // Attributor Fees
-    await expect(
-      this.fuulManager.connect(this.user2).setAttributorFee(this.newFee)
-    ).to.be.revertedWith(error);
-
-    // NFT Fixed fees
-    await expect(
-      this.fuulManager.connect(this.user2).setNftFixedFeeAmounte(this.newFee)
-    ).to.be.revertedWith(error);
-
-    // NFT fee currency
-    await expect(
-      this.fuulManager.connect(this.user2).setNftFeeCurrency(this.user1.address)
-    ).to.be.revertedWith(error);
-
-    // Protocol fee collector
-    await expect(
-      this.fuulManager
-        .connect(this.user2)
-        .setProtocolFeeCollector(this.user1.address)
-    ).to.be.revertedWith(error);
-  });
-});
-
 describe("Fuul Manager - Token currency management", function () {
   beforeEach(async function () {
     const { fuulManager, nft721, token, user1, user2, adminRole, limitAmount } =
@@ -399,7 +312,9 @@ describe("Fuul Manager - Attribute", function () {
         "0x70726f6f66000000000000000000000000000000000000000000000000000000",
     };
 
-    this.feesInfo = await this.fuulManager.getFeesInformation();
+    const result = await this.fuulFactory.getFeesInformation();
+
+    this.feesInfo = result[0];
 
     this.nftFixedFeeAmountInEth = ethers.utils.formatEther(
       this.feesInfo.nftFixedFeeAmount.toString()

@@ -24,15 +24,6 @@ interface IFuulManager {
         IFuulProject.Attribution[] projectAttributions;
     }
 
-    struct FeesInformation {
-        uint256 protocolFee;
-        uint256 attributorFee;
-        uint256 clientFee;
-        address protocolFeeCollector;
-        uint256 nftFixedFeeAmount;
-        address nftFeeCurrency;
-    }
-
     /*╔═════════════════════════════╗
       ║           ERRORS            ║
       ╚═════════════════════════════╝*/
@@ -60,18 +51,6 @@ interface IFuulManager {
         address currency
     ) external view returns (uint256);
 
-    function protocolFee() external view returns (uint256 fees);
-
-    function protocolFeeCollector() external view returns (address);
-
-    function getFeesInformation() external returns (FeesInformation memory);
-
-    function clientFee() external view returns (uint256 fees);
-
-    function attributorFee() external view returns (uint256 fees);
-
-    function nftFeeCurrency() external view returns (address);
-
     /*╔═════════════════════════════╗
       ║       REMOVE VARIABLES      ║
       ╚═════════════════════════════╝*/
@@ -79,16 +58,6 @@ interface IFuulManager {
     function setClaimCooldown(uint256 _period) external;
 
     function setProjectBudgetCooldown(uint256 period) external;
-
-    /*╔═════════════════════════════╗
-      ║        FEES VARIABLES       ║
-      ╚═════════════════════════════╝*/
-
-    function setProtocolFee(uint256 value) external;
-
-    function setClientFee(uint256 value) external;
-
-    function setAttributorFee(uint256 value) external;
 
     /*╔═════════════════════════════╗
       ║       TOKEN CURRENCIES      ║
@@ -128,9 +97,10 @@ interface IFuulManager {
       ║      ATTRIBUTE AND CLAIM    ║
       ╚═════════════════════════════╝*/
 
-    // function attributeTransactions(
-    //     AttributeCheck[] calldata attributeChecks
-    // ) external;
+    function attributeTransactions(
+        AttributionEntity[] memory attributions,
+        address attributorFeeCollector
+    ) external;
 
     function claim(ClaimCheck[] calldata claimChecks) external;
 }

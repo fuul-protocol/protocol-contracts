@@ -27,24 +27,6 @@ contract FuulManager is
     // Amount of time that must elapse after {claimCooldownPeriodStarted} for the cumulative amount to be restarted
     uint256 public claimCooldown = 1 days;
 
-    // Fixed fee for NFT rewards
-    uint256 public nftFixedFeeAmount = 0.1 ether;
-
-    // Protocol fee percentage. 1 => 0.01%
-    uint256 public protocolFee = 100;
-
-    // Client fee. 1 => 0.01%
-    uint256 public clientFee = 100;
-
-    // Attributor fee. 1 => 0.01%
-    uint256 public attributorFee = 100;
-
-    // Address that will collect protocol fees
-    address public protocolFeeCollector;
-
-    // Currency paid for NFT fixed fees
-    address public nftFeeCurrency;
-
     // Mapping users and currency with total amount claimed
     mapping(address => mapping(address => uint256)) public usersClaims;
 
@@ -66,9 +48,7 @@ contract FuulManager is
         address _pauser,
         address acceptedERC20CurrencyToken,
         uint256 initialTokenLimit,
-        uint256 initialNativeTokenLimit,
-        address _protocolFeeCollector,
-        address _nftFeeCurrency
+        uint256 initialNativeTokenLimit
     ) {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
@@ -77,9 +57,6 @@ contract FuulManager is
 
         _addCurrencyToken(acceptedERC20CurrencyToken, initialTokenLimit);
         _addCurrencyToken(address(0), initialNativeTokenLimit);
-
-        protocolFeeCollector = _protocolFeeCollector;
-        nftFeeCurrency = _nftFeeCurrency;
     }
 
     /*╔═════════════════════════════╗
@@ -149,139 +126,6 @@ contract FuulManager is
         returns (uint256 cooldown, uint256 removeWindow)
     {
         return (projectBudgetCooldown, projectRemoveBudgetPeriod);
-    }
-
-    /*╔═════════════════════════════╗
-      ║        FEES VARIABLES       ║
-      ╚═════════════════════════════╝*/
-
-    /**
-     * @dev Returns all fees for attribution.
-     * The function purpose is to call only once from {FuulProject} when needing this info.
-     * Reverts with a ManagerIsPaused error.
-     */
-    function getFeesInformation()
-        external
-        view
-        returns (FeesInformation memory)
-    {
-        return
-            FeesInformation({
-                protocolFee: protocolFee,
-                attributorFee: attributorFee,
-                clientFee: clientFee,
-                protocolFeeCollector: protocolFeeCollector,
-                nftFixedFeeAmount: nftFixedFeeAmount,
-                nftFeeCurrency: nftFeeCurrency
-            });
-    }
-
-    /**
-     * @dev Sets the protocol fees for each attribution.
-     *
-     * Requirements:
-     *
-     * - `_value` must be different from the current one.
-     * - Only admins can call this function.
-     */
-    function setProtocolFee(
-        uint256 _value
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_value == protocolFee) {
-            revert InvalidArgument();
-        }
-
-        protocolFee = _value;
-    }
-
-    /**
-     * @dev Sets the fees for the client that was used to create the project.
-     *
-     * Requirements:
-     *
-     * - `_value` must be different from the current one.
-     * - Only admins can call this function.
-     */
-    function setClientFee(
-        uint256 _value
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_value == clientFee) {
-            revert InvalidArgument();
-        }
-
-        clientFee = _value;
-    }
-
-    /**
-     * @dev Sets the fees for the attributor.
-     *
-     * Requirements:
-     *
-     * - `_value` must be different from the current one.
-     * - Only admins can call this function.
-     */
-    function setAttributorFee(
-        uint256 _value
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_value == attributorFee) {
-            revert InvalidArgument();
-        }
-
-        attributorFee = _value;
-    }
-
-    /**
-     * @dev Sets the fixed fee amount for NFT rewards.
-     *
-     * Requirements:
-     *
-     * - `_value` must be different from the current one.
-     * - Only admins can call this function.
-     */
-    function setNftFixedFeeAmounte(
-        uint256 _value
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_value == nftFixedFeeAmount) {
-            revert InvalidArgument();
-        }
-
-        nftFixedFeeAmount = _value;
-    }
-
-    /**
-     * @dev Sets the currency that will be used to pay NFT rewards fees.
-     *
-     * Requirements:
-     *
-     * - `_value` must be different from the current one.
-     * - Only admins can call this function.
-     */
-    function setNftFeeCurrency(
-        address newCurrency
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (newCurrency == nftFeeCurrency) {
-            revert InvalidArgument();
-        }
-
-        nftFeeCurrency = newCurrency;
-    }
-
-    /**
-     * @dev Sets the protocol fee collector address.
-     *
-     * Requirements:
-     *
-     * - `_value` must be different from the current one.
-     * - Only admins can call this function.
-     */
-    function setProtocolFeeCollector(
-        address newCollector
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (newCollector == protocolFeeCollector) {
-            revert InvalidArgument();
-        }
-
-        protocolFeeCollector = newCollector;
     }
 
     /*╔═════════════════════════════╗

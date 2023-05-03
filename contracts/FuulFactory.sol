@@ -22,6 +22,24 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
     // Fuul Manager address
     address public fuulManager;
 
+    // Address that will collect protocol fees
+    address public protocolFeeCollector;
+
+    // Currency paid for NFT fixed fees
+    address public nftFeeCurrency;
+
+    // Fixed fee for NFT rewards
+    uint256 public nftFixedFeeAmount = 0.1 ether;
+
+    // Protocol fee percentage. 1 => 0.01%
+    uint256 public protocolFee = 100;
+
+    // Client fee. 1 => 0.01%
+    uint256 public clientFee = 100;
+
+    // Attributor fee. 1 => 0.01%
+    uint256 public attributorFee = 100;
+
     // Mapping project id with deployed contract address
     mapping(uint256 => address) public projects;
 
@@ -35,12 +53,23 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
      * `fuulProjectImplementation` value is immutable: it can only be set once during
      * construction.
      */
-    constructor(address _fuulManager) {
+    constructor(
+        address _fuulManager,
+        address _protocolFeeCollector,
+        address _nftFeeCurrency
+    ) {
         fuulManager = _fuulManager;
         fuulProjectImplementation = address(new FuulProject());
 
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+
+        protocolFeeCollector = _protocolFeeCollector;
+        nftFeeCurrency = _nftFeeCurrency;
     }
+
+    /*╔═════════════════════════════╗
+      ║        CREATE PROJECT       ║
+      ╚═════════════════════════════╝*/
 
     /**
      * @dev Creates a new Project. It deploys a new clone of the implementation
@@ -138,5 +167,140 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
             revert IFuulManager.InvalidArgument();
         }
         fuulManager = _fuulManager;
+    }
+
+    /*╔═════════════════════════════╗
+      ║        FEES VARIABLES       ║
+      ╚═════════════════════════════╝*/
+
+    /**
+     * @dev Returns all fees for attribution.
+     * The function purpose is to pass all data when attributing.
+     * Reverts with a ManagerIsPaused error.
+     */
+    function getFeesInformation()
+        external
+        view
+        returns (FeesInformation memory, address)
+    {
+        return (
+            FeesInformation({
+                protocolFee: protocolFee,
+                attributorFee: attributorFee,
+                clientFee: clientFee,
+                protocolFeeCollector: protocolFeeCollector,
+                nftFixedFeeAmount: nftFixedFeeAmount,
+                nftFeeCurrency: nftFeeCurrency
+            }),
+            fuulManager
+        );
+    }
+
+    /**
+     * @dev Sets the protocol fees for each attribution.
+     *
+     * Requirements:
+     *
+     * - `_value` must be different from the current one.
+     * - Only admins can call this function.
+     */
+    function setProtocolFee(
+        uint256 _value
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (_value == protocolFee) {
+            revert IFuulManager.InvalidArgument();
+        }
+
+        protocolFee = _value;
+    }
+
+    /**
+     * @dev Sets the fees for the client that was used to create the project.
+     *
+     * Requirements:
+     *
+     * - `_value` must be different from the current one.
+     * - Only admins can call this function.
+     */
+    function setClientFee(
+        uint256 _value
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (_value == clientFee) {
+            revert IFuulManager.InvalidArgument();
+        }
+
+        clientFee = _value;
+    }
+
+    /**
+     * @dev Sets the fees for the attributor.
+     *
+     * Requirements:
+     *
+     * - `_value` must be different from the current one.
+     * - Only admins can call this function.
+     */
+    function setAttributorFee(
+        uint256 _value
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (_value == attributorFee) {
+            revert IFuulManager.InvalidArgument();
+        }
+
+        attributorFee = _value;
+    }
+
+    /**
+     * @dev Sets the fixed fee amount for NFT rewards.
+     *
+     * Requirements:
+     *
+     * - `_value` must be different from the current one.
+     * - Only admins can call this function.
+     */
+    function setNftFixedFeeAmounte(
+        uint256 _value
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (_value == nftFixedFeeAmount) {
+            revert IFuulManager.InvalidArgument();
+        }
+
+        nftFixedFeeAmount = _value;
+    }
+
+    /**
+     * @dev Sets the currency that will be used to pay NFT rewards fees.
+     *
+     * Requirements:
+     *
+     * - `_value` must be different from the current one.
+     * - Only admins can call this function.
+     */
+    function setNftFeeCurrency(
+        address newCurrency
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (newCurrency == nftFeeCurrency) {
+            revert IFuulManager.InvalidArgument();
+        }
+
+        nftFeeCurrency = newCurrency;
+    }
+
+    /**
+     * @dev Sets the protocol fee collector address.
+     *
+     * Requirements:
+     *
+     * - `_value` must be different from the current one.
+     * - Only admins can call this function.
+     */
+    function setProtocolFeeCollector(
+        address newCollector
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (newCollector == protocolFeeCollector) {
+            revert IFuulManager.InvalidArgument();
+        }
+
+        protocolFeeCollector = newCollector;
     }
 }
