@@ -112,7 +112,7 @@ contract FuulProject is
       ╚═════════════════════════════╝*/
 
     /**
-     * @dev Sets the value for {fuulFactory}.
+     * @dev Sets the value for `fuulFactory`.
      * This value is immutable.
      */
     constructor() {
@@ -122,10 +122,11 @@ contract FuulProject is
     }
 
     /**
-     * @dev Initializes the contract when the Factory deploys a new clone}.
+     * @dev Initializes the contract when the Factory deploys a new clone.
      *
      * Grants roles for project admin, the address allowed to send events 
-     * through the SDK and the URI with the project information
+     * through the SDK, the URI with the project information and the address 
+     * that will receive the client fees.
 
      */
     function initialize(
@@ -145,17 +146,6 @@ contract FuulProject is
         _setProjectURI(_projectInfoURI);
 
         clientFeeCollector = _clientFeeCollector;
-    }
-
-    /*╔═════════════════════════════╗
-      ║     FROM OTHER CONTRACTS    ║
-      ╚═════════════════════════════╝*/
-
-    /**
-     * @dev Returns the address of the active Fuul Manager contract.
-     */
-    function _fuulManagerAddress() internal view returns (address) {
-        return fuulFactoryInstance.fuulManager();
     }
 
     /*╔═════════════════════════════╗
@@ -648,6 +638,7 @@ contract FuulProject is
         Attribution[] calldata attributions,
         address attributorFeeCollector
     ) external nonReentrant {
+        // Using this function to get all the necessary info from {FuulFactory} from one call
         (
             IFuulFactory.FeesInformation memory feesInfo,
             address fuulManagerAddress
@@ -758,25 +749,24 @@ contract FuulProject is
         address receiver,
         uint256[] memory tokenIds,
         uint256[] memory amounts
-    ) external nonReentrant returns (uint256 claimAmount) {
-        address fuulManagerAddress = _fuulManagerAddress();
+    ) external nonReentrant returns (uint256 availableAmount) {
+        address fuulManagerAddress = fuulFactoryInstance.fuulManager();
         _onlyFuulManager(fuulManagerAddress);
 
-        uint256 availableAmount = availableToClaim[receiver][currency];
+        availableAmount = availableToClaim[receiver][currency];
 
         _nonZeroAmount(availableAmount);
 
         if (currency == address(0)) {
-            claimAmount = availableAmount;
-
-            payable(receiver).sendValue(claimAmount);
+            payable(receiver).sendValue(availableAmount);
         } else if (isERC20(currency)) {
-            claimAmount = availableAmount;
-
-            IERC20(currency).safeTransfer(receiver, claimAmount);
+            IERC20(currency).safeTransfer(receiver, availableAmount);
         } else if (currency.supportsInterface(IID_IERC721)) {
             uint256 tokenIdsLength = tokenIds.length;
-            claimAmount = tokenIdsLength;
+
+            if (availableAmount != tokenIdsLength) {
+                revert IFuulManager.InvalidArgument();
+            }
 
             _transferERC721Tokens(
                 currency,
@@ -786,7 +776,9 @@ contract FuulProject is
                 tokenIdsLength
             );
         } else if (currency.supportsInterface(IID_IERC1155)) {
-            claimAmount = _getSumFromArray(amounts);
+            if (availableAmount != _getSumFromArray(amounts)) {
+                revert IFuulManager.InvalidArgument();
+            }
 
             _transferERC1155Tokens(
                 currency,
@@ -801,11 +793,11 @@ contract FuulProject is
 
         // Update user budget - it will fail from underflow if insufficient funds
 
-        availableToClaim[receiver][currency] -= claimAmount;
+        availableToClaim[receiver][currency] = 0;
 
-        emit Claimed(receiver, currency, claimAmount, tokenIds, amounts);
+        emit Claimed(receiver, currency, availableAmount, tokenIds, amounts);
 
-        return claimAmount;
+        return availableAmount;
     }
 
     /*╔═════════════════════════════╗
