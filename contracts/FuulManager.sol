@@ -97,10 +97,6 @@ contract FuulManager is
     /**
      * @dev Sets a new `claimLimitPerCooldown` for a currency token.
      *
-     * Notes:
-     * We are not checking that the tokenAddress is accepted because
-     * users can claim from unaccepted currencies.
-     *
      * Requirements:
      *
      * - `limit` must be greater than zero.

@@ -13,7 +13,6 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
-import "./interfaces/IFuulManager.sol";
 import "./interfaces/IFuulFactory.sol";
 import "./interfaces/IFuulProject.sol";
 
@@ -63,6 +62,7 @@ contract FuulProject is
     // Mapping currency with fees when rewarding NFTs. Using mappings to be able to withdraw after fee currency changes
     mapping(address => uint256) public nftFeeBudget;
 
+    // {FuulFactory} instance
     IFuulFactory immutable fuulFactoryInstance;
 
     /**
@@ -155,7 +155,7 @@ contract FuulProject is
     /**
      * @dev Internal function that sets `projectInfoURI` as the information for the project.
      *
-     * It also sets a new value for {lastStatusHash}.
+     * It also sets a new value for `lastStatusHash`.
      *
      * Requirements:
      *
@@ -203,8 +203,8 @@ contract FuulProject is
      *
      * - `amount` must be greater than zero.
      * - Only admins can deposit.
-     * - Token currency must be accepted in {Fuul Manager}
-     * - Currency must be the address zero (nativa token) or ERC20.
+     * - Token currency must be accepted in {FuulFactory}
+     * - Currency must be the address zero (native token) or ERC20.
      */
     function depositFungibleToken(
         address currency,
@@ -320,7 +320,7 @@ contract FuulProject is
     /**
      * @dev Returns the window when projects can remove funds.
      * The cooldown period for removing a project's budget begins upon calling the {applyToRemoveBudget} function
-     * and ends once the {projectBudgetCooldown} period has elapsed.
+     * and ends once the `projectBudgetCooldown` period has elapsed.
      *
      * The period to remove starts when the cooldown is completed, and ends after {removePeriod}.
      *
@@ -376,9 +376,10 @@ contract FuulProject is
      * Requirements:
      *
      * - `amount` must be greater than zero.
+     * - `amount` must be lower than budget for currency
      * - Only admins can remove.
      * - Must be within the Budget removal window.
-     * - Currency must be the address zero (nativa token) or ERC20.
+     * - Currency must be the address zero (native token) or ERC20.
      */
     function removeFungibleBudget(
         address currency,
@@ -414,6 +415,7 @@ contract FuulProject is
      * Requirements:
      *
      * - `amount` must be greater than zero.
+     * - `amount` must be lower than budget for currency
      * - Only admins can remove.
      * - Must be within the Budget removal window.
      * - Currency must be an ERC721 or ERC1155.
@@ -423,11 +425,10 @@ contract FuulProject is
         uint256[] calldata tokenIds,
         uint256[] calldata amounts
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant canRemove {
-        uint256 tokenIdsLength = tokenIds.length;
+        // Default amount as if it is an ERC721
+        uint256 removeAmount = tokenIds.length;
 
-        _nonZeroAmount(tokenIdsLength);
-
-        uint256 removeAmount;
+        _nonZeroAmount(removeAmount);
 
         if (currency.supportsInterface(IID_IERC721)) {
             _transferERC721Tokens(
@@ -436,8 +437,6 @@ contract FuulProject is
                 _msgSender(),
                 tokenIds
             );
-
-            removeAmount = tokenIdsLength;
         } else if (currency.supportsInterface(IID_IERC1155)) {
             _transferERC1155Tokens(
                 currency,
@@ -470,7 +469,7 @@ contract FuulProject is
 
     /**
      * @dev Deposits budget to pay for fees when rewarding NFTs.
-     * The currency is defined in the {FuulManager} contract.
+     * The currency is defined in the {FuulFactory} contract.
      *
      * Emits {FeeBudgetDeposit}.
      *
@@ -513,11 +512,13 @@ contract FuulProject is
      *
      * Emits {FeeBudgetRemoved}.
      *
-     * Notes: Currency is an argument because if the default is changed in {FuulManager}, projects will still be able to remove
+     * Notes: Currency is an argument because if the default is
+     * changed in {FuulProject}, projects will still be able to remove.
      *
      * Requirements:
      *
      * - `amount` must be greater than zero.
+     * - `amount` must be lower than fee budget.
      * - Only admins can remove.
      * - Must be within the Budget removal window.
      */
@@ -531,6 +532,7 @@ contract FuulProject is
         canRemove
         nonZeroAmount(amount)
     {
+        // Update budget - By underflow it indirectly checks that amount <= nftFeeBudget
         nftFeeBudget[currency] -= amount;
 
         if (currency == address(0)) {
@@ -621,12 +623,12 @@ contract FuulProject is
      *
      * Notes:
      * - When rewards are fungible tokens, fees will be a percentage of the payment and it will be substracted from the payment.
-     * - When rewards are NFTs, fees will be a fixed amount and the {nftFeeBudget} will be used.
+     * - When rewards are NFTs, fees will be a fixed amount and the `nftFeeBudget` will be used.
      *
      * Requirements:
      *
      * - Currency budgets have to be greater than amounts attributed.
-     * - The sum of {amountToPartner} and {amountToEndUser} for each {Attribution} must be greater than zero.
+     * - The sum of `amountToPartner` and `amountToEndUser` for each `Attribution` must be greater than zero.
      * - Only {FuulManager} can attribute.
      * - Proof must not exist (be previously attributed).
      * - {FuulManager} must not be paused. This is checked through The `attributeTransactions` function in {FuulManager}.
@@ -764,7 +766,7 @@ contract FuulProject is
 
             // Check that the amount of tokenIds to claim is equal to the available amount
             if (availableAmount != tokenIdsLength) {
-                revert IFuulManager.InvalidArgument();
+                revert InvalidArgument();
             }
 
             _transferERC721Tokens(currency, address(this), receiver, tokenIds);
@@ -772,7 +774,7 @@ contract FuulProject is
             // Check that the sum of the amounts of tokenIds to claim is equal to the available amount
 
             if (availableAmount != _getSumFromArray(amounts)) {
-                revert IFuulManager.InvalidArgument();
+                revert InvalidArgument();
             }
 
             _transferERC1155Tokens(

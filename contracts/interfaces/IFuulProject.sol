@@ -99,6 +99,7 @@ interface IFuulProject {
     error AlreadyAttributed();
     error Forbidden();
     error InvalidCurrency();
+    error InvalidArgument();
 
     /*╔═════════════════════════════╗
       ║       PUBLIC VARIABLES      ║
