@@ -49,7 +49,6 @@ describe("Fuul Project - Deposit and remove fungible", function () {
     const {
       fuulProject,
       fuulFactory,
-      fuulManager,
       token,
       user1,
       user2,
@@ -59,7 +58,6 @@ describe("Fuul Project - Deposit and remove fungible", function () {
 
     this.fuulProject = fuulProject;
     this.fuulFactory = fuulFactory;
-    this.fuulManager = fuulManager;
     this.token = token;
     this.user1 = user1;
     this.user2 = user2;
@@ -110,7 +108,7 @@ describe("Fuul Project - Deposit and remove fungible", function () {
     // Increase time
 
     const projectBudgetCooldown =
-      await this.fuulManager.projectBudgetCooldown();
+      await this.fuulFactory.projectBudgetCooldown();
 
     await time.increase(projectBudgetCooldown.toNumber() + 1);
 
@@ -162,7 +160,7 @@ describe("Fuul Project - Deposit and remove fungible", function () {
     ).to.be.revertedWithCustomError(this.fuulProject, "OutsideRemovalWindow");
 
     // Remove outside window
-    const removeInfo = await this.fuulManager.getBudgetRemoveInfo();
+    const removeInfo = await this.fuulFactory.getBudgetRemoveInfo();
 
     await time.increase(
       removeInfo[0].toNumber() + removeInfo[1].toNumber() + 1
@@ -217,7 +215,7 @@ describe("Fuul Project - Deposit and remove fungible", function () {
     // Increase time
 
     const projectBudgetCooldown =
-      await this.fuulManager.projectBudgetCooldown();
+      await this.fuulFactory.projectBudgetCooldown();
 
     await time.increase(projectBudgetCooldown.toNumber() + 1);
 
@@ -258,7 +256,7 @@ describe("Fuul Project - Deposit and remove fungible", function () {
     // Increase time
 
     const projectBudgetCooldown =
-      await this.fuulManager.projectBudgetCooldown();
+      await this.fuulFactory.projectBudgetCooldown();
 
     await time.increase(projectBudgetCooldown.toNumber() + 1);
 
@@ -317,19 +315,11 @@ describe("Fuul Project - Deposit and remove fungible", function () {
 
 describe("Fuul Project - Deposit and remove NFT 721", function () {
   beforeEach(async function () {
-    const {
-      fuulProject,
-      fuulFactory,
-      fuulManager,
-      nft721,
-      user1,
-      user2,
-      adminRole,
-    } = await setupTest();
+    const { fuulProject, fuulFactory, nft721, user1, user2, adminRole } =
+      await setupTest();
 
     this.fuulProject = fuulProject;
     this.fuulFactory = fuulFactory;
-    this.fuulManager = fuulManager;
     this.nft721 = nft721;
     this.user1 = user1;
     this.user2 = user2;
@@ -383,7 +373,7 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     // Increase time
 
     const projectBudgetCooldown =
-      await this.fuulManager.projectBudgetCooldown();
+      await this.fuulFactory.projectBudgetCooldown();
 
     await time.increase(projectBudgetCooldown.toNumber() + 1);
 
@@ -427,7 +417,7 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     // Increase time
 
     const projectBudgetCooldown =
-      await this.fuulManager.projectBudgetCooldown();
+      await this.fuulFactory.projectBudgetCooldown();
 
     await time.increase(projectBudgetCooldown.toNumber() + 1);
 
@@ -475,7 +465,7 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     // Remove outside window
 
     // Increase time
-    const removeInfo = await this.fuulManager.getBudgetRemoveInfo();
+    const removeInfo = await this.fuulFactory.getBudgetRemoveInfo();
 
     await time.increase(
       removeInfo[0].toNumber() + removeInfo[1].toNumber() + 1
@@ -518,12 +508,11 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
 
 describe("Fuul Project - Deposit and remove unmatching token types", function () {
   beforeEach(async function () {
-    const { fuulProject, fuulFactory, fuulManager, token, nft721, nft1155 } =
+    const { fuulProject, fuulFactory, token, nft721, nft1155 } =
       await setupTest();
 
     this.fuulProject = fuulProject;
     this.fuulFactory = fuulFactory;
-    this.fuulManager = fuulManager;
     this.token = token;
     this.nft721 = nft721;
     this.nft1155 = nft1155;
@@ -560,7 +549,7 @@ describe("Fuul Project - Deposit and remove unmatching token types", function ()
     // Increase time
 
     const projectBudgetCooldown =
-      await this.fuulManager.projectBudgetCooldown();
+      await this.fuulFactory.projectBudgetCooldown();
 
     await time.increase(projectBudgetCooldown.toNumber() + 1);
   });
@@ -606,12 +595,10 @@ describe("Fuul Project - Deposit and remove unmatching token types", function ()
 
 describe("Fuul Project - Deposit and remove NFT 1155", function () {
   beforeEach(async function () {
-    const { fuulProject, fuulFactory, fuulManager, nft1155, user1 } =
-      await setupTest();
+    const { fuulProject, fuulFactory, nft1155, user1 } = await setupTest();
 
     this.fuulProject = fuulProject;
     this.fuulFactory = fuulFactory;
-    this.fuulManager = fuulManager;
     this.nft1155 = nft1155;
     this.user1 = user1;
 
@@ -678,7 +665,7 @@ describe("Fuul Project - Deposit and remove NFT 1155", function () {
     // Increase time
 
     const projectBudgetCooldown =
-      await this.fuulManager.projectBudgetCooldown();
+      await this.fuulFactory.projectBudgetCooldown();
 
     await time.increase(projectBudgetCooldown.toNumber() + 1);
 
@@ -744,7 +731,6 @@ describe("Fuul Project - Deposit and remove fee budget", function () {
   beforeEach(async function () {
     const {
       fuulProject,
-      fuulManager,
       fuulFactory,
       user1,
       user2,
@@ -753,7 +739,6 @@ describe("Fuul Project - Deposit and remove fee budget", function () {
     } = await setupTest();
 
     this.fuulProject = fuulProject;
-    this.fuulManager = fuulManager;
     this.fuulFactory = fuulFactory;
 
     this.nftFeeCurrency = nftFeeCurrency;
@@ -804,7 +789,7 @@ describe("Fuul Project - Deposit and remove fee budget", function () {
     // Increase time
 
     const projectBudgetCooldown =
-      await this.fuulManager.projectBudgetCooldown();
+      await this.fuulFactory.projectBudgetCooldown();
 
     await time.increase(projectBudgetCooldown.toNumber() + 1);
 
@@ -841,7 +826,7 @@ describe("Fuul Project - Deposit and remove fee budget", function () {
     ).to.be.revertedWithCustomError(this.fuulProject, "OutsideRemovalWindow");
 
     // Increase time
-    const removeInfo = await this.fuulManager.getBudgetRemoveInfo();
+    const removeInfo = await this.fuulFactory.getBudgetRemoveInfo();
 
     await time.increase(
       removeInfo[0].toNumber() + removeInfo[1].toNumber() + 1
@@ -871,7 +856,7 @@ describe("Fuul Project - Deposit and remove fee budget", function () {
     // Increase time
 
     const projectBudgetCooldown =
-      await this.fuulManager.projectBudgetCooldown();
+      await this.fuulFactory.projectBudgetCooldown();
 
     await time.increase(projectBudgetCooldown.toNumber() + 1);
 
@@ -893,11 +878,11 @@ describe("Fuul Project - Deposit and remove fee budget", function () {
     ).to.equal(0);
   });
 
-  // it("Should fail to deposit with amount equals to zero", async function () {
-  //   await expect(
-  //     this.fuulProject.depositFeeBudget(0)
-  //   ).to.be.revertedWithCustomError(this.fuulProject, "ZeroAmount");
-  // });
+  it("Should fail to deposit with amount equals to zero", async function () {
+    await expect(
+      this.fuulProject.depositFeeBudget(0)
+    ).to.be.revertedWithCustomError(this.fuulProject, "ZeroAmount");
+  });
 
   it("Should fail to deposit and remove if not admin role", async function () {
     const error = `AccessControl: account ${this.user2.address.toLowerCase()} is missing role ${

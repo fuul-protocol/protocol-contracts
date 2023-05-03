@@ -3,7 +3,7 @@ const { expect } = require("chai");
 const { setupTest } = require("./before-each-test");
 const { time } = require("@nomicfoundation/hardhat-network-helpers");
 
-describe("Fuul Manager - Remove variables management", function () {
+describe("Fuul Manager - Claim variables management", function () {
   beforeEach(async function () {
     const { fuulManager, user1, user2, adminRole } = await setupTest();
 
@@ -21,22 +21,6 @@ describe("Fuul Manager - Remove variables management", function () {
     expect(await this.fuulManager.claimCooldown()).to.equal(this.newPeriod);
   });
 
-  it("Should set new budget cooldown", async function () {
-    await this.fuulManager.setProjectBudgetCooldown(this.newPeriod);
-
-    expect(await this.fuulManager.projectBudgetCooldown()).to.equal(
-      this.newPeriod
-    );
-  });
-
-  it("Should set new budget removal period", async function () {
-    await this.fuulManager.setProjectRemoveBudgetPeriod(this.newPeriod);
-
-    expect(await this.fuulManager.projectRemoveBudgetPeriod()).to.equal(
-      this.newPeriod
-    );
-  });
-
   it("Should fail to set new periods if not admin role", async function () {
     const error = `AccessControl: account ${this.user2.address.toLowerCase()} is missing role ${
       this.adminRole
@@ -46,20 +30,6 @@ describe("Fuul Manager - Remove variables management", function () {
     await expect(
       this.fuulManager.connect(this.user2).setClaimCooldown(this.newPeriod)
     ).to.be.revertedWith(error);
-
-    // Set budget cooldown
-    await expect(
-      this.fuulManager
-        .connect(this.user2)
-        .setProjectBudgetCooldown(this.newPeriod)
-    ).to.be.revertedWith(error);
-
-    // Set budget remove period
-    await expect(
-      this.fuulManager
-        .connect(this.user2)
-        .setProjectRemoveBudgetPeriod(this.newPeriod)
-    ).to.be.revertedWith(error);
   });
 
   it("Should fail to set claim cooldown if incorrect arguments are passed", async function () {
@@ -67,22 +37,6 @@ describe("Fuul Manager - Remove variables management", function () {
 
     await expect(
       this.fuulManager.setClaimCooldown(newPeriod)
-    ).to.be.revertedWithCustomError(this.fuulManager, "InvalidArgument");
-  });
-
-  it("Should fail to set budget cooldown if incorrect arguments are passed", async function () {
-    const newPeriod = await this.fuulManager.projectBudgetCooldown();
-
-    await expect(
-      this.fuulManager.setProjectBudgetCooldown(newPeriod)
-    ).to.be.revertedWithCustomError(this.fuulManager, "InvalidArgument");
-  });
-
-  it("Should fail to set budget remove period if incorrect arguments are passed", async function () {
-    const newPeriod = await this.fuulManager.projectRemoveBudgetPeriod();
-
-    await expect(
-      this.fuulManager.setProjectRemoveBudgetPeriod(newPeriod)
     ).to.be.revertedWithCustomError(this.fuulManager, "InvalidArgument");
   });
 });
@@ -107,7 +61,7 @@ describe("Fuul Manager - Token currency management", function () {
   it("Should add new currency", async function () {
     await this.fuulManager.addCurrencyLimit(this.newCurrency, this.limit);
 
-    const currency = await this.fuulManager.currencyTokens(this.newCurrency);
+    const currency = await this.fuulManager.currencyLimits(this.newCurrency);
 
     expect(currency.claimLimitPerCooldown).to.equal(this.limit);
     expect(currency.cumulativeClaimPerCooldown).to.equal(0);
@@ -118,7 +72,7 @@ describe("Fuul Manager - Token currency management", function () {
     const limit = 2;
     await this.fuulManager.setCurrencyTokenLimit(this.token.address, limit);
 
-    const currency = await this.fuulManager.currencyTokens(this.token.address);
+    const currency = await this.fuulManager.currencyLimits(this.token.address);
 
     expect(currency.claimLimitPerCooldown).to.equal(limit);
   });
@@ -889,7 +843,7 @@ describe("Fuul Manager - Claim", function () {
 
     // Set currency info
 
-    const currencyObject = await this.fuulManager.currencyTokens(currency);
+    const currencyObject = await this.fuulManager.currencyLimits(currency);
 
     expect(currencyObject.cumulativeClaimPerCooldown).to.equal(expectedAmount);
     expect(Number(currencyObject.claimCooldownPeriodStarted)).to.be.greaterThan(
@@ -940,7 +894,7 @@ describe("Fuul Manager - Claim", function () {
 
     // Set currency info
 
-    const currencyObject = await this.fuulManager.currencyTokens(currency);
+    const currencyObject = await this.fuulManager.currencyLimits(currency);
 
     expect(currencyObject.cumulativeClaimPerCooldown).to.equal(claimAmount);
     expect(Number(currencyObject.claimCooldownPeriodStarted)).to.be.greaterThan(
@@ -992,7 +946,7 @@ describe("Fuul Manager - Claim", function () {
 
       // Set currency info
 
-      const currencyObject = await this.fuulManager.currencyTokens(currency);
+      const currencyObject = await this.fuulManager.currencyLimits(currency);
 
       expect(currencyObject.cumulativeClaimPerCooldown).to.equal(
         tokenIds.length

@@ -158,13 +158,6 @@ contract FuulProject is
         return fuulFactoryInstance.fuulManager();
     }
 
-    /**
-     * @dev Returns the instance of the Fuul Manager contract.
-     */
-    function _fuulManagerInstance() internal view returns (IFuulManager) {
-        return IFuulManager(_fuulManagerAddress());
-    }
-
     /*╔═════════════════════════════╗
       ║        PROJECT INFO         ║
       ╚═════════════════════════════╝*/
@@ -355,7 +348,7 @@ contract FuulProject is
             revert NoRemovalApplication();
         }
 
-        (uint256 budgetCooldown, uint256 removePeriod) = _fuulManagerInstance()
+        (uint256 budgetCooldown, uint256 removePeriod) = fuulFactoryInstance
             .getBudgetRemoveInfo();
 
         cooldown = _lastApplication + budgetCooldown;

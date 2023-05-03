@@ -40,6 +40,12 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
     // Attributor fee. 1 => 0.01%
     uint256 public attributorFee = 100;
 
+    // Amount of time that must elapse between a project's application to remove funds from its budget and the actual removal of those funds.
+    uint256 public projectBudgetCooldown = 30 days;
+
+    // Period of time that a project can remove funds after cooldown. If they don't remove in this period, they will have to apply to remove again.
+    uint256 public projectRemoveBudgetPeriod = 30 days;
+
     // Mapping project id with deployed contract address
     mapping(uint256 => address) public projects;
 
@@ -357,5 +363,56 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
         }
 
         acceptedCurrencies[tokenAddress] = false;
+    }
+
+    /*╔═════════════════════════════╗
+      ║       REMOVE VARIABLES      ║
+      ╚═════════════════════════════╝*/
+
+    /**
+     * @dev Sets the period for `projectBudgetCooldown`.
+     *
+     * Requirements:
+     *
+     * - `_period` must be different from the current one.
+     * - Only admins can call this function.
+     */
+    function setProjectBudgetCooldown(
+        uint256 _period
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (_period == projectBudgetCooldown) {
+            revert IFuulManager.InvalidArgument();
+        }
+
+        projectBudgetCooldown = _period;
+    }
+
+    /**
+     * @dev Sets the period for `projectRemoveBudgetPeriod`.
+     *
+     * Requirements:
+     *
+     * - `_period` must be different from the current one.
+     * - Only admins can call this function.
+     */
+    function setProjectRemoveBudgetPeriod(
+        uint256 _period
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (_period == projectRemoveBudgetPeriod) {
+            revert IFuulManager.InvalidArgument();
+        }
+
+        projectRemoveBudgetPeriod = _period;
+    }
+
+    /**
+     * @dev Returns removal info. The function purpose is to call only once from {FuulProject} when needing this info.
+     */
+    function getBudgetRemoveInfo()
+        external
+        view
+        returns (uint256 cooldown, uint256 removeWindow)
+    {
+        return (projectBudgetCooldown, projectRemoveBudgetPeriod);
     }
 }

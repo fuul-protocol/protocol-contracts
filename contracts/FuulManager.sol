@@ -18,12 +18,6 @@ contract FuulManager is
     // Pauser role
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
-    // Amount of time that must elapse between a project's application to remove funds from its budget and the actual removal of those funds.
-    uint256 public projectBudgetCooldown = 30 days;
-
-    // Period of time that a project can remove funds after cooldown. If they don't remove in this period, they will have to apply to remove again.
-    uint256 public projectRemoveBudgetPeriod = 30 days;
-
     // Amount of time that must elapse after {claimCooldownPeriodStarted} for the cumulative amount to be restarted
     uint256 public claimCooldown = 1 days;
 
@@ -31,7 +25,7 @@ contract FuulManager is
     mapping(address => mapping(address => uint256)) public usersClaims;
 
     // Mapping addresses with tokens info
-    mapping(address => CurrencyTokenLimit) public currencyTokens;
+    mapping(address => CurrencyTokenLimit) public currencyLimits;
 
     /*╔═════════════════════════════╗
       ║         CONSTRUCTOR         ║
@@ -60,7 +54,7 @@ contract FuulManager is
     }
 
     /*╔═════════════════════════════╗
-      ║       REMOVE VARIABLES      ║
+      ║       CLAIM VARIABLES       ║
       ╚═════════════════════════════╝*/
 
     /**
@@ -79,53 +73,6 @@ contract FuulManager is
         }
 
         claimCooldown = _period;
-    }
-
-    /**
-     * @dev Sets the period for `projectBudgetCooldown`.
-     *
-     * Requirements:
-     *
-     * - `_period` must be different from the current one.
-     * - Only admins can call this function.
-     */
-    function setProjectBudgetCooldown(
-        uint256 _period
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_period == projectBudgetCooldown) {
-            revert InvalidArgument();
-        }
-
-        projectBudgetCooldown = _period;
-    }
-
-    /**
-     * @dev Sets the period for `projectRemoveBudgetPeriod`.
-     *
-     * Requirements:
-     *
-     * - `_period` must be different from the current one.
-     * - Only admins can call this function.
-     */
-    function setProjectRemoveBudgetPeriod(
-        uint256 _period
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_period == projectRemoveBudgetPeriod) {
-            revert InvalidArgument();
-        }
-
-        projectRemoveBudgetPeriod = _period;
-    }
-
-    /**
-     * @dev Returns removal info. The function purpose is to call only once from {FuulProject} when needing this info.
-     */
-    function getBudgetRemoveInfo()
-        external
-        view
-        returns (uint256 cooldown, uint256 removeWindow)
-    {
-        return (projectBudgetCooldown, projectRemoveBudgetPeriod);
     }
 
     /*╔═════════════════════════════╗
@@ -164,7 +111,7 @@ contract FuulManager is
         address tokenAddress,
         uint256 limit
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        CurrencyTokenLimit storage currency = currencyTokens[tokenAddress];
+        CurrencyTokenLimit storage currency = currencyLimits[tokenAddress];
 
         if (limit == 0 || limit == currency.claimLimitPerCooldown) {
             revert InvalidArgument();
@@ -264,7 +211,7 @@ contract FuulManager is
                     claimCheck.amounts
                 );
 
-            CurrencyTokenLimit storage currencyInfo = currencyTokens[currency];
+            CurrencyTokenLimit storage currencyInfo = currencyLimits[currency];
 
             // Limit
 
@@ -318,7 +265,7 @@ contract FuulManager is
             revert InvalidArgument();
         }
 
-        currencyTokens[tokenAddress] = CurrencyTokenLimit({
+        currencyLimits[tokenAddress] = CurrencyTokenLimit({
             claimLimitPerCooldown: claimLimitPerCooldown,
             cumulativeClaimPerCooldown: 0,
             claimCooldownPeriodStarted: block.timestamp

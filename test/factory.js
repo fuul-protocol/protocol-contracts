@@ -220,3 +220,68 @@ describe("Fuul Factory - Token currency management", function () {
     );
   });
 });
+
+describe("Fuul Factory - Remove variables management", function () {
+  beforeEach(async function () {
+    const { fuulFactory, user1, user2, adminRole } = await setupTest();
+
+    this.fuulFactory = fuulFactory;
+    this.user1 = user1;
+    this.user2 = user2;
+    this.adminRole = adminRole;
+
+    this.newPeriod = 5;
+  });
+
+  it("Should set new budget cooldown", async function () {
+    await this.fuulFactory.setProjectBudgetCooldown(this.newPeriod);
+
+    expect(await this.fuulFactory.projectBudgetCooldown()).to.equal(
+      this.newPeriod
+    );
+  });
+
+  it("Should set new budget removal period", async function () {
+    await this.fuulFactory.setProjectRemoveBudgetPeriod(this.newPeriod);
+
+    expect(await this.fuulFactory.projectRemoveBudgetPeriod()).to.equal(
+      this.newPeriod
+    );
+  });
+
+  it("Should fail to set new periods if not admin role", async function () {
+    const error = `AccessControl: account ${this.user2.address.toLowerCase()} is missing role ${
+      this.adminRole
+    }`;
+
+    // Set budget cooldown
+    await expect(
+      this.fuulFactory
+        .connect(this.user2)
+        .setProjectBudgetCooldown(this.newPeriod)
+    ).to.be.revertedWith(error);
+
+    // Set budget remove period
+    await expect(
+      this.fuulFactory
+        .connect(this.user2)
+        .setProjectRemoveBudgetPeriod(this.newPeriod)
+    ).to.be.revertedWith(error);
+  });
+
+  it("Should fail to set budget cooldown if incorrect arguments are passed", async function () {
+    const newPeriod = await this.fuulFactory.projectBudgetCooldown();
+
+    await expect(
+      this.fuulFactory.setProjectBudgetCooldown(newPeriod)
+    ).to.be.revertedWithCustomError(this.fuulFactory, "InvalidArgument");
+  });
+
+  it("Should fail to set budget remove period if incorrect arguments are passed", async function () {
+    const newPeriod = await this.fuulFactory.projectRemoveBudgetPeriod();
+
+    await expect(
+      this.fuulFactory.setProjectRemoveBudgetPeriod(newPeriod)
+    ).to.be.revertedWithCustomError(this.fuulFactory, "InvalidArgument");
+  });
+});

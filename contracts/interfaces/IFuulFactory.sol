@@ -98,4 +98,19 @@ interface IFuulFactory {
     function addCurrencyToken(address tokenAddress) external;
 
     function removeCurrencyToken(address tokenAddress) external;
+
+    /*╔═════════════════════════════╗
+      ║       REMOVE VARIABLES      ║
+      ╚═════════════════════════════╝*/
+
+    function projectBudgetCooldown() external view returns (uint256 period);
+
+    function getBudgetRemoveInfo()
+        external
+        view
+        returns (uint256 cooldown, uint256 removeWindow);
+
+    function setProjectBudgetCooldown(uint256 period) external;
+
+    function setProjectRemoveBudgetPeriod(uint256 period) external;
 }
