@@ -102,6 +102,7 @@ const setupTest = async function (deployProject = true) {
   );
 
   const adminRole = await fuulFactory.DEFAULT_ADMIN_ROLE();
+  const managerRole = await fuulFactory.MANAGER_ROLE();
 
   let fuulProject;
 
@@ -132,6 +133,7 @@ const setupTest = async function (deployProject = true) {
     user4,
     user5,
     adminRole,
+    managerRole,
     provider,
     limitAmount,
     protocolFeeCollector,

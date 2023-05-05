@@ -95,7 +95,6 @@ interface IFuulProject {
     error IncorrectMsgValue();
     error OutsideRemovalWindow();
     error ZeroAmount();
-    error Unauthorized();
     error AlreadyAttributed();
     error Forbidden();
     error InvalidCurrency();

@@ -13,14 +13,14 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
     using Counters for Counters.Counter;
     using EnumerableSet for EnumerableSet.AddressSet;
 
+    // Manager role
+    bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
+
     // Tracker of the number of projects created
     Counters.Counter private _projectTracker;
 
     // Implementation contract address
     address immutable fuulProjectImplementation;
-
-    // Fuul Manager address
-    address public fuulManager;
 
     // Address that will collect protocol fees
     address public protocolFeeCollector;
@@ -68,10 +68,10 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
         address _nftFeeCurrency,
         address acceptedERC20CurrencyToken
     ) {
-        fuulManager = _fuulManager;
         fuulProjectImplementation = address(new FuulProject());
 
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setupRole(MANAGER_ROLE, _fuulManager);
 
         protocolFeeCollector = _protocolFeeCollector;
         nftFeeCurrency = _nftFeeCurrency;
@@ -158,28 +158,17 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
     }
 
     /*╔═════════════════════════════╗
-      ║           MANAGER           ║
+      ║        MANAGER ROLE         ║
       ╚═════════════════════════════╝*/
 
     /**
-     * @dev Sets `fuulManager` for all {FuulProject}s to read from.
-     *
-     * Requirements:
-     *
-     * - {_fuulManager} must not be the zero address.
-     * - {_fuulManager} must be different from the current one.
-     * - Only admins can call this function.
+     * @dev Returns if an address has `MANAGER_ROLE`.
      */
-    function setFuulManager(
-        address _fuulManager
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_fuulManager == address(0)) {
-            revert ZeroAddress();
+    function hasManagerRole(address account) public view returns (bool) {
+        if (!hasRole(MANAGER_ROLE, account)) {
+            revert Unauthorized();
         }
-        if (_fuulManager == fuulManager) {
-            revert IFuulManager.InvalidArgument();
-        }
-        fuulManager = _fuulManager;
+        return true;
     }
 
     /*╔═════════════════════════════╗
@@ -187,14 +176,9 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
       ╚═════════════════════════════╝*/
 
     /**
-     * @dev Returns all fees for attribution.
-     * The function purpose is to pass all necessary data to the {FuulProject} when attributing.
+     * @dev Returns all fees in one function.
      */
-    function getFeesInformation()
-        external
-        view
-        returns (FeesInformation memory, address)
-    {
+    function getAllFees() public view returns (FeesInformation memory) {
         return (
             FeesInformation({
                 protocolFee: protocolFee,
@@ -203,9 +187,25 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
                 protocolFeeCollector: protocolFeeCollector,
                 nftFixedFeeAmount: nftFixedFeeAmount,
                 nftFeeCurrency: nftFeeCurrency
-            }),
-            fuulManager
+            })
         );
+    }
+
+    /**
+     * @dev Returns all fees for attribution and checks that the sender has `MANAGER_ROLE`.
+     *
+     * Note:
+     * The function purpose is to check and return all necessary data
+     * to the {FuulProject} in one call when attributing.
+     *
+     * Even though the sender is a parameter, in {FuulProject} is _msgSender() so it cannot be manipulated.
+     */
+    function attributionFeeHelper(
+        address sender
+    ) external view returns (FeesInformation memory) {
+        // Checking sender only for {FuulProject} attribution to make only one call
+        hasManagerRole(sender);
+        return getAllFees();
     }
 
     /**

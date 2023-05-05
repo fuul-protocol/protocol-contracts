@@ -44,22 +44,6 @@ describe("Fuul Factory - Create projects", function () {
     expect(await fuulProject.projectInfoURI()).to.equal(this.projectURI);
     expect(await fuulProject.clientFeeCollector()).to.equal(signer);
   });
-
-  it("Should change Fuul Manager address", async function () {
-    const newValue = this.user1.address;
-    await this.fuulFactory.setFuulManager(newValue);
-    expect(await this.fuulFactory.fuulManager()).to.equal(newValue);
-  });
-
-  it("Should fail to set new Fuul Manager address funds if not admin role", async function () {
-    const error = `AccessControl: account ${this.user2.address.toLowerCase()} is missing role ${
-      this.adminRole
-    }`;
-
-    await expect(
-      this.fuulFactory.connect(this.user2).setFuulManager(this.user2.address)
-    ).to.be.revertedWith(error);
-  });
 });
 
 describe("Fuul Factory - Fees management", function () {

@@ -227,9 +227,7 @@ describe("Fuul Manager - Attribute", function () {
         "0x70726f6f66000000000000000000000000000000000000000000000000000000",
     };
 
-    const result = await this.fuulFactory.getFeesInformation();
-
-    this.feesInfo = result[0];
+    this.feesInfo = await this.fuulFactory.getAllFees();
 
     this.nftFixedFeeAmountInEth = ethers.utils.formatEther(
       this.feesInfo.nftFixedFeeAmount.toString()

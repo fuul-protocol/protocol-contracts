@@ -26,6 +26,7 @@ interface IFuulFactory {
     error ZeroAddress();
     error TokenCurrencyAlreadyAccepted();
     error TokenCurrencyNotAccepted();
+    error Unauthorized();
 
     /*╔═════════════════════════════╗
       ║        CREATE PROJECT       ║
@@ -52,12 +53,10 @@ interface IFuulFactory {
     ) external view returns (uint256);
 
     /*╔═════════════════════════════╗
-      ║           MANAGER           ║
+      ║        MANAGER ROLE         ║
       ╚═════════════════════════════╝*/
 
-    function fuulManager() external view returns (address);
-
-    function setFuulManager(address _fuulManager) external;
+    function hasManagerRole(address account) external view returns (bool);
 
     /*╔═════════════════════════════╗
       ║        FEES VARIABLES       ║
@@ -67,9 +66,11 @@ interface IFuulFactory {
 
     function protocolFeeCollector() external view returns (address);
 
-    function getFeesInformation()
-        external
-        returns (FeesInformation memory, address);
+    function getAllFees() external returns (FeesInformation memory);
+
+    function attributionFeeHelper(
+        address sender
+    ) external returns (FeesInformation memory);
 
     function clientFee() external view returns (uint256 fees);
 

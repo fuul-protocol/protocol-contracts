@@ -169,7 +169,7 @@ contract FuulManager is
         address attributorFeeCollector
     ) external whenNotPaused nonReentrant onlyRole(ATTRIBUTOR_ROLE) {
         uint256 attributionLength = attributions.length;
-        for (uint256 i = 0; i < attributionLength; i++) {
+        for (uint256 i = 0; i < attributionLength; ) {
             IFuulProject.Attribution[]
                 memory projectAttributions = attributions[i]
                     .projectAttributions;
@@ -178,6 +178,11 @@ contract FuulManager is
                 projectAttributions,
                 attributorFeeCollector
             );
+
+            // Using unchecked to the next element in the loop optimize gas
+            unchecked {
+                i++;
+            }
         }
     }
 
@@ -193,7 +198,7 @@ contract FuulManager is
     ) external whenNotPaused nonReentrant {
         uint256 checksLength = claimChecks.length;
 
-        for (uint256 i = 0; i < checksLength; i++) {
+        for (uint256 i = 0; i < checksLength; ) {
             ClaimCheck memory claimCheck = claimChecks[i];
 
             // Send
@@ -236,6 +241,11 @@ contract FuulManager is
 
             // Update values
             usersClaims[_msgSender()][currency] += tokenAmount;
+
+            // Using unchecked to the next element in the loop optimize gas
+            unchecked {
+                i++;
+            }
         }
     }
 

@@ -248,7 +248,7 @@ contract FuulProject is
      *
      * - `tokenIds` must not be an empty string.
      * - Only admins can deposit.
-     * - Token currency must be accepted in {Fuul Manager}
+     * - Token currency must be accepted in {FuulFactory}
      * - Currency must be an ERC721 or ERC1155.
      */
     function depositNFTToken(
@@ -549,15 +549,6 @@ contract FuulProject is
       ╚═════════════════════════════╝*/
 
     /**
-     * @dev Internal function for to check if the sender is the manager. Reverts with a Unauthorized error.
-     */
-    function _onlyFuulManager(address _managerAddress) internal view {
-        if (_msgSender() != _managerAddress) {
-            revert Unauthorized();
-        }
-    }
-
-    /**
      * @dev Internal function to calculate fees and amounts for fungible token reward.
      */
 
@@ -629,7 +620,7 @@ contract FuulProject is
      *
      * - Currency budgets have to be greater than amounts attributed.
      * - The sum of `amountToPartner` and `amountToEndUser` for each `Attribution` must be greater than zero.
-     * - Only {FuulManager} can attribute.
+     * - Only `MANAGER_ROLE` in {FuulFactory} addresses can call this function. This is checked through the `getFeesInformation` in {FuulFactory}.
      * - Proof must not exist (be previously attributed).
      * - {FuulManager} must not be paused. This is checked through The `attributeTransactions` function in {FuulManager}.
      */
@@ -639,14 +630,10 @@ contract FuulProject is
         address attributorFeeCollector
     ) external nonReentrant {
         // Using this function to get all the necessary info from {FuulFactory} from one call
-        (
-            IFuulFactory.FeesInformation memory feesInfo,
-            address fuulManagerAddress
-        ) = fuulFactoryInstance.getFeesInformation();
+        IFuulFactory.FeesInformation memory feesInfo = fuulFactoryInstance
+            .attributionFeeHelper(_msgSender());
 
-        _onlyFuulManager(fuulManagerAddress);
-
-        for (uint256 i = 0; i < attributions.length; i++) {
+        for (uint256 i = 0; i < attributions.length; ) {
             Attribution memory attribution = attributions[i];
 
             if (attributionProofs[attribution.proof]) {
@@ -728,6 +715,11 @@ contract FuulProject is
                 [fees[0], fees[1], fees[2], amountToPartner, amountToEndUser],
                 attribution.proof
             );
+
+            // Using unchecked to the next element in the loop optimize gas
+            unchecked {
+                i++;
+            }
         }
     }
 
@@ -740,7 +732,7 @@ contract FuulProject is
      * Requirements:
      *
      * - `receiver` must have available funds to claim for {currency}.
-     * - Only {FuulManager} can call this function.
+     * - Only `MANAGER_ROLE` in {FuulFactory} addresses can call this function.
      * - {FuulManager} must not be paused. This is checked through The `claim` function in {FuulManager}.
      */
 
@@ -750,8 +742,7 @@ contract FuulProject is
         uint256[] calldata tokenIds,
         uint256[] calldata amounts
     ) external nonReentrant returns (uint256 availableAmount) {
-        address fuulManagerAddress = fuulFactoryInstance.fuulManager();
-        _onlyFuulManager(fuulManagerAddress);
+        fuulFactoryInstance.hasManagerRole(_msgSender());
 
         availableAmount = availableToClaim[receiver][currency];
 
@@ -816,6 +807,8 @@ contract FuulProject is
                 receiverAddress,
                 tokenIds[i]
             );
+
+            // Using unchecked to the next element in the loop optimize gas
             unchecked {
                 i++;
             }
@@ -852,8 +845,13 @@ contract FuulProject is
     function _getSumFromArray(
         uint256[] calldata amounts
     ) internal pure returns (uint256 result) {
-        for (uint256 i = 0; i < amounts.length; i++) {
+        for (uint256 i = 0; i < amounts.length; ) {
             result += amounts[i];
+
+            // Using unchecked to the next element in the loop optimize gas
+            unchecked {
+                i++;
+            }
         }
 
         return result;
