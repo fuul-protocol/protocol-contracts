@@ -2,16 +2,16 @@
 
 ## FuulFactory
 
+### MANAGER_ROLE
+
+```solidity
+bytes32 MANAGER_ROLE
+```
+
 ### fuulProjectImplementation
 
 ```solidity
 address fuulProjectImplementation
-```
-
-### fuulManager
-
-```solidity
-address fuulManager
 ```
 
 ### protocolFeeCollector
@@ -133,28 +133,35 @@ function getUserProjectCount(address account) public view returns (uint256)
 
 _Returns the number of projects created by an account._
 
-### setFuulManager
+### hasManagerRole
 
 ```solidity
-function setFuulManager(address _fuulManager) external
+function hasManagerRole(address account) public view returns (bool)
 ```
 
-_Sets `fuulManager` for all {FuulProject}s to read from.
+_Returns if an address has `MANAGER_ROLE`._
 
-Requirements:
-
-- {_fuulManager} must not be the zero address.
-- {_fuulManager} must be different from the current one.
-- Only admins can call this function._
-
-### getFeesInformation
+### getAllFees
 
 ```solidity
-function getFeesInformation() external view returns (struct IFuulFactory.FeesInformation, address)
+function getAllFees() public view returns (struct IFuulFactory.FeesInformation)
 ```
 
-_Returns all fees for attribution.
-The function purpose is to pass all necessary data to the {FuulProject} when attributing._
+_Returns all fees in one function._
+
+### attributionFeeHelper
+
+```solidity
+function attributionFeeHelper(address sender) external view returns (struct IFuulFactory.FeesInformation)
+```
+
+_Returns all fees for attribution and checks that the sender has `MANAGER_ROLE`.
+
+Note:
+The function purpose is to check and return all necessary data
+to the {FuulProject} in one call when attributing.
+
+Even though the sender is a parameter, in {FuulProject} is _msgSender() so it cannot be manipulated._
 
 ### setProtocolFee
 
@@ -424,7 +431,7 @@ _Internal function for {nonZeroAmount} modifier. Reverts with a {TokenCurrencyNo
 constructor() public
 ```
 
-_Sets the value for {fuulFactory}.
+_Sets the value for `fuulFactory`.
 This value is immutable._
 
 ### initialize
@@ -433,18 +440,11 @@ This value is immutable._
 function initialize(address projectAdmin, address _projectEventSigner, string _projectInfoURI, address _clientFeeCollector) external
 ```
 
-_Initializes the contract when the Factory deploys a new clone}.
+_Initializes the contract when the Factory deploys a new clone.
 
 Grants roles for project admin, the address allowed to send events 
-through the SDK and the URI with the project information_
-
-### _fuulManagerAddress
-
-```solidity
-function _fuulManagerAddress() internal view returns (address)
-```
-
-_Returns the address of the active Fuul Manager contract._
+through the SDK, the URI with the project information and the address 
+that will receive the client fees._
 
 ### _setProjectURI
 
@@ -454,7 +454,7 @@ function _setProjectURI(string _projectURI) internal
 
 _Internal function that sets `projectInfoURI` as the information for the project.
 
-It also sets a new value for {lastStatusHash}.
+It also sets a new value for `lastStatusHash`.
 
 Requirements:
 
@@ -489,8 +489,8 @@ Requirements:
 
 - `amount` must be greater than zero.
 - Only admins can deposit.
-- Token currency must be accepted in {Fuul Manager}
-- Currency must be the address zero (nativa token) or ERC20._
+- Token currency must be accepted in {FuulFactory}
+- Currency must be the address zero (native token) or ERC20._
 
 ### depositNFTToken
 
@@ -508,7 +508,7 @@ Requirements:
 
 - `tokenIds` must not be an empty string.
 - Only admins can deposit.
-- Token currency must be accepted in {Fuul Manager}
+- Token currency must be accepted in {FuulFactory}
 - Currency must be an ERC721 or ERC1155._
 
 ### applyToRemoveBudget
@@ -531,7 +531,7 @@ function getBudgetRemovePeriod() public view returns (uint256 cooldown, uint256 
 
 _Returns the window when projects can remove funds.
 The cooldown period for removing a project's budget begins upon calling the {applyToRemoveBudget} function
-and ends once the {projectBudgetCooldown} period has elapsed.
+and ends once the `projectBudgetCooldown` period has elapsed.
 
 The period to remove starts when the cooldown is completed, and ends after {removePeriod}.
 
@@ -561,9 +561,10 @@ Emits {BudgetRemoved}.
 Requirements:
 
 - `amount` must be greater than zero.
+- `amount` must be lower than budget for currency
 - Only admins can remove.
 - Must be within the Budget removal window.
-- Currency must be the address zero (nativa token) or ERC20._
+- Currency must be the address zero (native token) or ERC20._
 
 ### removeNFTBudget
 
@@ -580,6 +581,7 @@ Emits {BudgetRemoved}.
 Requirements:
 
 - `amount` must be greater than zero.
+- `amount` must be lower than budget for currency
 - Only admins can remove.
 - Must be within the Budget removal window.
 - Currency must be an ERC721 or ERC1155._
@@ -591,7 +593,7 @@ function depositFeeBudget(uint256 amount) external payable
 ```
 
 _Deposits budget to pay for fees when rewarding NFTs.
-The currency is defined in the {FuulManager} contract.
+The currency is defined in the {FuulFactory} contract.
 
 Emits {FeeBudgetDeposit}.
 
@@ -610,21 +612,15 @@ _Removes fee budget for NFT rewards.
 
 Emits {FeeBudgetRemoved}.
 
-Notes: Currency is an argument because if the default is changed in {FuulManager}, projects will still be able to remove
+Notes: Currency is an argument because if the default is
+changed in {FuulProject}, projects will still be able to remove.
 
 Requirements:
 
 - `amount` must be greater than zero.
+- `amount` must be lower than fee budget.
 - Only admins can remove.
 - Must be within the Budget removal window._
-
-### _onlyFuulManager
-
-```solidity
-function _onlyFuulManager(address _managerAddress) internal view
-```
-
-_Internal function for to check if the sender is the manager. Reverts with a Unauthorized error._
 
 ### _calculateAmountsForFungibleToken
 
@@ -654,20 +650,20 @@ Emits {Attributed}.
 
 Notes:
 - When rewards are fungible tokens, fees will be a percentage of the payment and it will be substracted from the payment.
-- When rewards are NFTs, fees will be a fixed amount and the {nftFeeBudget} will be used.
+- When rewards are NFTs, fees will be a fixed amount and the `nftFeeBudget` will be used.
 
 Requirements:
 
 - Currency budgets have to be greater than amounts attributed.
-- The sum of {amountToPartner} and {amountToEndUser} for each {Attribution} must be greater than zero.
-- Only {FuulManager} can attribute.
+- The sum of `amountToPartner` and `amountToEndUser` for each `Attribution` must be greater than zero.
+- Only `MANAGER_ROLE` in {FuulFactory} addresses can call this function. This is checked through the `getFeesInformation` in {FuulFactory}.
 - Proof must not exist (be previously attributed).
 - {FuulManager} must not be paused. This is checked through The `attributeTransactions` function in {FuulManager}._
 
 ### claimFromProject
 
 ```solidity
-function claimFromProject(address currency, address receiver, uint256[] tokenIds, uint256[] amounts) external returns (uint256 claimAmount)
+function claimFromProject(address currency, address receiver, uint256[] tokenIds, uint256[] amounts) external returns (uint256 availableAmount)
 ```
 
 _Claims: sends funds to `receiver` that has available to claim funds.
@@ -678,13 +674,13 @@ _Claims: sends funds to `receiver` that has available to claim funds.
 Requirements:
 
 - `receiver` must have available funds to claim for {currency}.
-- Only {FuulManager} can call this function.
+- Only `MANAGER_ROLE` in {FuulFactory} addresses can call this function.
 - {FuulManager} must not be paused. This is checked through The `claim` function in {FuulManager}._
 
 ### _transferERC721Tokens
 
 ```solidity
-function _transferERC721Tokens(address tokenAddress, address senderAddress, address receiverAddress, uint256[] tokenIds, uint256 length) internal
+function _transferERC721Tokens(address tokenAddress, address senderAddress, address receiverAddress, uint256[] tokenIds) internal
 ```
 
 _Helper function to transfer ERC721 tokens._
@@ -760,6 +756,12 @@ error TokenCurrencyAlreadyAccepted()
 error TokenCurrencyNotAccepted()
 ```
 
+### Unauthorized
+
+```solidity
+error Unauthorized()
+```
+
 ### createFuulProject
 
 ```solidity
@@ -790,16 +792,10 @@ function getUserProjectByIndex(address account, uint256 index) external view ret
 function getUserProjectCount(address account) external view returns (uint256)
 ```
 
-### fuulManager
+### hasManagerRole
 
 ```solidity
-function fuulManager() external view returns (address)
-```
-
-### setFuulManager
-
-```solidity
-function setFuulManager(address _fuulManager) external
+function hasManagerRole(address account) external view returns (bool)
 ```
 
 ### protocolFee
@@ -814,10 +810,16 @@ function protocolFee() external view returns (uint256 fees)
 function protocolFeeCollector() external view returns (address)
 ```
 
-### getFeesInformation
+### getAllFees
 
 ```solidity
-function getFeesInformation() external returns (struct IFuulFactory.FeesInformation, address)
+function getAllFees() external returns (struct IFuulFactory.FeesInformation)
+```
+
+### attributionFeeHelper
+
+```solidity
+function attributionFeeHelper(address sender) external returns (struct IFuulFactory.FeesInformation)
 ```
 
 ### clientFee
@@ -1125,12 +1127,6 @@ error OutsideRemovalWindow()
 error ZeroAmount()
 ```
 
-### Unauthorized
-
-```solidity
-error Unauthorized()
-```
-
 ### AlreadyAttributed
 
 ```solidity
@@ -1147,6 +1143,12 @@ error Forbidden()
 
 ```solidity
 error InvalidCurrency()
+```
+
+### InvalidArgument
+
+```solidity
+error InvalidArgument()
 ```
 
 ### fuulFactory
@@ -1308,7 +1310,7 @@ function addCurrencyLimit(address tokenAddress, uint256 claimLimitPerCooldown) e
 ```
 
 _Adds a currency token.
-See {_addCurrencyToken}
+See {_addCurrencyToken}.
 
 Requirements:
 
@@ -1321,10 +1323,6 @@ function setCurrencyTokenLimit(address tokenAddress, uint256 limit) external
 ```
 
 _Sets a new `claimLimitPerCooldown` for a currency token.
-
-Notes:
-We are not checking that the tokenAddress is accepted because
-users can claim from unaccepted currencies.
 
 Requirements:
 
@@ -1373,12 +1371,12 @@ See {Pausable.sol}_
 function attributeTransactions(struct IFuulManager.AttributionEntity[] attributions, address attributorFeeCollector) external
 ```
 
-_Attributes: calls the `attributeTransactions` function in {FuulProject} from an array of {AttributionEntity}.
+_Attributes: calls the `attributeTransactions` function in {FuulProject} from an array of `AttributionEntity`.
 
 Requirements:
 
 - Contract should not be paused.
-- Only addresses with the ATTRIBUTOR_ROLE can call this function._
+- Only addresses with the `ATTRIBUTOR_ROLE` can call this function._
 
 ### claim
 
@@ -1386,7 +1384,7 @@ Requirements:
 function claim(struct IFuulManager.ClaimCheck[] claimChecks) external
 ```
 
-_Claims: calls the `claimFromProject` function in {FuulProject} from an array of of {ClaimCheck}.
+_Claims: calls the `claimFromProject` function in {FuulProject} from an array of of `ClaimCheck`.
 
 Requirements:
 
