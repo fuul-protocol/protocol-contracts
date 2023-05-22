@@ -44,6 +44,10 @@ contract FuulManager is
         uint256 initialTokenLimit,
         uint256 initialNativeTokenLimit
     ) {
+        if (attributor == address(0) || pauser == address(0)) {
+            revert ZeroAddress();
+        }
+
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setupRole(ATTRIBUTOR_ROLE, attributor);
         _setupRole(PAUSER_ROLE, pauser);
@@ -67,11 +71,12 @@ contract FuulManager is
     function setClaimCooldown(
         uint256 period
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (period == claimCooldown) {
+        if (period == claimCooldown || period == 0) {
             revert InvalidArgument();
         }
 
         claimCooldown = period;
+        emit ClaimCooldownUpdated(period);
     }
 
     /*╔═════════════════════════════╗
@@ -102,7 +107,7 @@ contract FuulManager is
      *
      * Requirements:
      *
-     * - `limit` must be greater than zero.
+     * - `limit` must be lower than current cumulativeClaimPerCooldown.
      * - `limit` must be different from the current one.
      * - Only admins can call this function.
      */
@@ -113,7 +118,6 @@ contract FuulManager is
         CurrencyTokenLimit storage currency = currencyLimits[tokenAddress];
 
         if (
-            limit == 0 ||
             limit == currency.claimLimitPerCooldown ||
             limit < currency.cumulativeClaimPerCooldown
         ) {
@@ -121,6 +125,8 @@ contract FuulManager is
         }
 
         currency.claimLimitPerCooldown = limit;
+
+        emit TokenLimitUpdated(tokenAddress, claimLimitPerCooldown);
     }
 
     /*╔═════════════════════════════╗
@@ -283,5 +289,7 @@ contract FuulManager is
             cumulativeClaimPerCooldown: 0,
             claimCooldownPeriodStarted: block.timestamp
         });
+
+        emit TokenLimitAdded(tokenAddress, claimLimitPerCooldown);
     }
 }

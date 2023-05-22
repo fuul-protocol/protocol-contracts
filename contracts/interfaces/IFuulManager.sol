@@ -24,12 +24,21 @@ interface IFuulManager {
     }
 
     /*╔═════════════════════════════╗
+      ║           EVENTS            ║
+      ╚═════════════════════════════╝*/
+
+    event ClaimCooldownUpdated(uint256 indexed value);
+    event TokenLimitAdded(address indexed token, uint256 indexed value);
+    event TokenLimitUpdated(address indexed token, uint256 indexed value);
+
+    /*╔═════════════════════════════╗
       ║           ERRORS            ║
       ╚═════════════════════════════╝*/
 
     error InvalidArgument();
     error LimitAlreadySet();
     error OverTheLimit();
+    error ZeroAddress();
 
     /*╔═════════════════════════════╗
       ║       PUBLIC VARIABLES      ║
