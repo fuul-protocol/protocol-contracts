@@ -31,6 +31,9 @@ contract FuulProject is
     bytes4 public constant IID_IERC1155 = type(IERC1155).interfaceId;
     bytes4 public constant IID_IERC721 = type(IERC721).interfaceId;
 
+    // Contract is initialized
+    bool private initialized;
+
     // Factory contract address
     address public immutable fuulFactory;
 
@@ -135,7 +138,7 @@ contract FuulProject is
         string calldata projectURI,
         address clientCreator
     ) external {
-        if (fuulFactory != _msgSender()) {
+        if (fuulFactory != _msgSender() || initialized) {
             revert Forbidden();
         }
 
@@ -146,6 +149,7 @@ contract FuulProject is
         _setProjectURI(projectURI);
 
         clientFeeCollector = clientCreator;
+        initialized = true;
     }
 
     /*╔═════════════════════════════╗
