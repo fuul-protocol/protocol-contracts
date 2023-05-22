@@ -45,7 +45,7 @@ interface IFuulManager {
       ║       CLAIM VARIABLES       ║
       ╚═════════════════════════════╝*/
 
-    function setClaimCooldown(uint256 _period) external;
+    function setClaimCooldown(uint256 period) external;
 
     /*╔═════════════════════════════╗
       ║       TOKEN CURRENCIES      ║

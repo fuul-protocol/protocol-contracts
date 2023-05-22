@@ -33,10 +33,10 @@ interface IFuulFactory {
       ╚═════════════════════════════╝*/
 
     function createFuulProject(
-        address _projectAdmin,
-        address _projectEventSigner,
-        string memory _projectInfoURI,
-        address _clientFeeCollector
+        address projectAdmin,
+        address projectEventSigner,
+        string calldata projectInfoURI,
+        address clientFeeCollector
     ) external;
 
     function projects(uint256 projectId) external returns (address);
@@ -84,7 +84,7 @@ interface IFuulFactory {
 
     function setAttributorFee(uint256 value) external;
 
-    function setNftFixedFeeAmounte(uint256 _value) external;
+    function setNftFixedFeeAmounte(uint256 value) external;
 
     function setNftFeeCurrency(address newCurrency) external;
 

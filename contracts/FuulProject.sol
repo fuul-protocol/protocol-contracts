@@ -131,9 +131,9 @@ contract FuulProject is
      */
     function initialize(
         address projectAdmin,
-        address _projectEventSigner,
-        string calldata _projectInfoURI,
-        address _clientFeeCollector
+        address projectEventSignerAddress,
+        string calldata projectURI,
+        address clientCreator
     ) external {
         if (fuulFactory != _msgSender()) {
             revert Forbidden();
@@ -141,11 +141,11 @@ contract FuulProject is
 
         _setupRole(DEFAULT_ADMIN_ROLE, projectAdmin);
 
-        _setupRole(EVENTS_SIGNER_ROLE, _projectEventSigner);
+        _setupRole(EVENTS_SIGNER_ROLE, projectEventSignerAddress);
 
-        _setProjectURI(_projectInfoURI);
+        _setProjectURI(projectURI);
 
-        clientFeeCollector = _clientFeeCollector;
+        clientFeeCollector = clientCreator;
     }
 
     /*╔═════════════════════════════╗
@@ -159,14 +159,14 @@ contract FuulProject is
      *
      * Requirements:
      *
-     * - `_projectURI` must not be an empty string.
+     * - `projectURI` must not be an empty string.
      */
-    function _setProjectURI(string memory _projectURI) internal {
-        if (bytes(_projectURI).length == 0) {
+    function _setProjectURI(string memory projectURI) internal {
+        if (bytes(projectURI).length == 0) {
             revert EmptyURI();
         }
 
-        projectInfoURI = _projectURI;
+        projectInfoURI = projectURI;
 
         lastStatusHash = keccak256(
             abi.encodePacked(block.prevrandao, block.timestamp)
@@ -183,10 +183,10 @@ contract FuulProject is
      * - Only admins can call this function.
      */
     function setProjectURI(
-        string calldata _projectURI
+        string calldata projectURI
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _setProjectURI(_projectURI);
-        emit ProjectInfoUpdated(_projectURI);
+        _setProjectURI(projectURI);
+        emit ProjectInfoUpdated(projectURI);
     }
 
     /*╔═════════════════════════════╗
@@ -331,16 +331,16 @@ contract FuulProject is
         view
         returns (uint256 cooldown, uint256 removePeriodEnds)
     {
-        uint256 _lastApplication = lastRemovalApplication;
+        uint256 lastApplication = lastRemovalApplication;
 
-        if (_lastApplication == 0) {
+        if (lastApplication == 0) {
             revert NoRemovalApplication();
         }
 
         (uint256 budgetCooldown, uint256 removePeriod) = fuulFactoryInstance
             .getBudgetRemoveInfo();
 
-        cooldown = _lastApplication + budgetCooldown;
+        cooldown = lastApplication + budgetCooldown;
         removePeriodEnds = cooldown + removePeriod;
 
         return (cooldown, removePeriodEnds);

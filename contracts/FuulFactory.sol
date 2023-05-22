@@ -63,18 +63,18 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
      * construction.
      */
     constructor(
-        address _fuulManager,
-        address _protocolFeeCollector,
-        address _nftFeeCurrency,
+        address fuulManager,
+        address initialProtocolFeeCollector,
+        address initialNftFeeCurrency,
         address acceptedERC20CurrencyToken
     ) {
         fuulProjectImplementation = address(new FuulProject());
 
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        _setupRole(MANAGER_ROLE, _fuulManager);
+        _setupRole(MANAGER_ROLE, fuulManager);
 
-        protocolFeeCollector = _protocolFeeCollector;
-        nftFeeCurrency = _nftFeeCurrency;
+        protocolFeeCollector = initialProtocolFeeCollector;
+        nftFeeCurrency = initialNftFeeCurrency;
 
         acceptedCurrencies[acceptedERC20CurrencyToken] = true;
         acceptedCurrencies[address(0)] = true;
@@ -97,25 +97,25 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
      * - `_projectInfoURI` must not be an empty string.
      */
     function createFuulProject(
-        address _projectAdmin,
-        address _projectEventSigner,
-        string calldata _projectInfoURI,
-        address _clientFeeCollector
+        address projectAdmin,
+        address projectEventSigner,
+        string calldata projectInfoURI,
+        address clientFeeCollector
     ) external {
         if (
-            _projectAdmin == address(0) ||
-            _projectEventSigner == address(0) ||
-            _clientFeeCollector == address(0)
+            projectAdmin == address(0) ||
+            projectEventSigner == address(0) ||
+            clientFeeCollector == address(0)
         ) {
             revert ZeroAddress();
         }
 
         address clone = Clones.clone(fuulProjectImplementation);
         FuulProject(clone).initialize(
-            _projectAdmin,
-            _projectEventSigner,
-            _projectInfoURI,
-            _clientFeeCollector
+            projectAdmin,
+            projectEventSigner,
+            projectInfoURI,
+            clientFeeCollector
         );
 
         _projectTracker.increment();
@@ -125,9 +125,9 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
         emit ProjectCreated(
             totalProjectsCreated(),
             address(clone),
-            _projectEventSigner,
-            _projectInfoURI,
-            _clientFeeCollector
+            projectEventSigner,
+            projectInfoURI,
+            clientFeeCollector
         );
     }
 
@@ -213,17 +213,17 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
      *
      * Requirements:
      *
-     * - `_value` must be different from the current one.
+     * - `value` must be different from the current one.
      * - Only admins can call this function.
      */
     function setProtocolFee(
-        uint256 _value
+        uint256 value
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_value == protocolFee) {
+        if (value == protocolFee) {
             revert IFuulManager.InvalidArgument();
         }
 
-        protocolFee = _value;
+        protocolFee = value;
     }
 
     /**
@@ -231,17 +231,15 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
      *
      * Requirements:
      *
-     * - `_value` must be different from the current one.
+     * - `value` must be different from the current one.
      * - Only admins can call this function.
      */
-    function setClientFee(
-        uint256 _value
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_value == clientFee) {
+    function setClientFee(uint256 value) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (value == clientFee) {
             revert IFuulManager.InvalidArgument();
         }
 
-        clientFee = _value;
+        clientFee = value;
     }
 
     /**
@@ -249,17 +247,17 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
      *
      * Requirements:
      *
-     * - `_value` must be different from the current one.
+     * - `value` must be different from the current one.
      * - Only admins can call this function.
      */
     function setAttributorFee(
-        uint256 _value
+        uint256 value
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_value == attributorFee) {
+        if (value == attributorFee) {
             revert IFuulManager.InvalidArgument();
         }
 
-        attributorFee = _value;
+        attributorFee = value;
     }
 
     /**
@@ -267,17 +265,17 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
      *
      * Requirements:
      *
-     * - `_value` must be different from the current one.
+     * - `value` must be different from the current one.
      * - Only admins can call this function.
      */
     function setNftFixedFeeAmounte(
-        uint256 _value
+        uint256 value
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_value == nftFixedFeeAmount) {
+        if (value == nftFixedFeeAmount) {
             revert IFuulManager.InvalidArgument();
         }
 
-        nftFixedFeeAmount = _value;
+        nftFixedFeeAmount = value;
     }
 
     /**
@@ -285,7 +283,7 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
      *
      * Requirements:
      *
-     * - `_value` must be different from the current one.
+     * - `value` must be different from the current one.
      * - Only admins can call this function.
      */
     function setNftFeeCurrency(
@@ -303,7 +301,7 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
      *
      * Requirements:
      *
-     * - `_value` must be different from the current one.
+     * - `value` must be different from the current one.
      * - Only admins can call this function.
      */
     function setProtocolFeeCollector(
@@ -369,17 +367,17 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
      *
      * Requirements:
      *
-     * - `_period` must be different from the current one.
+     * - `period` must be different from the current one.
      * - Only admins can call this function.
      */
     function setProjectBudgetCooldown(
-        uint256 _period
+        uint256 period
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_period == projectBudgetCooldown) {
+        if (period == projectBudgetCooldown) {
             revert IFuulManager.InvalidArgument();
         }
 
-        projectBudgetCooldown = _period;
+        projectBudgetCooldown = period;
     }
 
     /**
@@ -387,17 +385,17 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
      *
      * Requirements:
      *
-     * - `_period` must be different from the current one.
+     * - `period` must be different from the current one.
      * - Only admins can call this function.
      */
     function setProjectRemoveBudgetPeriod(
-        uint256 _period
+        uint256 period
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_period == projectRemoveBudgetPeriod) {
+        if (period == projectRemoveBudgetPeriod) {
             revert IFuulManager.InvalidArgument();
         }
 
-        projectRemoveBudgetPeriod = _period;
+        projectRemoveBudgetPeriod = period;
     }
 
     /**

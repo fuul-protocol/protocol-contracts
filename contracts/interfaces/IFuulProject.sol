@@ -117,7 +117,7 @@ interface IFuulProject {
 
     function projectInfoURI() external view returns (string memory);
 
-    function setProjectURI(string memory _projectURI) external;
+    function setProjectURI(string memory projectURI) external;
 
     function clientFeeCollector() external view returns (address);
 

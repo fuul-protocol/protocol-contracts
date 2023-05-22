@@ -32,21 +32,21 @@ contract FuulManager is
       ╚═════════════════════════════╝*/
 
     /**
-     * @dev Grants roles to `_attributor`, `_pauser` and DEFAULT_ADMIN_ROLE to the deployer.
+     * @dev Grants roles to `attributor`, `pauser` and DEFAULT_ADMIN_ROLE to the deployer.
      *
      * Adds the initial `acceptedERC20CurrencyToken` as an accepted currency with its `initialTokenLimit`.
      * Adds the zero address (native token) as an accepted currency with its `initialNativeTokenLimit`.
      */
     constructor(
-        address _attributor,
-        address _pauser,
+        address attributor,
+        address pauser,
         address acceptedERC20CurrencyToken,
         uint256 initialTokenLimit,
         uint256 initialNativeTokenLimit
     ) {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        _setupRole(ATTRIBUTOR_ROLE, _attributor);
-        _setupRole(PAUSER_ROLE, _pauser);
+        _setupRole(ATTRIBUTOR_ROLE, attributor);
+        _setupRole(PAUSER_ROLE, pauser);
 
         _addCurrencyLimit(acceptedERC20CurrencyToken, initialTokenLimit);
         _addCurrencyLimit(address(0), initialNativeTokenLimit);
@@ -61,17 +61,17 @@ contract FuulManager is
      *
      * Requirements:
      *
-     * - `_period` must be different from the current one.
+     * - `period` must be different from the current one.
      * - Only admins can call this function.
      */
     function setClaimCooldown(
-        uint256 _period
+        uint256 period
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_period == claimCooldown) {
+        if (period == claimCooldown) {
             revert InvalidArgument();
         }
 
-        claimCooldown = _period;
+        claimCooldown = period;
     }
 
     /*╔═════════════════════════════╗
