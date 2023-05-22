@@ -69,6 +69,14 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
         address initialNftFeeCurrency,
         address acceptedERC20CurrencyToken
     ) {
+        if (
+            fuulManager == address(0) ||
+            initialProtocolFeeCollector == address(0) ||
+            acceptedERC20CurrencyToken == address(0)
+        ) {
+            revert ZeroAddress();
+        }
+
         fuulProjectImplementation = address(new FuulProject());
 
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
@@ -225,6 +233,8 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
         }
 
         protocolFee = value;
+
+        emit ProtocolFeeUpdated(value);
     }
 
     /**
@@ -241,6 +251,7 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
         }
 
         clientFee = value;
+        emit ClientFeeUpdated(value);
     }
 
     /**
@@ -259,6 +270,7 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
         }
 
         attributorFee = value;
+        emit AttributorFeeUpdated(value);
     }
 
     /**
@@ -269,7 +281,7 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
      * - `value` must be different from the current one.
      * - Only admins can call this function.
      */
-    function setNftFixedFeeAmounte(
+    function setNftFixedFeeAmount(
         uint256 value
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (value == nftFixedFeeAmount) {
@@ -277,6 +289,7 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
         }
 
         nftFixedFeeAmount = value;
+        emit NftFixedFeeUpdated(value);
     }
 
     /**
@@ -295,6 +308,7 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
         }
 
         nftFeeCurrency = newCurrency;
+        emit NftFeeCurrencyUpdated(newCurrency);
     }
 
     /**
@@ -313,6 +327,7 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
         }
 
         protocolFeeCollector = newCollector;
+        emit ProtocolFeeCollectorUpdated(newCollector);
     }
 
     /*╔═════════════════════════════╗

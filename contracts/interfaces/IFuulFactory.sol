@@ -11,6 +11,10 @@ interface IFuulFactory {
         uint256 nftFixedFeeAmount;
         address nftFeeCurrency;
     }
+
+    /*╔═════════════════════════════╗
+      ║           EVENTS            ║
+      ╚═════════════════════════════╝*/
     event ProjectCreated(
         uint256 indexed projectId,
         address indexed deployedAddress,
@@ -18,6 +22,13 @@ interface IFuulFactory {
         string projectInfoURI,
         address clientFeeCollector
     );
+
+    event ProtocolFeeUpdated(uint256 indexed value);
+    event ClientFeeUpdated(uint256 indexed value);
+    event AttributorFeeUpdated(uint256 indexed value);
+    event NftFixedFeeUpdated(uint256 indexed value);
+    event NftFeeCurrencyUpdated(address indexed newCurrency);
+    event ProtocolFeeCollectorUpdated(address indexed newCollector);
 
     /*╔═════════════════════════════╗
       ║           ERRORS            ║
@@ -84,7 +95,7 @@ interface IFuulFactory {
 
     function setAttributorFee(uint256 value) external;
 
-    function setNftFixedFeeAmounte(uint256 value) external;
+    function setNftFixedFeeAmount(uint256 value) external;
 
     function setNftFeeCurrency(address newCurrency) external;
 
