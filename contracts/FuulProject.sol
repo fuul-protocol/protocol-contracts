@@ -226,6 +226,9 @@ contract FuulProject is
                 revert IncorrectMsgValue();
             }
         } else if (isERC20(currency)) {
+            if (msg.value > 0) {
+                revert IncorrectMsgValue();
+            }
             IERC20(currency).safeTransferFrom(
                 _msgSender(),
                 address(this),
@@ -269,8 +272,6 @@ contract FuulProject is
         uint256 depositedAmount = tokenIds.length;
         uint256[] memory tokenAmounts;
 
-        _nonZeroAmount(depositedAmount);
-
         if (currency.supportsInterface(IID_IERC721)) {
             _transferERC721Tokens(
                 currency,
@@ -293,6 +294,8 @@ contract FuulProject is
         } else {
             revert InvalidCurrency();
         }
+
+        _nonZeroAmount(depositedAmount);
 
         // Update balance
         budgets[currency] += depositedAmount;
@@ -432,8 +435,6 @@ contract FuulProject is
         // Default amount as if it is an ERC721
         uint256 removeAmount = tokenIds.length;
 
-        _nonZeroAmount(removeAmount);
-
         if (currency.supportsInterface(IID_IERC721)) {
             _transferERC721Tokens(
                 currency,
@@ -454,6 +455,8 @@ contract FuulProject is
         } else {
             revert InvalidCurrency();
         }
+
+        _nonZeroAmount(removeAmount);
 
         // Update budget - By underflow it indirectly checks that amount <= budget
         budgets[currency] -= removeAmount;
