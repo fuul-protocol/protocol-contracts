@@ -17,6 +17,8 @@ contract FuulManager is
     bytes32 public constant ATTRIBUTOR_ROLE = keccak256("ATTRIBUTOR_ROLE");
     // Pauser role
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+    // UnPauser role
+    bytes32 public constant UNPAUSER_ROLE = keccak256("UNPAUSER_ROLE");
 
     // Amount of time that must elapse after {claimCooldownPeriodStarted} for the cumulative amount to be restarted
     uint256 public claimCooldown = 1 days;
@@ -40,6 +42,7 @@ contract FuulManager is
     constructor(
         address attributor,
         address pauser,
+        address unpauser,
         address acceptedERC20CurrencyToken,
         uint256 initialTokenLimit,
         uint256 initialNativeTokenLimit
@@ -51,6 +54,7 @@ contract FuulManager is
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setupRole(ATTRIBUTOR_ROLE, attributor);
         _setupRole(PAUSER_ROLE, pauser);
+        _setupRole(UNPAUSER_ROLE, unpauser);
 
         _addCurrencyLimit(acceptedERC20CurrencyToken, initialTokenLimit);
         _addCurrencyLimit(address(0), initialNativeTokenLimit);
@@ -126,7 +130,7 @@ contract FuulManager is
 
         currency.claimLimitPerCooldown = limit;
 
-        emit TokenLimitUpdated(tokenAddress, claimLimitPerCooldown);
+        emit TokenLimitUpdated(tokenAddress, limit);
     }
 
     /*╔═════════════════════════════╗
@@ -151,9 +155,9 @@ contract FuulManager is
      *
      * Requirements:
      *
-     * - Only addresses with the PAUSER_ROLE can call this function.
+     * - Only addresses with the UNPAUSER_ROLE can call this function.
      */
-    function unpauseAll() external onlyRole(PAUSER_ROLE) {
+    function unpauseAll() external onlyRole(UNPAUSER_ROLE) {
         _unpause();
     }
 
