@@ -572,7 +572,6 @@ contract FuulProject is
 
     function _calculateAmountsForFungibleToken(
         IFuulFactory.FeesInformation memory feesInfo,
-        uint256 totalAmount,
         uint256 amountToPartner,
         uint256 amountToEndUser
     )
@@ -584,11 +583,10 @@ contract FuulProject is
             uint256 netAmountToEndUser
         )
     {
-        // Can this be unchecked?
+        uint256 totalAmount = amountToPartner + amountToEndUser;
 
         // Calculate the percentage to partners
-        uint256 partnerPercentage = (100 * amountToPartner) /
-            (amountToPartner + amountToEndUser);
+        uint256 partnerPercentage = (100 * amountToPartner) / totalAmount;
 
         // Get all fees
         fees = [
@@ -683,7 +681,6 @@ contract FuulProject is
                     amountToEndUser
                 ) = _calculateAmountsForFungibleToken(
                     feesInfo,
-                    totalAmount,
                     attribution.amountToPartner,
                     attribution.amountToEndUser
                 );
