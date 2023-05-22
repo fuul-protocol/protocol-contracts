@@ -66,7 +66,7 @@ contract FuulProject is
     mapping(address => uint256) public nftFeeBudget;
 
     // {FuulFactory} instance
-    IFuulFactory immutable fuulFactoryInstance;
+    IFuulFactory private immutable fuulFactoryInstance;
 
     /**
      * @dev Modifier to check if the project can remove funds. Reverts with an {OutsideRemovalWindow} error.
@@ -270,13 +270,18 @@ contract FuulProject is
     {
         // Set default values as if it's an ERC721
         uint256 depositedAmount = tokenIds.length;
-        uint256[] memory tokenAmounts;
 
         if (currency.supportsInterface(IID_IERC721)) {
             _transferERC721Tokens(
                 currency,
                 _msgSender(),
                 address(this),
+                tokenIds
+            );
+            emit ERC721BudgetDeposited(
+                _msgSender(),
+                depositedAmount,
+                currency,
                 tokenIds
             );
         } else if (currency.supportsInterface(IID_IERC1155)) {
@@ -290,7 +295,14 @@ contract FuulProject is
 
             // Change values for ERC1155
             depositedAmount = _getSumFromArray(amounts);
-            tokenAmounts = amounts;
+
+            emit ERC1155BudgetDeposited(
+                _msgSender(),
+                depositedAmount,
+                currency,
+                tokenIds,
+                amounts
+            );
         } else {
             revert InvalidCurrency();
         }
@@ -299,14 +311,6 @@ contract FuulProject is
 
         // Update balance
         budgets[currency] += depositedAmount;
-
-        emit NFTBudgetDeposited(
-            _msgSender(),
-            depositedAmount,
-            currency,
-            tokenIds,
-            tokenAmounts
-        );
     }
 
     /*╔═════════════════════════════╗
@@ -442,6 +446,13 @@ contract FuulProject is
                 _msgSender(),
                 tokenIds
             );
+
+            emit ERC721BudgetRemoved(
+                _msgSender(),
+                removeAmount,
+                currency,
+                tokenIds
+            );
         } else if (currency.supportsInterface(IID_IERC1155)) {
             _transferERC1155Tokens(
                 currency,
@@ -452,6 +463,14 @@ contract FuulProject is
             );
 
             removeAmount = _getSumFromArray(amounts);
+
+            emit ERC1155BudgetRemoved(
+                _msgSender(),
+                removeAmount,
+                currency,
+                tokenIds,
+                amounts
+            );
         } else {
             revert InvalidCurrency();
         }
@@ -460,14 +479,6 @@ contract FuulProject is
 
         // Update budget - By underflow it indirectly checks that amount <= budget
         budgets[currency] -= removeAmount;
-
-        emit NFTBudgetRemoved(
-            _msgSender(),
-            removeAmount,
-            currency,
-            tokenIds,
-            amounts
-        );
     }
 
     /*╔═════════════════════════════╗

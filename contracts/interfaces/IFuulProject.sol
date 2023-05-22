@@ -32,7 +32,14 @@ interface IFuulProject {
         address indexed currency
     );
 
-    event NFTBudgetDeposited(
+    event ERC721BudgetDeposited(
+        address indexed account,
+        uint256 indexed amount,
+        address indexed currency,
+        uint256[] tokenIds
+    );
+
+    event ERC1155BudgetDeposited(
         address indexed account,
         uint256 indexed amount,
         address indexed currency,
@@ -46,7 +53,14 @@ interface IFuulProject {
         address indexed currency
     );
 
-    event NFTBudgetRemoved(
+    event ERC721BudgetRemoved(
+        address indexed account,
+        uint256 indexed amount,
+        address indexed currency,
+        uint256[] tokenIds
+    );
+
+    event ERC1155BudgetRemoved(
         address indexed account,
         uint256 indexed amount,
         address indexed currency,
