@@ -627,6 +627,7 @@ contract FuulProject is
      * - Only `MANAGER_ROLE` in {FuulFactory} addresses can call this function. This is checked through the `getFeesInformation` in {FuulFactory}.
      * - Proof must not exist (be previously attributed).
      * - {FuulManager} must not be paused. This is checked through The `attributeTransactions` function in {FuulManager}.
+     * - Currency token must be accepted in {FuulFactory}
      */
 
     function attributeTransactions(
@@ -643,6 +644,9 @@ contract FuulProject is
             if (attributionProofs[attribution.proof]) {
                 revert AlreadyAttributed();
             }
+            address currency = attribution.currency;
+
+            _isCurrencyAccepted(currency);
 
             attributionProofs[attribution.proof] = true;
 
@@ -650,8 +654,6 @@ contract FuulProject is
                 attribution.amountToEndUser;
 
             _nonZeroAmount(totalAmount);
-
-            address currency = attribution.currency;
 
             // Calculate fees and amounts
 
