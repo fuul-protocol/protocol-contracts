@@ -188,12 +188,8 @@ contract FuulManager is
     ) external whenNotPaused nonReentrant onlyRole(ATTRIBUTOR_ROLE) {
         uint256 attributionLength = attributions.length;
         for (uint256 i = 0; i < attributionLength; ) {
-            IFuulProject.Attribution[]
-                memory projectAttributions = attributions[i]
-                    .projectAttributions;
-
             IFuulProject(attributions[i].projectAddress).attributeTransactions(
-                projectAttributions,
+                attributions[i].projectAttributions,
                 attributorFeeCollector
             );
 
