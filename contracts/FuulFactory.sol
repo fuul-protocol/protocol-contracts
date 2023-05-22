@@ -374,7 +374,7 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
     function setProjectBudgetCooldown(
         uint256 period
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (period == projectBudgetCooldown) {
+        if (period == projectBudgetCooldown || period == 0) {
             revert IFuulManager.InvalidArgument();
         }
 
@@ -392,7 +392,7 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
     function setProjectRemoveBudgetPeriod(
         uint256 period
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (period == projectRemoveBudgetPeriod) {
+        if (period == projectRemoveBudgetPeriod || period == 0) {
             revert IFuulManager.InvalidArgument();
         }
 
