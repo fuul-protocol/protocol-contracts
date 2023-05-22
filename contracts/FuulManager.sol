@@ -85,11 +85,15 @@ contract FuulManager is
      * Requirements:
      *
      * - Only admins can call this function.
+     * - Token limit was not added before.
      */
     function addCurrencyLimit(
         address tokenAddress,
         uint256 claimLimitPerCooldown
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (currencyLimits[tokenAddress].claimCooldownPeriodStarted == 0) {
+            revert LimitAlreadySet();
+        }
         _addCurrencyLimit(tokenAddress, claimLimitPerCooldown);
     }
 
@@ -108,7 +112,11 @@ contract FuulManager is
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         CurrencyTokenLimit storage currency = currencyLimits[tokenAddress];
 
-        if (limit == 0 || limit == currency.claimLimitPerCooldown) {
+        if (
+            limit == 0 ||
+            limit == currency.claimLimitPerCooldown ||
+            limit < currency.cumulativeClaimPerCooldown
+        ) {
             revert InvalidArgument();
         }
 

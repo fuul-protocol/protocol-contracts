@@ -28,6 +28,7 @@ interface IFuulManager {
       ╚═════════════════════════════╝*/
 
     error InvalidArgument();
+    error LimitAlreadySet();
     error OverTheLimit();
 
     /*╔═════════════════════════════╗
