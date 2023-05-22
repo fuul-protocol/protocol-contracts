@@ -132,7 +132,7 @@ contract FuulProject is
     function initialize(
         address projectAdmin,
         address _projectEventSigner,
-        string memory _projectInfoURI,
+        string calldata _projectInfoURI,
         address _clientFeeCollector
     ) external {
         if (fuulFactory != _msgSender()) {
@@ -183,7 +183,7 @@ contract FuulProject is
      * - Only admins can call this function.
      */
     function setProjectURI(
-        string memory _projectURI
+        string calldata _projectURI
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setProjectURI(_projectURI);
         emit ProjectInfoUpdated(_projectURI);

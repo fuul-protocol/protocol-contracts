@@ -99,7 +99,7 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
     function createFuulProject(
         address _projectAdmin,
         address _projectEventSigner,
-        string memory _projectInfoURI,
+        string calldata _projectInfoURI,
         address _clientFeeCollector
     ) external {
         if (

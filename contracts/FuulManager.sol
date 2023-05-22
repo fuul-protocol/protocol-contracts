@@ -165,7 +165,7 @@ contract FuulManager is
      */
 
     function attributeTransactions(
-        AttributionEntity[] memory attributions,
+        AttributionEntity[] calldata attributions,
         address attributorFeeCollector
     ) external whenNotPaused nonReentrant onlyRole(ATTRIBUTOR_ROLE) {
         uint256 attributionLength = attributions.length;
