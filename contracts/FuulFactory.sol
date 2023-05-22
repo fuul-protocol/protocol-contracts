@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "./FuulProject.sol";
 import "./interfaces/IFuulFactory.sol";
+import "./interfaces/IFuulManager.sol";
 
 contract FuulFactory is IFuulFactory, AccessControlEnumerable {
     using Counters for Counters.Counter;

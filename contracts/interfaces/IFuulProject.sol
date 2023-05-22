@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: MIT
-import "./IFuulManager.sol";
 
 pragma solidity ^0.8.18;
 
