@@ -31,7 +31,7 @@ contract FuulProject is
     bytes4 public constant IID_IERC1155 = type(IERC1155).interfaceId;
     bytes4 public constant IID_IERC721 = type(IERC721).interfaceId;
 
-    // Contract is initialized
+    // Checks if contract is initialized
     bool private initialized;
 
     // Factory contract address
