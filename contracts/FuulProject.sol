@@ -496,23 +496,31 @@ contract FuulProject is
         nonZeroAmount(amount)
     {
         address currency = fuulFactoryInstance.nftFeeCurrency();
+        uint256 depositedAmount;
 
         if (currency == address(0)) {
             if (msg.value != amount) {
                 revert IncorrectMsgValue();
             }
+            depositedAmount = amount;
         } else {
+            uint256 previousBalance = IERC20(currency).balanceOf(address(this));
+
             IERC20(currency).safeTransferFrom(
                 _msgSender(),
                 address(this),
                 amount
             );
+
+            depositedAmount =
+                IERC20(currency).balanceOf(address(this)) -
+                previousBalance;
         }
 
         // Update balance
-        nftFeeBudget[currency] += amount;
+        nftFeeBudget[currency] += depositedAmount;
 
-        emit FeeBudgetDeposited(_msgSender(), amount, currency);
+        emit FeeBudgetDeposited(_msgSender(), depositedAmount, currency);
     }
 
     /**
