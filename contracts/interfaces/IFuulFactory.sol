@@ -12,6 +12,18 @@ interface IFuulFactory {
         address nftFeeCurrency;
     }
 
+    enum TokenType {
+        NATIVE,
+        ERC_20,
+        ERC_721,
+        ERC_1155
+    }
+
+    struct CurrencyToken {
+        TokenType tokenType;
+        bool accepted;
+    }
+
     /*╔═════════════════════════════╗
       ║           EVENTS            ║
       ╚═════════════════════════════╝*/
@@ -105,9 +117,12 @@ interface IFuulFactory {
 
     function acceptedCurrencies(
         address tokenAddress
-    ) external view returns (bool);
+    ) external view returns (TokenType tokenType, bool isAccepted);
 
-    function addCurrencyToken(address tokenAddress) external;
+    function addCurrencyToken(
+        address tokenAddress,
+        TokenType tokenType
+    ) external;
 
     function removeCurrencyToken(address tokenAddress) external;
 

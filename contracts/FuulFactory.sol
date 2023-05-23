@@ -53,8 +53,8 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
     // Mapping accounts with created project contract address
     mapping(address => EnumerableSet.AddressSet) userProjects;
 
-    // Mapping token addresses with acceptance or not
-    mapping(address => bool) public acceptedCurrencies;
+    // Mapping token addresses with token information
+    mapping(address => CurrencyToken) public acceptedCurrencies;
 
     /**
      * @dev Sets the values for `fuulManager`, `fuulProjectImplementation` and the initial values for `protocolFeeCollector` and `nftFeeCurrency`.
@@ -85,8 +85,8 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
         protocolFeeCollector = initialProtocolFeeCollector;
         nftFeeCurrency = initialNftFeeCurrency;
 
-        acceptedCurrencies[acceptedERC20CurrencyToken] = true;
-        acceptedCurrencies[address(0)] = true;
+        _addCurrencyToken(address(0), TokenType(0));
+        _addCurrencyToken(acceptedERC20CurrencyToken, TokenType(1));
     }
 
     /*╔═════════════════════════════╗
@@ -341,15 +341,30 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
      * Requirements:
      *
      * - Only admins can call this function.
+     * - Token not accepted
      */
     function addCurrencyToken(
-        address tokenAddress
+        address tokenAddress,
+        TokenType tokenType
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (acceptedCurrencies[tokenAddress]) {
+        if (acceptedCurrencies[tokenAddress].accepted) {
             revert TokenCurrencyAlreadyAccepted();
         }
+        _addCurrencyToken(tokenAddress, tokenType);
+    }
 
-        acceptedCurrencies[tokenAddress] = true;
+    /**
+     * @dev Adds a currency token.
+     *
+     */
+    function _addCurrencyToken(
+        address tokenAddress,
+        TokenType tokenType
+    ) internal {
+        acceptedCurrencies[tokenAddress] = CurrencyToken({
+            tokenType: tokenType,
+            accepted: true
+        });
     }
 
     /**
@@ -367,11 +382,11 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
     function removeCurrencyToken(
         address tokenAddress
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (!acceptedCurrencies[tokenAddress]) {
+        if (!acceptedCurrencies[tokenAddress].accepted) {
             revert TokenCurrencyNotAccepted();
         }
 
-        acceptedCurrencies[tokenAddress] = false;
+        acceptedCurrencies[tokenAddress].accepted = false;
     }
 
     /*╔═════════════════════════════╗
