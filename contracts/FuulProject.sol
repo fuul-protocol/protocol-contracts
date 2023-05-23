@@ -609,8 +609,6 @@ contract FuulProject is
     function _calculateFeesForNFT(
         IFuulFactory.FeesInformation memory feesInfo
     ) internal pure returns (uint256[3] memory fees) {
-        // Can this be unchecked?
-
         uint256 totalAmount = feesInfo.nftFixedFeeAmount;
         fees = [
             (feesInfo.protocolFee * totalAmount) / 10000,
@@ -766,6 +764,8 @@ contract FuulProject is
 
         _nonZeroAmount(availableAmount);
 
+        availableToClaim[receiver][currency] = 0;
+
         (IFuulFactory.TokenType currencyType, ) = fuulFactoryInstance
             .acceptedCurrencies(currency);
 
@@ -799,10 +799,6 @@ contract FuulProject is
         } else {
             revert InvalidCurrency();
         }
-
-        // Update user budget - it will fail from underflow if insufficient funds
-
-        availableToClaim[receiver][currency] = 0;
 
         emit Claimed(receiver, currency, availableAmount, tokenIds, amounts);
 
