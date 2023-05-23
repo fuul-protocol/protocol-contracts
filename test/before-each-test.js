@@ -26,6 +26,7 @@ const deployMocks = async function () {
 const deployManager = async function (
   signerAddress,
   pauserAddress,
+  unpauserAddress,
   tokenAddress,
   limitAmount
 ) {
@@ -33,6 +34,7 @@ const deployManager = async function (
   const fuulManager = await FuulManager.deploy(
     signerAddress,
     pauserAddress,
+    unpauserAddress,
     tokenAddress,
     limitAmount,
     limitAmount
@@ -86,6 +88,7 @@ const setupTest = async function (deployProject = true) {
   const limitAmount = ethers.utils.parseEther("10000");
 
   const fuulManager = await deployManager(
+    user1.address,
     user1.address,
     user1.address,
     token.address,

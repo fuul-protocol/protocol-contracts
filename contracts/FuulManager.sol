@@ -100,7 +100,7 @@ contract FuulManager is
         address tokenAddress,
         uint256 claimLimitPerCooldown
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (currencyLimits[tokenAddress].claimCooldownPeriodStarted == 0) {
+        if (currencyLimits[tokenAddress].claimLimitPerCooldown > 0) {
             revert LimitAlreadySet();
         }
         _addCurrencyLimit(tokenAddress, claimLimitPerCooldown);

@@ -75,7 +75,7 @@ describe("Fuul Factory - Fees management", function () {
     expect(await this.fuulFactory.attributorFee()).to.equal(this.newFee);
 
     // NFT Fixed fees
-    await this.fuulFactory.setNftFixedFeeAmounte(this.newFee);
+    await this.fuulFactory.setNftFixedFeeAmount(this.newFee);
 
     expect(await this.fuulFactory.nftFixedFeeAmount()).to.equal(this.newFee);
 
@@ -116,7 +116,7 @@ describe("Fuul Factory - Fees management", function () {
 
     // NFT Fixed fees
     await expect(
-      this.fuulFactory.connect(this.user2).setNftFixedFeeAmounte(this.newFee)
+      this.fuulFactory.connect(this.user2).setNftFixedFeeAmount(this.newFee)
     ).to.be.revertedWith(error);
 
     // NFT fee currency
@@ -146,24 +146,31 @@ describe("Fuul Factory - Token currency management", function () {
     this.adminRole = adminRole;
 
     this.newCurrency = this.nft721.address;
+    this.newCurrencyType = 2;
     this.limit = ethers.utils.parseEther("100");
   });
 
   it("Should add new currency", async function () {
-    await this.fuulFactory.addCurrencyToken(this.newCurrency);
+    await this.fuulFactory.addCurrencyToken(
+      this.newCurrency,
+      this.newCurrencyType
+    );
 
-    expect(
-      await this.fuulFactory.acceptedCurrencies(this.newCurrency)
-    ).to.equal(true);
+    const currency = await this.fuulFactory.acceptedCurrencies(
+      this.newCurrency
+    );
+
+    expect(currency.isAccepted).to.equal(true);
+    expect(currency.tokenType).to.equal(this.newCurrencyType);
   });
 
   it("Should remove currency", async function () {
     const removeCurrency = this.token.address;
     await this.fuulFactory.removeCurrencyToken(removeCurrency);
 
-    expect(await this.fuulFactory.acceptedCurrencies(removeCurrency)).to.equal(
-      false
-    );
+    const currency = await this.fuulFactory.acceptedCurrencies(removeCurrency);
+
+    expect(currency.isAccepted).to.equal(false);
   });
 
   it("Should fail to add and remove currency if not admin role", async function () {
@@ -173,7 +180,9 @@ describe("Fuul Factory - Token currency management", function () {
 
     // Add currency
     await expect(
-      this.fuulFactory.connect(this.user2).addCurrencyToken(this.newCurrency)
+      this.fuulFactory
+        .connect(this.user2)
+        .addCurrencyToken(this.newCurrency, this.newCurrencyType)
     ).to.be.revertedWith(error);
 
     // Remove currency
@@ -188,7 +197,7 @@ describe("Fuul Factory - Token currency management", function () {
     // Token already accepted
 
     await expect(
-      this.fuulFactory.addCurrencyToken(this.token.address)
+      this.fuulFactory.addCurrencyToken(this.token.address, 1)
     ).to.be.revertedWithCustomError(
       this.fuulFactory,
       "TokenCurrencyAlreadyAccepted"

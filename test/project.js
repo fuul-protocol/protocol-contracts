@@ -327,7 +327,7 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
 
     // Add token
 
-    await this.fuulFactory.addCurrencyToken(nft721.address);
+    await this.fuulFactory.addCurrencyToken(nft721.address, 2);
 
     this.tokenIds = [1, 2, 3, 4];
 
@@ -339,13 +339,12 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     await expect(
       this.fuulProject.depositNFTToken(this.nft721.address, this.tokenIds, [])
     )
-      .to.emit(this.fuulProject, "NFTBudgetDeposited")
+      .to.emit(this.fuulProject, "ERC721BudgetDeposited")
       .withArgs(
         this.user1.address,
         this.tokenIds.length,
         this.nft721.address,
-        this.tokenIds,
-        []
+        this.tokenIds
       );
 
     // Budget info
@@ -382,13 +381,12 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
     await expect(
       this.fuulProject.removeNFTBudget(this.nft721.address, this.tokenIds, [])
     )
-      .to.emit(this.fuulProject, "NFTBudgetRemoved")
+      .to.emit(this.fuulProject, "ERC721BudgetRemoved")
       .withArgs(
         this.user1.address,
         this.tokenIds.length,
         this.nft721.address,
-        this.tokenIds,
-        []
+        this.tokenIds
       );
 
     // Budget info
@@ -535,7 +533,7 @@ describe("Fuul Project - Deposit and remove unmatching token types", function ()
 
     this.tokenIds = [1, 2, 3, 4, 5];
 
-    await this.fuulFactory.addCurrencyToken(this.nft721.address);
+    await this.fuulFactory.addCurrencyToken(this.nft721.address, 2);
 
     await this.fuulProject.depositNFTToken(
       this.nft721.address,
@@ -604,7 +602,7 @@ describe("Fuul Project - Deposit and remove NFT 1155", function () {
 
     // Add token
 
-    await this.fuulFactory.addCurrencyToken(nft1155.address);
+    await this.fuulFactory.addCurrencyToken(nft1155.address, 3);
 
     this.tokenIds = [1, 2, 3, 4];
 
@@ -626,7 +624,7 @@ describe("Fuul Project - Deposit and remove NFT 1155", function () {
         this.amounts
       )
     )
-      .to.emit(this.fuulProject, "NFTBudgetDeposited")
+      .to.emit(this.fuulProject, "ERC1155BudgetDeposited")
       .withArgs(
         this.user1.address,
         this.tokenAmount,
@@ -731,170 +729,170 @@ describe("Fuul Project - Fuul Manager functions", function () {
   });
 });
 
-// describe("Fuul Project - Deposit and remove fee budget", function () {
-//   beforeEach(async function () {
-//     const {
-//       fuulProject,
-//       fuulFactory,
-//       user1,
-//       user2,
-//       adminRole,
-//       nftFeeCurrency,
-//     } = await setupTest();
+describe("Fuul Project - Deposit and remove fee budget", function () {
+  beforeEach(async function () {
+    const {
+      fuulProject,
+      fuulFactory,
+      user1,
+      user2,
+      adminRole,
+      nftFeeCurrency,
+    } = await setupTest();
 
-//     this.fuulProject = fuulProject;
-//     this.fuulFactory = fuulFactory;
+    this.fuulProject = fuulProject;
+    this.fuulFactory = fuulFactory;
 
-//     this.nftFeeCurrency = nftFeeCurrency;
-//     this.user1 = user1;
-//     this.user2 = user2;
-//     this.adminRole = adminRole;
+    this.nftFeeCurrency = nftFeeCurrency;
+    this.user1 = user1;
+    this.user2 = user2;
+    this.adminRole = adminRole;
 
-//     this.amount = ethers.utils.parseEther("1000");
-//   });
+    this.amount = ethers.utils.parseEther("1000");
+  });
 
-//   it("Should deposit correctly & set correct values", async function () {
-//     // Approve
-//     await this.nftFeeCurrency.approve(
-//       this.fuulProject.address,
-//       ethers.utils.parseEther("40000000")
-//     );
+  it("Should deposit correctly & set correct values", async function () {
+    // Approve
+    await this.nftFeeCurrency.approve(
+      this.fuulProject.address,
+      ethers.utils.parseEther("40000000")
+    );
 
-//     await expect(this.fuulProject.depositFeeBudget(this.amount))
-//       .to.emit(this.fuulProject, "FeeBudgetDeposited")
-//       .withArgs(this.user1.address, this.amount, this.nftFeeCurrency.address);
+    await expect(this.fuulProject.depositFeeBudget(this.amount))
+      .to.emit(this.fuulProject, "FeeBudgetDeposited")
+      .withArgs(this.user1.address, this.amount, this.nftFeeCurrency.address);
 
-//     // Budget info
+    // Budget info
 
-//     expect(
-//       await this.fuulProject.nftFeeBudget(this.nftFeeCurrency.address)
-//     ).to.equal(this.amount);
+    expect(
+      await this.fuulProject.nftFeeBudget(this.nftFeeCurrency.address)
+    ).to.equal(this.amount);
 
-//     // Balance
+    // Balance
 
-//     await expect(
-//       await this.nftFeeCurrency.balanceOf(this.fuulProject.address)
-//     ).to.equal(this.amount);
-//   });
+    await expect(
+      await this.nftFeeCurrency.balanceOf(this.fuulProject.address)
+    ).to.equal(this.amount);
+  });
 
-//   it("Should remove correctly & set correct values", async function () {
-//     // Approve
-//     await this.nftFeeCurrency.approve(
-//       this.fuulProject.address,
-//       ethers.utils.parseEther("40000000")
-//     );
+  it("Should remove correctly & set correct values", async function () {
+    // Approve
+    await this.nftFeeCurrency.approve(
+      this.fuulProject.address,
+      ethers.utils.parseEther("40000000")
+    );
 
-//     // Deposit
-//     await this.fuulProject.depositFeeBudget(this.amount);
+    // Deposit
+    await this.fuulProject.depositFeeBudget(this.amount);
 
-//     // Apply to remove
-//     await this.fuulProject.applyToRemoveBudget();
+    // Apply to remove
+    await this.fuulProject.applyToRemoveBudget();
 
-//     // Increase time
+    // Increase time
 
-//     const projectBudgetCooldown =
-//       await this.fuulFactory.projectBudgetCooldown();
+    const projectBudgetCooldown =
+      await this.fuulFactory.projectBudgetCooldown();
 
-//     await time.increase(projectBudgetCooldown.toNumber() + 1);
+    await time.increase(projectBudgetCooldown.toNumber() + 1);
 
-//     // Remove
-//     await this.fuulProject.removeFeeBudget(
-//       this.nftFeeCurrency.address,
-//       this.amount
-//     );
+    // Remove
+    await this.fuulProject.removeFeeBudget(
+      this.nftFeeCurrency.address,
+      this.amount
+    );
 
-//     // Budget info
-//     expect(
-//       await this.fuulProject.nftFeeBudget(this.nftFeeCurrency.address)
-//     ).to.equal(0);
+    // Budget info
+    expect(
+      await this.fuulProject.nftFeeBudget(this.nftFeeCurrency.address)
+    ).to.equal(0);
 
-//     // Balance
+    // Balance
 
-//     await expect(
-//       await this.nftFeeCurrency.balanceOf(this.fuulProject.address)
-//     ).to.equal(0);
-//   });
+    await expect(
+      await this.nftFeeCurrency.balanceOf(this.fuulProject.address)
+    ).to.equal(0);
+  });
 
-//   it("Fail to remove if not applied or cooldown is not over, or removal window ended", async function () {
-//     // Remove before applying
+  it("Fail to remove if not applied or cooldown is not over, or removal window ended", async function () {
+    // Remove before applying
 
-//     await expect(
-//       this.fuulProject.removeFeeBudget(this.nftFeeCurrency.address, this.amount)
-//     ).to.be.revertedWithCustomError(this.fuulProject, "NoRemovalApplication");
+    await expect(
+      this.fuulProject.removeFeeBudget(this.nftFeeCurrency.address, this.amount)
+    ).to.be.revertedWithCustomError(this.fuulProject, "NoRemovalApplication");
 
-//     // Remove before cooldown is complete
-//     await this.fuulProject.applyToRemoveBudget();
+    // Remove before cooldown is complete
+    await this.fuulProject.applyToRemoveBudget();
 
-//     await expect(
-//       this.fuulProject.removeFeeBudget(this.nftFeeCurrency.address, this.amount)
-//     ).to.be.revertedWithCustomError(this.fuulProject, "OutsideRemovalWindow");
+    await expect(
+      this.fuulProject.removeFeeBudget(this.nftFeeCurrency.address, this.amount)
+    ).to.be.revertedWithCustomError(this.fuulProject, "OutsideRemovalWindow");
 
-//     // Increase time
-//     const removeInfo = await this.fuulFactory.getBudgetRemoveInfo();
+    // Increase time
+    const removeInfo = await this.fuulFactory.getBudgetRemoveInfo();
 
-//     await time.increase(
-//       removeInfo[0].toNumber() + removeInfo[1].toNumber() + 1
-//     );
+    await time.increase(
+      removeInfo[0].toNumber() + removeInfo[1].toNumber() + 1
+    );
 
-//     await expect(
-//       this.fuulProject.removeFeeBudget(this.nftFeeCurrency.address, this.amount)
-//     ).to.be.revertedWithCustomError(this.fuulProject, "OutsideRemovalWindow");
-//   });
+    await expect(
+      this.fuulProject.removeFeeBudget(this.nftFeeCurrency.address, this.amount)
+    ).to.be.revertedWithCustomError(this.fuulProject, "OutsideRemovalWindow");
+  });
 
-//   it("Should remove correctly & set correct values after changing fee currency", async function () {
-//     // Approve
-//     await this.nftFeeCurrency.approve(
-//       this.fuulProject.address,
-//       ethers.utils.parseEther("40000000")
-//     );
+  it("Should remove correctly & set correct values after changing fee currency", async function () {
+    // Approve
+    await this.nftFeeCurrency.approve(
+      this.fuulProject.address,
+      ethers.utils.parseEther("40000000")
+    );
 
-//     // Deposit
-//     await this.fuulProject.depositFeeBudget(this.amount);
+    // Deposit
+    await this.fuulProject.depositFeeBudget(this.amount);
 
-//     // Change currency
-//     await this.fuulFactory.setNftFeeCurrency(this.user1.address);
+    // Change currency
+    await this.fuulFactory.setNftFeeCurrency(this.user1.address);
 
-//     // Apply to remove
-//     await this.fuulProject.applyToRemoveBudget();
+    // Apply to remove
+    await this.fuulProject.applyToRemoveBudget();
 
-//     // Increase time
+    // Increase time
 
-//     const projectBudgetCooldown =
-//       await this.fuulFactory.projectBudgetCooldown();
+    const projectBudgetCooldown =
+      await this.fuulFactory.projectBudgetCooldown();
 
-//     await time.increase(projectBudgetCooldown.toNumber() + 1);
+    await time.increase(projectBudgetCooldown.toNumber() + 1);
 
-//     // Remove
-//     await this.fuulProject.removeFeeBudget(
-//       this.nftFeeCurrency.address,
-//       this.amount
-//     );
+    // Remove
+    await this.fuulProject.removeFeeBudget(
+      this.nftFeeCurrency.address,
+      this.amount
+    );
 
-//     // Budget info
-//     expect(
-//       await this.fuulProject.nftFeeBudget(this.nftFeeCurrency.address)
-//     ).to.equal(0);
+    // Budget info
+    expect(
+      await this.fuulProject.nftFeeBudget(this.nftFeeCurrency.address)
+    ).to.equal(0);
 
-//     // Balance
+    // Balance
 
-//     await expect(
-//       await this.nftFeeCurrency.balanceOf(this.fuulProject.address)
-//     ).to.equal(0);
-//   });
+    await expect(
+      await this.nftFeeCurrency.balanceOf(this.fuulProject.address)
+    ).to.equal(0);
+  });
 
-//   it("Should fail to deposit with amount equals to zero", async function () {
-//     await expect(
-//       this.fuulProject.depositFeeBudget(0)
-//     ).to.be.revertedWithCustomError(this.fuulProject, "ZeroAmount");
-//   });
+  it("Should fail to deposit with amount equals to zero", async function () {
+    await expect(
+      this.fuulProject.depositFeeBudget(0)
+    ).to.be.revertedWithCustomError(this.fuulProject, "ZeroAmount");
+  });
 
-//   it("Should fail to deposit and remove if not admin role", async function () {
-//     const error = `AccessControl: account ${this.user2.address.toLowerCase()} is missing role ${
-//       this.adminRole
-//     }`;
+  it("Should fail to deposit and remove if not admin role", async function () {
+    const error = `AccessControl: account ${this.user2.address.toLowerCase()} is missing role ${
+      this.adminRole
+    }`;
 
-//     await expect(
-//       this.fuulProject.connect(this.user2).depositFeeBudget(this.amount)
-//     ).to.be.revertedWith(error);
-//   });
-// });
+    await expect(
+      this.fuulProject.connect(this.user2).depositFeeBudget(this.amount)
+    ).to.be.revertedWith(error);
+  });
+});

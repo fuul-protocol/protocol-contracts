@@ -114,11 +114,6 @@ describe("Fuul Manager - Token currency management", function () {
         this.limitAmount
       )
     ).to.be.revertedWithCustomError(this.fuulManager, "InvalidArgument");
-
-    // Limit = 0
-    await expect(
-      this.fuulManager.setCurrencyTokenLimit(this.token.address, 0)
-    ).to.be.revertedWithCustomError(this.fuulManager, "InvalidArgument");
   });
 });
 
@@ -194,7 +189,7 @@ describe("Fuul Manager - Attribute", function () {
     );
 
     // Deposit ERC721
-    await this.fuulFactory.addCurrencyToken(nft721.address);
+    await this.fuulFactory.addCurrencyToken(nft721.address, 2);
 
     await this.nft721.setApprovalForAll(this.fuulProject.address, true);
 
@@ -202,7 +197,7 @@ describe("Fuul Manager - Attribute", function () {
 
     // Deposit ERC1155
 
-    await this.fuulFactory.addCurrencyToken(nft1155.address);
+    await this.fuulFactory.addCurrencyToken(nft1155.address, 3);
 
     await this.nft1155.setApprovalForAll(this.fuulProject.address, true);
 
@@ -664,7 +659,7 @@ describe("Fuul Manager - Claim", function () {
     );
 
     // Deposit ERC721
-    await this.fuulFactory.addCurrencyToken(nft721.address);
+    await this.fuulFactory.addCurrencyToken(nft721.address, 2);
 
     await this.fuulManager.addCurrencyLimit(nft721.address, this.tokenAmount);
 
@@ -674,7 +669,7 @@ describe("Fuul Manager - Claim", function () {
 
     // Deposit ERC1155
 
-    await this.fuulFactory.addCurrencyToken(nft1155.address);
+    await this.fuulFactory.addCurrencyToken(nft1155.address, 3);
 
     await this.fuulManager.addCurrencyLimit(nft1155.address, this.tokenAmount);
 

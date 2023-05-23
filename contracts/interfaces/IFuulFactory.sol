@@ -21,7 +21,7 @@ interface IFuulFactory {
 
     struct CurrencyToken {
         TokenType tokenType;
-        bool accepted;
+        bool isAccepted;
     }
 
     /*╔═════════════════════════════╗

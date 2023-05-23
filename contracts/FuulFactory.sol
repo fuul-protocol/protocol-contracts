@@ -347,7 +347,7 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
         address tokenAddress,
         TokenType tokenType
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (acceptedCurrencies[tokenAddress].accepted) {
+        if (acceptedCurrencies[tokenAddress].isAccepted) {
             revert TokenCurrencyAlreadyAccepted();
         }
         _addCurrencyToken(tokenAddress, tokenType);
@@ -363,7 +363,7 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
     ) internal {
         acceptedCurrencies[tokenAddress] = CurrencyToken({
             tokenType: tokenType,
-            accepted: true
+            isAccepted: true
         });
     }
 
@@ -382,11 +382,11 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
     function removeCurrencyToken(
         address tokenAddress
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (!acceptedCurrencies[tokenAddress].accepted) {
+        if (!acceptedCurrencies[tokenAddress].isAccepted) {
             revert TokenCurrencyNotAccepted();
         }
 
-        acceptedCurrencies[tokenAddress].accepted = false;
+        acceptedCurrencies[tokenAddress].isAccepted = false;
     }
 
     /*╔═════════════════════════════╗
