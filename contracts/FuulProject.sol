@@ -199,27 +199,37 @@ contract FuulProject is
     {
         IFuulFactory.TokenType currencyType = _getCurrencyToken(currency);
 
+        uint256 depositedAmount;
+
         if (currencyType == IFuulFactory.TokenType.NATIVE) {
             if (msg.value != amount) {
                 revert IncorrectMsgValue();
             }
+            depositedAmount = amount;
         } else if (currencyType == IFuulFactory.TokenType.ERC_20) {
             if (msg.value > 0) {
                 revert IncorrectMsgValue();
             }
+
+            uint256 previousBalance = IERC20(currency).balanceOf(address(this));
+
             IERC20(currency).safeTransferFrom(
                 _msgSender(),
                 address(this),
                 amount
             );
+
+            depositedAmount =
+                IERC20(currency).balanceOf(address(this)) -
+                previousBalance;
         } else {
             revert InvalidCurrency();
         }
 
         // Update balance
-        budgets[currency] += amount;
+        budgets[currency] += depositedAmount;
 
-        emit FungibleBudgetDeposited(_msgSender(), amount, currency);
+        emit FungibleBudgetDeposited(_msgSender(), depositedAmount, currency);
     }
 
     /**
