@@ -270,7 +270,7 @@ describe("Fuul Manager - Attribute", function () {
     };
 
     // Attribute
-    await this.fuulManager.attributeTransactions(
+    await this.fuulManager.attributeConversions(
       [attributionEntity],
       this.attributor.address
     );
@@ -447,7 +447,7 @@ describe("Fuul Manager - Attribute", function () {
     ];
 
     // Attribute
-    await this.fuulManager.attributeTransactions(
+    await this.fuulManager.attributeConversions(
       attributionEntities,
       this.attributor.address
     );
@@ -534,7 +534,7 @@ describe("Fuul Manager - Attribute", function () {
         },
       ],
     };
-    await expect(this.fuulManager.attributeTransactions([attributionEntity])).to
+    await expect(this.fuulManager.attributeConversions([attributionEntity])).to
       .be.revertedWithPanic;
   });
 
@@ -557,7 +557,7 @@ describe("Fuul Manager - Attribute", function () {
     await expect(
       this.fuulManager
         .connect(this.partner)
-        .attributeTransactions([attributionEntity], this.attributor.address)
+        .attributeConversions([attributionEntity], this.attributor.address)
     ).to.be.revertedWith(error);
   });
 
@@ -577,7 +577,7 @@ describe("Fuul Manager - Attribute", function () {
     };
 
     await expect(
-      this.fuulManager.attributeTransactions(
+      this.fuulManager.attributeConversions(
         [attributionEntity],
         this.attributor.address
       )
@@ -734,7 +734,7 @@ describe("Fuul Manager - Claim", function () {
       ],
     };
 
-    await this.fuulManager.attributeTransactions(
+    await this.fuulManager.attributeConversions(
       [this.attributionEntity],
       this.attributor.address
     );
@@ -779,7 +779,7 @@ describe("Fuul Manager - Claim", function () {
       ],
     };
 
-    await this.fuulManager.attributeTransactions(
+    await this.fuulManager.attributeConversions(
       [attributionEntity],
       this.attributor.address
     );
@@ -1046,7 +1046,7 @@ describe("Fuul Manager - Claim", function () {
       ],
     };
 
-    await this.fuulManager.attributeTransactions(
+    await this.fuulManager.attributeConversions(
       [attributionEntity],
       this.attributor.address
     );
@@ -1131,7 +1131,7 @@ describe("Fuul Manager - Claim", function () {
       ],
     };
 
-    await this.fuulManager.attributeTransactions(
+    await this.fuulManager.attributeConversions(
       [attributionEntity],
       this.attributor.address
     );
@@ -1187,7 +1187,7 @@ describe("Fuul Manager - Claim", function () {
       ],
     };
 
-    await this.fuulManager.attributeTransactions(
+    await this.fuulManager.attributeConversions(
       [attributionEntity],
       this.attributor.address
     );

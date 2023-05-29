@@ -174,7 +174,7 @@ contract FuulManager is
       ╚═════════════════════════════╝*/
 
     /**
-     * @dev Attributes: calls the `attributeTransactions` function in {FuulProject} from an array of `AttributionEntity`.
+     * @dev Attributes: calls the `attributeConversions` function in {FuulProject} from an array of `AttributionEntity`.
      *
      * Requirements:
      *
@@ -182,13 +182,13 @@ contract FuulManager is
      * - Only addresses with the `ATTRIBUTOR_ROLE` can call this function.
      */
 
-    function attributeTransactions(
+    function attributeConversions(
         AttributionEntity[] calldata attributions,
         address attributorFeeCollector
     ) external whenNotPaused nonReentrant onlyRole(ATTRIBUTOR_ROLE) {
         uint256 attributionLength = attributions.length;
         for (uint256 i = 0; i < attributionLength; ) {
-            IFuulProject(attributions[i].projectAddress).attributeTransactions(
+            IFuulProject(attributions[i].projectAddress).attributeConversions(
                 attributions[i].projectAttributions,
                 attributorFeeCollector
             );

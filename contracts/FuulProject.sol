@@ -253,10 +253,9 @@ contract FuulProject is
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
         IFuulFactory.TokenType currencyType = _getCurrencyToken(currency);
 
-        // Set default values as if it's an ERC721
-        uint256 depositedAmount = tokenIds.length;
-
         if (currencyType == IFuulFactory.TokenType.ERC_721) {
+            uint256 depositedAmount = tokenIds.length;
+
             _nonZeroAmount(depositedAmount);
             budgets[currency] += depositedAmount;
 
@@ -504,6 +503,10 @@ contract FuulProject is
             }
             depositedAmount = amount;
         } else {
+            if (msg.value > 0) {
+                revert IncorrectMsgValue();
+            }
+
             uint256 previousBalance = IERC20(currency).balanceOf(address(this));
 
             IERC20(currency).safeTransferFrom(
@@ -634,11 +637,11 @@ contract FuulProject is
      * - The sum of `amountToPartner` and `amountToEndUser` for each `Attribution` must be greater than zero.
      * - Only `MANAGER_ROLE` in {FuulFactory} addresses can call this function. This is checked through the `getFeesInformation` in {FuulFactory}.
      * - Proof must not exist (be previously attributed).
-     * - {FuulManager} must not be paused. This is checked through The `attributeTransactions` function in {FuulManager}.
+     * - {FuulManager} must not be paused. This is checked through The `attributeConversions` function in {FuulManager}.
      * - Currency token must be accepted in {FuulFactory}
      */
 
-    function attributeTransactions(
+    function attributeConversions(
         Attribution[] calldata attributions,
         address attributorFeeCollector
     ) external nonReentrant {

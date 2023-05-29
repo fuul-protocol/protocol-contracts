@@ -41,6 +41,10 @@ interface IFuulFactory {
     event NftFixedFeeUpdated(uint256 indexed value);
     event NftFeeCurrencyUpdated(address indexed newCurrency);
     event ProtocolFeeCollectorUpdated(address indexed newCollector);
+    event CurrencyAdded(address indexed newCurrency, TokenType tokenType);
+    event CurrencyRemoved(address indexed newCurrency, TokenType tokenType);
+    event ProjectCooldownUpdated(uint256 indexed value);
+    event ProjectRemovePeriodUpdated(uint256 indexed value);
 
     /*╔═════════════════════════════╗
       ║           ERRORS            ║

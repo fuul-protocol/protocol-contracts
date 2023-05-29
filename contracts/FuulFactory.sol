@@ -365,6 +365,8 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
             tokenType: tokenType,
             isAccepted: true
         });
+
+        emit CurrencyAdded(tokenAddress, tokenType);
     }
 
     /**
@@ -387,6 +389,7 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
         }
 
         acceptedCurrencies[tokenAddress].isAccepted = false;
+        emit CurrencyRemoved(tokenAddress, tokenType);
     }
 
     /*╔═════════════════════════════╗
@@ -409,6 +412,8 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
         }
 
         projectBudgetCooldown = period;
+
+        emit ProjectCooldownUpdated(period);
     }
 
     /**
@@ -427,6 +432,7 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
         }
 
         projectRemoveBudgetPeriod = period;
+        emit ProjectRemovePeriodUpdated(period);
     }
 
     /**

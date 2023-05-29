@@ -175,7 +175,7 @@ interface IFuulProject {
       ║          ATTRIBUTE          ║
       ╚═════════════════════════════╝*/
 
-    function attributeTransactions(
+    function attributeConversions(
         Attribution[] calldata attributions,
         address attributorFeeCollector
     ) external;

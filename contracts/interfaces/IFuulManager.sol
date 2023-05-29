@@ -89,7 +89,7 @@ interface IFuulManager {
       ║      ATTRIBUTE AND CLAIM    ║
       ╚═════════════════════════════╝*/
 
-    function attributeTransactions(
+    function attributeConversions(
         AttributionEntity[] memory attributions,
         address attributorFeeCollector
     ) external;

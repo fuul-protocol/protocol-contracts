@@ -714,7 +714,7 @@ describe("Fuul Project - Fuul Manager functions", function () {
 
     // Attribute
     await expect(
-      this.fuulProject.attributeTransactions([attribution], this.user1.address)
+      this.fuulProject.attributeConversions([attribution], this.user1.address)
     ).to.be.revertedWithCustomError(this.fuulFactory, "Unauthorized");
 
     // Claim
