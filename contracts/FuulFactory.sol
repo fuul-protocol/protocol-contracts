@@ -384,12 +384,14 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
     function removeCurrencyToken(
         address tokenAddress
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (!acceptedCurrencies[tokenAddress].isAccepted) {
+        CurrencyToken storage currency = acceptedCurrencies[tokenAddress];
+
+        if (!currency.isAccepted) {
             revert TokenCurrencyNotAccepted();
         }
 
-        acceptedCurrencies[tokenAddress].isAccepted = false;
-        emit CurrencyRemoved(tokenAddress, tokenType);
+        currency.isAccepted = false;
+        emit CurrencyRemoved(tokenAddress, currency.tokenType);
     }
 
     /*╔═════════════════════════════╗
@@ -422,12 +424,13 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
      * Requirements:
      *
      * - `period` must be different from the current one.
+     * - `period` must be greater than 5 days.
      * - Only admins can call this function.
      */
     function setProjectRemoveBudgetPeriod(
         uint256 period
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (period == projectRemoveBudgetPeriod || period == 0) {
+        if (period == projectRemoveBudgetPeriod || period < 5 days) {
             revert IFuulManager.InvalidArgument();
         }
 

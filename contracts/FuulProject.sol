@@ -272,7 +272,7 @@ contract FuulProject is
                 tokenIds
             );
         } else if (currencyType == IFuulFactory.TokenType.ERC_1155) {
-            depositedAmount = _getSumFromArray(amounts);
+            uint256 depositedAmount = _getSumFromArray(amounts);
             _nonZeroAmount(depositedAmount);
             budgets[currency] += depositedAmount;
             _transferERC1155Tokens(

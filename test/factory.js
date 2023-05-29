@@ -223,7 +223,8 @@ describe("Fuul Factory - Remove variables management", function () {
     this.user2 = user2;
     this.adminRole = adminRole;
 
-    this.newPeriod = 5;
+    // 10 days
+    this.newPeriod = 10 * 86400;
   });
 
   it("Should set new budget cooldown", async function () {
@@ -275,6 +276,12 @@ describe("Fuul Factory - Remove variables management", function () {
 
     await expect(
       this.fuulFactory.setProjectRemoveBudgetPeriod(newPeriod)
+    ).to.be.revertedWithCustomError(this.fuulFactory, "InvalidArgument");
+
+    const belowLimitPeriod = 1;
+
+    await expect(
+      this.fuulFactory.setProjectRemoveBudgetPeriod(belowLimitPeriod)
     ).to.be.revertedWithCustomError(this.fuulFactory, "InvalidArgument");
   });
 });
