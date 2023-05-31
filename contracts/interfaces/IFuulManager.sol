@@ -14,6 +14,7 @@ interface IFuulManager {
     struct ClaimCheck {
         address projectAddress;
         address currency;
+        uint256 amount;
         uint256[] tokenIds;
         uint256[] amounts;
     }

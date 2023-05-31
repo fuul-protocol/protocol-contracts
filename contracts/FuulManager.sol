@@ -217,13 +217,7 @@ contract FuulManager is
 
             // Send
             address currency = claimCheck.currency;
-            uint256 tokenAmount = IFuulProject(claimCheck.projectAddress)
-                .claimFromProject(
-                    currency,
-                    _msgSender(),
-                    claimCheck.tokenIds,
-                    claimCheck.amounts
-                );
+            uint256 tokenAmount = claimCheck.amount;
 
             CurrencyTokenLimit storage currencyInfo = currencyLimits[currency];
 
@@ -255,6 +249,14 @@ contract FuulManager is
 
             // Update values
             usersClaims[_msgSender()][currency] += tokenAmount;
+
+            IFuulProject(claimCheck.projectAddress).claimFromProject(
+                currency,
+                _msgSender(),
+                claimCheck.amount,
+                claimCheck.tokenIds,
+                claimCheck.amounts
+            );
 
             // Using unchecked to the next element in the loop optimize gas
             unchecked {

@@ -770,29 +770,27 @@ contract FuulProject is
     function claimFromProject(
         address currency,
         address receiver,
+        uint256 amount,
         uint256[] calldata tokenIds,
         uint256[] calldata amounts
-    ) external nonReentrant returns (uint256 availableAmount) {
+    ) external nonReentrant {
         fuulFactoryInstance.hasManagerRole(_msgSender());
 
-        availableAmount = availableToClaim[receiver][currency];
-
-        _nonZeroAmount(availableAmount);
-
-        availableToClaim[receiver][currency] = 0;
+        // It fails with underflow if amount < avaiable to claim
+        availableToClaim[receiver][currency] -= amount;
 
         (IFuulFactory.TokenType currencyType, ) = fuulFactoryInstance
             .acceptedCurrencies(currency);
 
         if (currencyType == IFuulFactory.TokenType.NATIVE) {
-            payable(receiver).sendValue(availableAmount);
+            payable(receiver).sendValue(amount);
         } else if (currencyType == IFuulFactory.TokenType.ERC_20) {
-            IERC20(currency).safeTransfer(receiver, availableAmount);
+            IERC20(currency).safeTransfer(receiver, amount);
         } else if (currencyType == IFuulFactory.TokenType.ERC_721) {
             uint256 tokenIdsLength = tokenIds.length;
 
             // Check that the amount of tokenIds to claim is equal to the available amount
-            if (availableAmount != tokenIdsLength) {
+            if (amount != tokenIdsLength) {
                 revert InvalidArgument();
             }
 
@@ -800,7 +798,7 @@ contract FuulProject is
         } else if (currencyType == IFuulFactory.TokenType.ERC_1155) {
             // Check that the sum of the amounts of tokenIds to claim is equal to the available amount
 
-            if (availableAmount != _getSumFromArray(amounts)) {
+            if (amount != _getSumFromArray(amounts)) {
                 revert InvalidArgument();
             }
 
@@ -815,9 +813,7 @@ contract FuulProject is
             revert InvalidCurrency();
         }
 
-        emit Claimed(receiver, currency, availableAmount, tokenIds, amounts);
-
-        return availableAmount;
+        emit Claimed(receiver, currency, amount, tokenIds, amounts);
     }
 
     /*╔═════════════════════════════╗

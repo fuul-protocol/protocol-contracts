@@ -832,25 +832,27 @@ describe("Fuul Manager - Claim", function () {
 
     const claimer = this.partner;
 
+    const projectClaimAmount = await this.fuulProject.availableToClaim(
+      claimer.address,
+      currency
+    );
+
     claimChecks = [
       {
         projectAddress: this.fuulProject.address,
         currency,
+        amount: projectClaimAmount,
         tokenIds: [],
         amounts: [],
       },
       {
         projectAddress: newFuulProject.address,
         currency,
+        amount: projectClaimAmount,
         tokenIds: [],
         amounts: [],
       },
     ];
-
-    const projectClaimAmount = await this.fuulProject.availableToClaim(
-      claimer.address,
-      currency
-    );
 
     await this.fuulManager.connect(claimer).claim(claimChecks);
 
@@ -896,20 +898,20 @@ describe("Fuul Manager - Claim", function () {
   it("Should claim native tokens and set correct values", async function () {
     const currency = ethers.constants.AddressZero;
     const claimer = this.partner;
+    const claimAmount = await this.fuulProject.availableToClaim(
+      claimer.address,
+      currency
+    );
 
     claimChecks = [
       {
         projectAddress: this.fuulProject.address,
         currency,
+        amount: claimAmount,
         tokenIds: [],
         amounts: [],
       },
     ];
-
-    const claimAmount = await this.fuulProject.availableToClaim(
-      claimer.address,
-      currency
-    );
 
     const balanceBefore = await this.provider.getBalance(claimer.address);
 
@@ -956,12 +958,14 @@ describe("Fuul Manager - Claim", function () {
       {
         projectAddress: this.fuulProject.address,
         currency: this.nft721.address,
+        amount: tokenIds.length,
         tokenIds,
         amounts: [],
       },
       {
         projectAddress: this.fuulProject.address,
         currency: this.nft1155.address,
+        amount: tokenIds.length,
         tokenIds,
         amounts: amounts,
       },
@@ -1021,6 +1025,7 @@ describe("Fuul Manager - Claim", function () {
       {
         projectAddress: this.fuulProject.address,
         currency,
+        amount: tokenIds.length,
         tokenIds,
         amounts: [],
       },
@@ -1060,11 +1065,16 @@ describe("Fuul Manager - Claim", function () {
 
     // Claim
     const claimer = this.partner;
+    const claimAmount = await this.fuulProject.availableToClaim(
+      claimer.address,
+      currency
+    );
 
     claimChecks = [
       {
         projectAddress: this.fuulProject.address,
         currency,
+        amount: claimAmount,
         tokenIds: [],
         amounts: [],
       },
@@ -1102,10 +1112,16 @@ describe("Fuul Manager - Claim", function () {
 
     // Claim again
 
+    const claimAmountAfter = await this.fuulProject.availableToClaim(
+      claimer.address,
+      currency
+    );
+
     claimChecks = [
       {
         projectAddress: this.fuulProject.address,
         currency,
+        amount: claimAmountAfter,
         tokenIds: [],
         amounts: [],
       },
@@ -1123,14 +1139,13 @@ describe("Fuul Manager - Claim", function () {
       {
         projectAddress: this.fuulProject.address,
         currency: this.token.address,
+        amount: 1,
         tokenIds: [],
         amounts: [],
       },
     ];
 
-    await expect(
-      this.fuulManager.claim(claimChecks)
-    ).to.be.revertedWithCustomError(this.fuulProject, "ZeroAmount");
+    await expect(this.fuulManager.claim(claimChecks)).to.be.reverted;
   });
 
   it("Should fail to claim if contract is paused", async function () {
@@ -1140,6 +1155,7 @@ describe("Fuul Manager - Claim", function () {
       {
         projectAddress: this.fuulProject.address,
         currency: this.token.address,
+        amount: 1,
         tokenIds: [],
         amounts: [],
       },
@@ -1182,11 +1198,16 @@ describe("Fuul Manager - Claim", function () {
 
     // Claim
     const claimer = this.partner;
+    const claimAmount = await this.fuulProject.availableToClaim(
+      claimer.address,
+      currency
+    );
 
     claimChecks = [
       {
         projectAddress: this.fuulProject.address,
         currency,
+        amount: claimAmount,
         tokenIds: [],
         amounts: [],
       },
@@ -1201,11 +1222,16 @@ describe("Fuul Manager - Claim", function () {
 
     // Claim
     const claimer = this.partner;
+    const claimAmount = await this.fuulProject.availableToClaim(
+      claimer.address,
+      currency
+    );
 
     claimChecks = [
       {
         projectAddress: this.fuulProject.address,
         currency,
+        amount: claimAmount,
         tokenIds: [],
         amounts: [],
       },
@@ -1237,11 +1263,16 @@ describe("Fuul Manager - Claim", function () {
     );
 
     // Claim again
+    const claimAmountAfter = await this.fuulProject.availableToClaim(
+      claimer.address,
+      currency
+    );
 
     claimChecks = [
       {
         projectAddress: this.fuulProject.address,
         currency,
+        amount: claimAmountAfter,
         tokenIds: [],
         amounts: [],
       },

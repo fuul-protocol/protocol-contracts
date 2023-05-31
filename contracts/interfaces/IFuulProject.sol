@@ -186,7 +186,8 @@ interface IFuulProject {
     function claimFromProject(
         address currency,
         address receiver,
+        uint256 amount,
         uint256[] memory tokenIds,
         uint256[] memory amounts
-    ) external returns (uint256);
+    ) external;
 }
