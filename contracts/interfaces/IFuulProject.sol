@@ -15,14 +15,12 @@ interface IFuulProject {
         uint256 amountToPartner;
         uint256 amountToEndUser;
         bytes32 proof;
+        bytes32 proofWithoutProject;
     }
 
     /*╔═════════════════════════════╗
       ║           EVENTS            ║
       ╚═════════════════════════════╝*/
-
-    // uint256[] tokenIds: used in ERC721 and ERC1155
-    // uint256[] amounts: used in ERC1155
 
     event ProjectInfoUpdated(string projectInfoURI);
 
@@ -109,6 +107,7 @@ interface IFuulProject {
     error OutsideRemovalWindow();
     error ZeroAmount();
     error AlreadyAttributed();
+    error InvalidProof();
     error Forbidden();
     error InvalidCurrency();
     error InvalidArgument();

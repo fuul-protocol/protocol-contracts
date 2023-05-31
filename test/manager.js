@@ -214,12 +214,19 @@ describe("Fuul Manager - Attribute", function () {
     );
     await this.fuulProject.depositFeeBudget(this.amount);
 
+    this.proofWithoutProject = ethers.utils.formatBytes32String("proof");
+
+    const proof = ethers.utils.solidityKeccak256(
+      ["bytes32", "address"],
+      [this.proofWithoutProject, this.fuulProject.address]
+    );
+
     // Attribution template
     this.attributionTemplate = {
       partner: this.partner.address,
       endUser: this.endUser.address,
-      proof:
-        "0x70726f6f66000000000000000000000000000000000000000000000000000000",
+      proof,
+      proofWithoutProject: this.proofWithoutProject,
     };
 
     this.feesInfo = await this.fuulFactory.getAllFees();
@@ -231,6 +238,18 @@ describe("Fuul Manager - Attribute", function () {
 
   it("Should attribute from different currencies and set correct values for users and fee collectors", async function () {
     // Attibution entities
+
+    const proofs = [];
+    for (let i = 1; i < 4; i++) {
+      let proofWOProject = ethers.utils.formatBytes32String("proof" + i);
+      let proof = ethers.utils.solidityKeccak256(
+        ["bytes32", "address"],
+        [proofWOProject, this.fuulProject.address]
+      );
+
+      proofs.push([proofWOProject, proof]);
+    }
+
     const attributionEntity = {
       projectAddress: this.fuulProject.address,
       projectAttributions: [
@@ -239,32 +258,30 @@ describe("Fuul Manager - Attribute", function () {
           currency: this.token.address,
           amountToPartner: this.attributedAmount,
           amountToEndUser: this.attributedAmount,
-          proof:
-            "0x70726f6f66310a00000000000000000000000000000000000000000000000000",
         },
         {
           ...this.attributionTemplate,
           currency: ethers.constants.AddressZero,
           amountToPartner: this.attributedAmount,
           amountToEndUser: this.attributedAmount,
-          proof:
-            "0x70726f6f66320a00000000000000000000000000000000000000000000000000",
+          proofWithoutProject: proofs[0][0],
+          proof: proofs[0][1],
         },
         {
           ...this.attributionTemplate,
           currency: this.nft721.address,
           amountToPartner: this.tokenIds.length / 2,
           amountToEndUser: this.tokenIds.length / 2,
-          proof:
-            "0x70726f6f66330a00000000000000000000000000000000000000000000000000",
+          proofWithoutProject: proofs[1][0],
+          proof: proofs[1][1],
         },
         {
           ...this.attributionTemplate,
           currency: this.nft1155.address,
           amountToPartner: this.tokenAmount / 2,
           amountToEndUser: this.tokenAmount / 2,
-          proof:
-            "0x70726f6f66340a00000000000000000000000000000000000000000000000000",
+          proofWithoutProject: proofs[2][0],
+          proof: proofs[2][1],
         },
       ],
     };
@@ -441,6 +458,11 @@ describe("Fuul Manager - Attribute", function () {
             currency,
             amountToPartner: this.attributedAmount,
             amountToEndUser: this.attributedAmount,
+            proofWithoutProject: this.proofWithoutProject,
+            proof: ethers.utils.solidityKeccak256(
+              ["bytes32", "address"],
+              [this.proofWithoutProject, newFuulProject.address]
+            ),
           },
         ],
       },
@@ -688,12 +710,28 @@ describe("Fuul Manager - Claim", function () {
     );
     await this.fuulProject.depositFeeBudget(this.amount);
 
+    const proofs = [];
+    for (let i = 1; i < 5; i++) {
+      let proofWOProject = ethers.utils.formatBytes32String("proof" + i);
+      let proof = ethers.utils.solidityKeccak256(
+        ["bytes32", "address"],
+        [proofWOProject, this.fuulProject.address]
+      );
+
+      proofs.push([proofWOProject, proof]);
+    }
+
+    const proofWithoutProject = ethers.utils.formatBytes32String("proof");
+
     // Attribute
     this.attributionTemplate = {
       partner: this.partner.address,
       endUser: this.endUser.address,
-      proof:
-        "0x70726f6f66000000000000000000000000000000000000000000000000000000",
+      proofWithoutProject,
+      proof: ethers.utils.solidityKeccak256(
+        ["bytes32", "address"],
+        [proofWithoutProject, this.fuulProject.address]
+      ),
     };
 
     this.attributionEntity = {
@@ -704,32 +742,32 @@ describe("Fuul Manager - Claim", function () {
           currency: this.token.address,
           amountToPartner: this.attributedAmount,
           amountToEndUser: this.attributedAmount,
-          proof:
-            "0x70726f6f66310a00000000000000000000000000000000000000000000000000",
+          proofWithoutProject: proofs[0][0],
+          proof: proofs[0][1],
         },
         {
           ...this.attributionTemplate,
           currency: ethers.constants.AddressZero,
           amountToPartner: this.attributedAmount,
           amountToEndUser: this.attributedAmount,
-          proof:
-            "0x70726f6f66320a00000000000000000000000000000000000000000000000000",
+          proofWithoutProject: proofs[1][0],
+          proof: proofs[1][1],
         },
         {
           ...this.attributionTemplate,
           currency: this.nft721.address,
           amountToPartner: 2,
           amountToEndUser: 2,
-          proof:
-            "0x70726f6f66330a00000000000000000000000000000000000000000000000000",
+          proofWithoutProject: proofs[2][0],
+          proof: proofs[2][1],
         },
         {
           ...this.attributionTemplate,
           currency: this.nft1155.address,
           amountToPartner: 2,
           amountToEndUser: 2,
-          proof:
-            "0x70726f6f66340a00000000000000000000000000000000000000000000000000",
+          proofWithoutProject: proofs[3][0],
+          proof: proofs[3][1],
         },
       ],
     };
@@ -764,6 +802,12 @@ describe("Fuul Manager - Claim", function () {
 
     await newFuulProject.depositFungibleToken(currency, this.amount);
 
+    const proofWithoutProject = ethers.utils.formatBytes32String("proof");
+    const proof = ethers.utils.solidityKeccak256(
+      ["bytes32", "address"],
+      [proofWithoutProject, newFuulProject.address]
+    );
+
     // Attribute in new project
     const attributionEntity = {
       projectAddress: newFuulProject.address,
@@ -773,8 +817,8 @@ describe("Fuul Manager - Claim", function () {
           currency,
           amountToPartner: this.attributedAmount,
           amountToEndUser: this.attributedAmount,
-          proof:
-            "0x70726f6f66000000000000000000000000000000000000000000000000000000",
+          proofWithoutProject,
+          proof,
         },
       ],
     };

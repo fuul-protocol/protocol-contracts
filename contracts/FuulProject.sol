@@ -641,6 +641,13 @@ contract FuulProject is
      * - Currency token must be accepted in {FuulFactory}
      */
 
+    function generateHash(
+        bytes32 param1,
+        address param2
+    ) public pure returns (bytes32) {
+        return keccak256(abi.encodePacked(param1, param2));
+    }
+
     function attributeConversions(
         Attribution[] calldata attributions,
         address attributorFeeCollector
@@ -655,6 +662,18 @@ contract FuulProject is
             if (attributionProofs[attribution.proof]) {
                 revert AlreadyAttributed();
             }
+
+            if (
+                keccak256(
+                    abi.encodePacked(
+                        attribution.proofWithoutProject,
+                        address(this)
+                    )
+                ) != attribution.proof
+            ) {
+                revert InvalidProof();
+            }
+
             address currency = attribution.currency;
 
             IFuulFactory.TokenType currencyType = _getCurrencyToken(currency);
