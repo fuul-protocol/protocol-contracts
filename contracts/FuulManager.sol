@@ -215,7 +215,6 @@ contract FuulManager is
         for (uint256 i = 0; i < checksLength; ) {
             ClaimCheck memory claimCheck = claimChecks[i];
 
-            // Send
             address currency = claimCheck.currency;
             uint256 tokenAmount = claimCheck.amount;
 
@@ -250,6 +249,7 @@ contract FuulManager is
             // Update values
             usersClaims[_msgSender()][currency] += tokenAmount;
 
+            // Send
             IFuulProject(claimCheck.projectAddress).claimFromProject(
                 currency,
                 _msgSender(),
