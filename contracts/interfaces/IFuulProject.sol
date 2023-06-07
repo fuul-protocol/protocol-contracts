@@ -26,20 +26,20 @@ interface IFuulProject {
 
     event FungibleBudgetDeposited(
         address indexed account,
-        uint256 indexed amount,
+        uint256 amount,
         address indexed currency
     );
 
     event ERC721BudgetDeposited(
         address indexed account,
-        uint256 indexed amount,
+        uint256 amount,
         address indexed currency,
         uint256[] tokenIds
     );
 
     event ERC1155BudgetDeposited(
         address indexed account,
-        uint256 indexed amount,
+        uint256 amount,
         address indexed currency,
         uint256[] tokenIds,
         uint256[] amounts
@@ -47,20 +47,20 @@ interface IFuulProject {
 
     event FungibleBudgetRemoved(
         address indexed account,
-        uint256 indexed amount,
+        uint256 amount,
         address indexed currency
     );
 
     event ERC721BudgetRemoved(
         address indexed account,
-        uint256 indexed amount,
+        uint256 amount,
         address indexed currency,
         uint256[] tokenIds
     );
 
     event ERC1155BudgetRemoved(
         address indexed account,
-        uint256 indexed amount,
+        uint256 amount,
         address indexed currency,
         uint256[] tokenIds,
         uint256[] amounts
@@ -69,7 +69,7 @@ interface IFuulProject {
     event Claimed(
         address indexed account,
         address indexed currency,
-        uint256 indexed amount,
+        uint256 amount,
         uint256[] rewardTokenIds,
         uint256[] amounts
     );
@@ -86,13 +86,13 @@ interface IFuulProject {
 
     event FeeBudgetDeposited(
         address indexed account,
-        uint256 indexed amount,
+        uint256 amount,
         address indexed currency
     );
 
     event FeeBudgetRemoved(
         address indexed account,
-        uint256 indexed amount,
+        uint256 amount,
         address indexed currency
     );
 

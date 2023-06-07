@@ -28,23 +28,23 @@ interface IFuulFactory {
       ║           EVENTS            ║
       ╚═════════════════════════════╝*/
     event ProjectCreated(
-        uint256 indexed projectId,
+        uint256 projectId,
         address indexed deployedAddress,
         address indexed eventSigner,
         string projectInfoURI,
         address clientFeeCollector
     );
 
-    event ProtocolFeeUpdated(uint256 indexed value);
-    event ClientFeeUpdated(uint256 indexed value);
-    event AttributorFeeUpdated(uint256 indexed value);
-    event NftFixedFeeUpdated(uint256 indexed value);
-    event NftFeeCurrencyUpdated(address indexed newCurrency);
+    event ProtocolFeeUpdated(uint256 value);
+    event ClientFeeUpdated(uint256 value);
+    event AttributorFeeUpdated(uint256 value);
+    event NftFixedFeeUpdated(uint256 value);
+    event NftFeeCurrencyUpdated(address newCurrency);
     event ProtocolFeeCollectorUpdated(address indexed newCollector);
     event CurrencyAdded(address indexed newCurrency, TokenType tokenType);
     event CurrencyRemoved(address indexed newCurrency, TokenType tokenType);
-    event ProjectCooldownUpdated(uint256 indexed value);
-    event ProjectRemovePeriodUpdated(uint256 indexed value);
+    event ProjectCooldownUpdated(uint256 value);
+    event ProjectRemovePeriodUpdated(uint256 value);
 
     /*╔═════════════════════════════╗
       ║           ERRORS            ║

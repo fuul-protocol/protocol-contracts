@@ -28,9 +28,9 @@ interface IFuulManager {
       ║           EVENTS            ║
       ╚═════════════════════════════╝*/
 
-    event ClaimCooldownUpdated(uint256 indexed value);
-    event TokenLimitAdded(address indexed token, uint256 indexed value);
-    event TokenLimitUpdated(address indexed token, uint256 indexed value);
+    event ClaimCooldownUpdated(uint256 value);
+    event TokenLimitAdded(address indexed token, uint256 value);
+    event TokenLimitUpdated(address indexed token, uint256 value);
 
     /*╔═════════════════════════════╗
       ║           ERRORS            ║
