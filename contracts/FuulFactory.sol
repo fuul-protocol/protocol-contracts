@@ -4,7 +4,6 @@ pragma solidity ^0.8.18;
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "./FuulProject.sol";
 import "./interfaces/IFuulFactory.sol";
@@ -12,7 +11,6 @@ import "./interfaces/IFuulManager.sol";
 
 contract FuulFactory is IFuulFactory, AccessControlEnumerable {
     using Counters for Counters.Counter;
-    using EnumerableSet for EnumerableSet.AddressSet;
 
     // Manager role
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
@@ -46,12 +44,6 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
 
     // Period of time that a project can remove funds after cooldown. If they don't remove in this period, they will have to apply to remove again.
     uint256 public projectRemoveBudgetPeriod = 30 days;
-
-    // Mapping project id with deployed contract address
-    mapping(uint256 => address) public projects;
-
-    // Mapping accounts with created project contract address
-    mapping(address => EnumerableSet.AddressSet) userProjects;
 
     // Mapping token addresses with token information
     mapping(address => CurrencyToken) public acceptedCurrencies;
@@ -129,8 +121,6 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
 
         _projectTracker.increment();
 
-        projects[totalProjectsCreated()] = address(clone);
-
         emit ProjectCreated(
             totalProjectsCreated(),
             address(clone),
@@ -145,25 +135,6 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
      */
     function totalProjectsCreated() public view returns (uint256) {
         return _projectTracker.current();
-    }
-
-    /**
-     * @dev Returns the project address for an account by index.
-     */
-    function getUserProjectByIndex(
-        address account,
-        uint256 index
-    ) public view returns (address) {
-        return userProjects[account].at(index);
-    }
-
-    /**
-     * @dev Returns the number of projects created by an account.
-     */
-    function getUserProjectCount(
-        address account
-    ) public view returns (uint256) {
-        return userProjects[account].length();
     }
 
     /*╔═════════════════════════════╗

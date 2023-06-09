@@ -111,13 +111,20 @@ const setupTest = async function (deployProject = true) {
 
   if (deployProject) {
     const signer = this.user2.address;
-    await fuulFactory.createFuulProject(
+    const tx = await fuulFactory.createFuulProject(
       user1.address,
       signer,
       "projectURI",
       clientFeeCollector.address
     );
-    const addressDeployed = await fuulFactory.projects(1);
+
+    const receipt = await tx.wait();
+
+    const event = receipt.events?.filter((x) => {
+      return x.event == "ProjectCreated";
+    })[0];
+
+    const addressDeployed = event.args.deployedAddress;
 
     const FuulProject = await ethers.getContractFactory("FuulProject");
     fuulProject = await FuulProject.attach(addressDeployed);

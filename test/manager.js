@@ -419,14 +419,20 @@ describe("Fuul Manager - Attribute", function () {
   it("Should attribute from different projects and set correct values for users and fee collectors", async function () {
     // Create a new project
 
-    await this.fuulFactory.createFuulProject(
+    const tx = await this.fuulFactory.createFuulProject(
       this.user1.address,
       this.user1.address,
       this.projectURI,
       this.clientFeeCollector.address
     );
 
-    const newFuulProjectAddress = await this.fuulFactory.projects(2);
+    const receipt = await tx.wait();
+
+    const event = receipt.events?.filter((x) => {
+      return x.event == "ProjectCreated";
+    })[0];
+
+    const newFuulProjectAddress = event.args.deployedAddress;
 
     const NewFuulProject = await ethers.getContractFactory("FuulProject");
     const newFuulProject = await NewFuulProject.attach(newFuulProjectAddress);
@@ -783,14 +789,20 @@ describe("Fuul Manager - Claim", function () {
 
     const currency = this.token.address;
 
-    await this.fuulFactory.createFuulProject(
+    const tx = await this.fuulFactory.createFuulProject(
       this.user1.address,
       this.user1.address,
       this.projectURI,
       this.clientFeeCollector.address
     );
 
-    const newFuulProjectAddress = await this.fuulFactory.projects(2);
+    const receipt = await tx.wait();
+
+    const event = receipt.events?.filter((x) => {
+      return x.event == "ProjectCreated";
+    })[0];
+
+    const newFuulProjectAddress = event.args.deployedAddress;
 
     const NewFuulProject = await ethers.getContractFactory("FuulProject");
     const newFuulProject = await NewFuulProject.attach(newFuulProjectAddress);

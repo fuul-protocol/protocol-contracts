@@ -19,16 +19,26 @@ describe("Fuul Factory - Create projects", function () {
   it("Should deploy Fuul Project and sets roles correctly", async function () {
     const signer = this.user2.address;
 
-    await expect(
-      this.fuulFactory
-        .connect(this.user2)
-        .createFuulProject(signer, signer, this.projectURI, signer)
-    ).to.emit(this.fuulFactory, "ProjectCreated");
+    const tx = await this.fuulFactory
+      .connect(this.user2)
+      .createFuulProject(signer, signer, this.projectURI, signer);
+
+    const receipt = await tx.wait();
+
+    const event = receipt.events?.filter((x) => {
+      return x.event == "ProjectCreated";
+    })[0];
+
+    expect(event.event).to.equal("ProjectCreated");
+    expect(event.args.projectId).to.equal(1);
+    expect(event.args.eventSigner).to.equal(signer);
+    expect(event.args.projectInfoURI).to.equal(this.projectURI);
+    expect(event.args.clientFeeCollector).to.equal(signer);
 
     // Projects
     expect(await this.fuulFactory.totalProjectsCreated()).to.equal(1);
 
-    const addressDeployed = await this.fuulFactory.projects(1);
+    const addressDeployed = event.args.deployedAddress;
 
     expect(addressDeployed).to.not.equal(ethers.constants.AddressZero);
 

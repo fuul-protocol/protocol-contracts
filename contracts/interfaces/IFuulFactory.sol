@@ -66,18 +66,7 @@ interface IFuulFactory {
         address clientFeeCollector
     ) external;
 
-    function projects(uint256 projectId) external returns (address);
-
     function totalProjectsCreated() external view returns (uint256);
-
-    function getUserProjectByIndex(
-        address account,
-        uint256 index
-    ) external view returns (address);
-
-    function getUserProjectCount(
-        address account
-    ) external view returns (uint256);
 
     /*╔═════════════════════════════╗
       ║        MANAGER ROLE         ║
