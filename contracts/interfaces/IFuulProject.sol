@@ -133,8 +133,6 @@ interface IFuulProject {
 
     function clientFeeCollector() external view returns (address);
 
-    function lastStatusHash() external view returns (bytes32);
-
     /*╔═════════════════════════════╗
       ║           DEPOSIT           ║
       ╚═════════════════════════════╝*/

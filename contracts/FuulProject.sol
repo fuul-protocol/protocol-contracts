@@ -41,9 +41,6 @@ contract FuulProject is
     // Mapping attribution proofs with already processed
     mapping(bytes32 => bool) public attributionProofs;
 
-    // Hash for servers to know if they are synced with the last version of the project URI
-    bytes32 public lastStatusHash;
-
     // URI that points to a file with project information (image, name, description, attribution conditions, etc)
     string public projectInfoURI;
 
@@ -136,8 +133,6 @@ contract FuulProject is
     /**
      * @dev Internal function that sets `projectInfoURI` as the information for the project.
      *
-     * It also sets a new value for `lastStatusHash`.
-     *
      * Requirements:
      *
      * - `projectURI` must not be an empty string.
@@ -148,10 +143,6 @@ contract FuulProject is
         }
 
         projectInfoURI = projectURI;
-
-        lastStatusHash = keccak256(
-            abi.encodePacked(block.prevrandao, block.timestamp)
-        );
     }
 
     /**
