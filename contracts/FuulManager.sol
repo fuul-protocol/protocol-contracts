@@ -111,7 +111,7 @@ contract FuulManager is
      *
      * Requirements:
      *
-     * - `limit` must be lower than current cumulativeClaimPerCooldown.
+     * - `limit` must not be lower than current cumulativeClaimPerCooldown.
      * - `limit` must be different from the current one.
      * - Only admins can call this function.
      */
@@ -123,7 +123,8 @@ contract FuulManager is
 
         if (
             limit == currency.claimLimitPerCooldown ||
-            limit < currency.cumulativeClaimPerCooldown
+            limit < currency.cumulativeClaimPerCooldown ||
+            currency.claimLimitPerCooldown == 0
         ) {
             revert InvalidArgument();
         }
@@ -143,9 +144,15 @@ contract FuulManager is
      *
      * Requirements:
      *
-     * - Only addresses with the PAUSER_ROLE can call this function.
+     * - Only addresses with the PAUSER_ROLE or UNPAUSER_ROLE can call this function.
      */
     function pauseAll() external onlyRole(PAUSER_ROLE) {
+        if (
+            !hasRole(PAUSER_ROLE, _msgSender()) &&
+            !hasRole(UNPAUSER_ROLE, _msgSender())
+        ) {
+            revert Unauthorized();
+        }
         _pause();
     }
 
@@ -284,6 +291,10 @@ contract FuulManager is
     ) internal {
         if (claimLimitPerCooldown == 0) {
             revert InvalidArgument();
+        }
+
+        if (currencyLimits[tokenAddress].claimLimitPerCooldown > 0) {
+            revert LimitAlreadySet();
         }
 
         currencyLimits[tokenAddress] = CurrencyTokenLimit({

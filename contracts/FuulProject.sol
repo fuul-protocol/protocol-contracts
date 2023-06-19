@@ -691,7 +691,10 @@ contract FuulProject is
                 );
 
                 feeCurrency = currency;
-            } else {
+            } else if (
+                currencyType == IFuulFactory.TokenType.ERC_721 ||
+                currencyType == IFuulFactory.TokenType.ERC_1155
+            ) {
                 // It is not necessary to check if it's an NFT address. If it has budget and it is not a fungible, then it's an NFT
                 fees = _calculateFeesForNFT(feesInfo);
                 amountToPartner = attribution.amountToPartner;
@@ -701,6 +704,8 @@ contract FuulProject is
 
                 // Remove from fees budget
                 nftFeeBudget[feeCurrency] -= (fees[0] + fees[1] + fees[2]);
+            } else {
+                revert InvalidCurrency();
             }
 
             // Update budget balance

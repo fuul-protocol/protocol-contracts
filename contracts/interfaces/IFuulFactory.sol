@@ -54,6 +54,7 @@ interface IFuulFactory {
     error TokenCurrencyAlreadyAccepted();
     error TokenCurrencyNotAccepted();
     error Unauthorized();
+    error InvalidTokenType();
 
     /*╔═════════════════════════════╗
       ║        CREATE PROJECT       ║

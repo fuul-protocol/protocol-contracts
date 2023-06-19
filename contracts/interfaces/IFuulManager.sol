@@ -40,6 +40,7 @@ interface IFuulManager {
     error LimitAlreadySet();
     error OverTheLimit();
     error ZeroAddress();
+    error Unauthorized();
 
     /*╔═════════════════════════════╗
       ║       PUBLIC VARIABLES      ║

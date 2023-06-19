@@ -332,6 +332,10 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
         address tokenAddress,
         TokenType tokenType
     ) internal {
+        if (tokenAddress != address(0) && tokenType == TokenType.NATIVE) {
+            revert InvalidTokenType();
+        }
+
         acceptedCurrencies[tokenAddress] = CurrencyToken({
             tokenType: tokenType,
             isAccepted: true
