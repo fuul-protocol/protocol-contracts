@@ -146,7 +146,7 @@ contract FuulManager is
      *
      * - Only addresses with the PAUSER_ROLE or UNPAUSER_ROLE can call this function.
      */
-    function pauseAll() external onlyRole(PAUSER_ROLE) {
+    function pauseAll() external {
         if (
             !hasRole(PAUSER_ROLE, _msgSender()) &&
             !hasRole(UNPAUSER_ROLE, _msgSender())
