@@ -96,6 +96,8 @@ interface IFuulProject {
         address indexed currency
     );
 
+    event AppliedToRemove(uint256 timestamp);
+
     /*╔═════════════════════════════╗
       ║           ERRORS            ║
       ╚═════════════════════════════╝*/

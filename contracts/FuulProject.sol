@@ -293,12 +293,16 @@ contract FuulProject is
     /**
      * @dev Sets timestamp for which users request to remove their budgets.
      *
+     * Emits {AppliedToRemove}.
+     *
      * Requirements:
      *
      * - Only admins can call this function.
      */
     function applyToRemoveBudget() external onlyRole(DEFAULT_ADMIN_ROLE) {
         lastRemovalApplication = block.timestamp;
+
+        emit AppliedToRemove(lastRemovalApplication);
     }
 
     /**
