@@ -24,14 +24,9 @@ interface IFuulProject {
 
     event ProjectInfoUpdated(string projectInfoURI);
 
-    event FungibleBudgetDeposited(
-        address indexed account,
-        uint256 amount,
-        address indexed currency
-    );
+    event FungibleBudgetDeposited(uint256 amount, address indexed currency);
 
     event ERC721BudgetDeposited(
-        address indexed account,
         uint256 amount,
         address indexed currency,
         uint256[] tokenIds
@@ -45,14 +40,9 @@ interface IFuulProject {
         uint256[] amounts
     );
 
-    event FungibleBudgetRemoved(
-        address indexed account,
-        uint256 amount,
-        address indexed currency
-    );
+    event FungibleBudgetRemoved(uint256 amount, address indexed currency);
 
     event ERC721BudgetRemoved(
-        address indexed account,
         uint256 amount,
         address indexed currency,
         uint256[] tokenIds

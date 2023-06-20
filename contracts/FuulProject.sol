@@ -220,7 +220,7 @@ contract FuulProject is
         // Update balance
         budgets[currency] += depositedAmount;
 
-        emit FungibleBudgetDeposited(_msgSender(), depositedAmount, currency);
+        emit FungibleBudgetDeposited(depositedAmount, currency);
     }
 
     /**
@@ -256,12 +256,7 @@ contract FuulProject is
                 address(this),
                 tokenIds
             );
-            emit ERC721BudgetDeposited(
-                _msgSender(),
-                depositedAmount,
-                currency,
-                tokenIds
-            );
+            emit ERC721BudgetDeposited(depositedAmount, currency, tokenIds);
         } else if (currencyType == IFuulFactory.TokenType.ERC_1155) {
             uint256 depositedAmount = _getSumFromArray(amounts);
             _nonZeroAmount(depositedAmount);
@@ -393,7 +388,7 @@ contract FuulProject is
             revert InvalidCurrency();
         }
 
-        emit FungibleBudgetRemoved(_msgSender(), amount, currency);
+        emit FungibleBudgetRemoved(amount, currency);
     }
 
     /**
@@ -433,12 +428,7 @@ contract FuulProject is
                 tokenIds
             );
 
-            emit ERC721BudgetRemoved(
-                _msgSender(),
-                removeAmount,
-                currency,
-                tokenIds
-            );
+            emit ERC721BudgetRemoved(removeAmount, currency, tokenIds);
         } else if (currencyType == IFuulFactory.TokenType.ERC_1155) {
             uint256 removeAmount = _getSumFromArray(amounts);
             _nonZeroAmount(removeAmount);
