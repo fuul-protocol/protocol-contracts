@@ -11,13 +11,40 @@ interface IFuulFactory {
         uint256 nftFixedFeeAmount;
         address nftFeeCurrency;
     }
+
+    enum TokenType {
+        NATIVE,
+        ERC_20,
+        ERC_721,
+        ERC_1155
+    }
+
+    struct CurrencyToken {
+        TokenType tokenType;
+        bool isAccepted;
+    }
+
+    /*╔═════════════════════════════╗
+      ║           EVENTS            ║
+      ╚═════════════════════════════╝*/
     event ProjectCreated(
-        uint256 indexed projectId,
+        uint256 projectId,
         address indexed deployedAddress,
         address indexed eventSigner,
         string projectInfoURI,
         address clientFeeCollector
     );
+
+    event ProtocolFeeUpdated(uint256 value);
+    event ClientFeeUpdated(uint256 value);
+    event AttributorFeeUpdated(uint256 value);
+    event NftFixedFeeUpdated(uint256 value);
+    event NftFeeCurrencyUpdated(address newCurrency);
+    event ProtocolFeeCollectorUpdated(address indexed newCollector);
+    event CurrencyAdded(address indexed newCurrency, TokenType tokenType);
+    event CurrencyRemoved(address indexed newCurrency, TokenType tokenType);
+    event ProjectCooldownUpdated(uint256 value);
+    event ProjectRemovePeriodUpdated(uint256 value);
 
     /*╔═════════════════════════════╗
       ║           ERRORS            ║
@@ -27,30 +54,20 @@ interface IFuulFactory {
     error TokenCurrencyAlreadyAccepted();
     error TokenCurrencyNotAccepted();
     error Unauthorized();
+    error InvalidTokenType();
 
     /*╔═════════════════════════════╗
       ║        CREATE PROJECT       ║
       ╚═════════════════════════════╝*/
 
     function createFuulProject(
-        address _projectAdmin,
-        address _projectEventSigner,
-        string memory _projectInfoURI,
-        address _clientFeeCollector
+        address projectAdmin,
+        address projectEventSigner,
+        string calldata projectInfoURI,
+        address clientFeeCollector
     ) external;
 
-    function projects(uint256 projectId) external returns (address);
-
     function totalProjectsCreated() external view returns (uint256);
-
-    function getUserProjectByIndex(
-        address account,
-        uint256 index
-    ) external view returns (address);
-
-    function getUserProjectCount(
-        address account
-    ) external view returns (uint256);
 
     /*╔═════════════════════════════╗
       ║        MANAGER ROLE         ║
@@ -84,7 +101,7 @@ interface IFuulFactory {
 
     function setAttributorFee(uint256 value) external;
 
-    function setNftFixedFeeAmounte(uint256 _value) external;
+    function setNftFixedFeeAmount(uint256 value) external;
 
     function setNftFeeCurrency(address newCurrency) external;
 
@@ -94,9 +111,12 @@ interface IFuulFactory {
 
     function acceptedCurrencies(
         address tokenAddress
-    ) external view returns (bool);
+    ) external view returns (TokenType tokenType, bool isAccepted);
 
-    function addCurrencyToken(address tokenAddress) external;
+    function addCurrencyToken(
+        address tokenAddress,
+        TokenType tokenType
+    ) external;
 
     function removeCurrencyToken(address tokenAddress) external;
 

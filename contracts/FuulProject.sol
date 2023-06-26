@@ -10,7 +10,6 @@ import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
 import "./interfaces/IFuulFactory.sol";
@@ -25,11 +24,9 @@ contract FuulProject is
 {
     using SafeERC20 for IERC20;
     using Address for address payable;
-    using ERC165Checker for address;
 
-    // Interfaces for ERC721 and ERC1155 contracts
-    bytes4 public constant IID_IERC1155 = type(IERC1155).interfaceId;
-    bytes4 public constant IID_IERC721 = type(IERC721).interfaceId;
+    // Checks if contract is initialized
+    bool private initialized;
 
     // Factory contract address
     address public immutable fuulFactory;
@@ -43,9 +40,6 @@ contract FuulProject is
 
     // Mapping attribution proofs with already processed
     mapping(bytes32 => bool) public attributionProofs;
-
-    // Hash for servers to know if they are synced with the last version of the project URI
-    bytes32 public lastStatusHash;
 
     // URI that points to a file with project information (image, name, description, attribution conditions, etc)
     string public projectInfoURI;
@@ -63,7 +57,7 @@ contract FuulProject is
     mapping(address => uint256) public nftFeeBudget;
 
     // {FuulFactory} instance
-    IFuulFactory immutable fuulFactoryInstance;
+    IFuulFactory private immutable fuulFactoryInstance;
 
     /**
      * @dev Modifier to check if the project can remove funds. Reverts with an {OutsideRemovalWindow} error.
@@ -71,23 +65,6 @@ contract FuulProject is
     modifier canRemove() {
         canRemoveFunds();
         _;
-    }
-
-    /**
-     * @dev Modifier to check if the currency is accepted in {FuulFactory}.
-     */
-    modifier isCurrencyAccepted(address currency) {
-        _isCurrencyAccepted(currency);
-        _;
-    }
-
-    /**
-     * @dev Internal function for {isCurrencyAccepted} modifier. Reverts with a TokenCurrencyNotAccepted error.
-     */
-    function _isCurrencyAccepted(address currency) internal view {
-        if (!fuulFactoryInstance.acceptedCurrencies(currency)) {
-            revert IFuulFactory.TokenCurrencyNotAccepted();
-        }
     }
 
     /**
@@ -131,21 +108,22 @@ contract FuulProject is
      */
     function initialize(
         address projectAdmin,
-        address _projectEventSigner,
-        string memory _projectInfoURI,
-        address _clientFeeCollector
+        address projectEventSignerAddress,
+        string calldata projectURI,
+        address clientCreator
     ) external {
-        if (fuulFactory != _msgSender()) {
+        if (fuulFactory != _msgSender() || initialized) {
             revert Forbidden();
         }
 
         _setupRole(DEFAULT_ADMIN_ROLE, projectAdmin);
 
-        _setupRole(EVENTS_SIGNER_ROLE, _projectEventSigner);
+        _setupRole(EVENTS_SIGNER_ROLE, projectEventSignerAddress);
 
-        _setProjectURI(_projectInfoURI);
+        _setProjectURI(projectURI);
 
-        clientFeeCollector = _clientFeeCollector;
+        clientFeeCollector = clientCreator;
+        initialized = true;
     }
 
     /*╔═════════════════════════════╗
@@ -155,22 +133,16 @@ contract FuulProject is
     /**
      * @dev Internal function that sets `projectInfoURI` as the information for the project.
      *
-     * It also sets a new value for `lastStatusHash`.
-     *
      * Requirements:
      *
-     * - `_projectURI` must not be an empty string.
+     * - `projectURI` must not be an empty string.
      */
-    function _setProjectURI(string memory _projectURI) internal {
-        if (bytes(_projectURI).length == 0) {
+    function _setProjectURI(string memory projectURI) internal {
+        if (bytes(projectURI).length == 0) {
             revert EmptyURI();
         }
 
-        projectInfoURI = _projectURI;
-
-        lastStatusHash = keccak256(
-            abi.encodePacked(block.prevrandao, block.timestamp)
-        );
+        projectInfoURI = projectURI;
     }
 
     /**
@@ -183,10 +155,10 @@ contract FuulProject is
      * - Only admins can call this function.
      */
     function setProjectURI(
-        string memory _projectURI
+        string calldata projectURI
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _setProjectURI(_projectURI);
-        emit ProjectInfoUpdated(_projectURI);
+        _setProjectURI(projectURI);
+        emit ProjectInfoUpdated(projectURI);
     }
 
     /*╔═════════════════════════════╗
@@ -214,27 +186,41 @@ contract FuulProject is
         payable
         onlyRole(DEFAULT_ADMIN_ROLE)
         nonReentrant
-        isCurrencyAccepted(currency)
         nonZeroAmount(amount)
     {
-        if (currency == address(0)) {
+        IFuulFactory.TokenType currencyType = _getCurrencyToken(currency);
+
+        uint256 depositedAmount;
+
+        if (currencyType == IFuulFactory.TokenType.NATIVE) {
             if (msg.value != amount) {
                 revert IncorrectMsgValue();
             }
-        } else if (isERC20(currency)) {
+            depositedAmount = amount;
+        } else if (currencyType == IFuulFactory.TokenType.ERC_20) {
+            if (msg.value > 0) {
+                revert IncorrectMsgValue();
+            }
+
+            uint256 previousBalance = IERC20(currency).balanceOf(address(this));
+
             IERC20(currency).safeTransferFrom(
                 _msgSender(),
                 address(this),
                 amount
             );
+
+            depositedAmount =
+                IERC20(currency).balanceOf(address(this)) -
+                previousBalance;
         } else {
             revert InvalidCurrency();
         }
 
         // Update balance
-        budgets[currency] += amount;
+        budgets[currency] += depositedAmount;
 
-        emit FungibleBudgetDeposited(_msgSender(), amount, currency);
+        emit FungibleBudgetDeposited(depositedAmount, currency);
     }
 
     /**
@@ -255,26 +241,26 @@ contract FuulProject is
         address currency,
         uint256[] calldata tokenIds,
         uint256[] calldata amounts
-    )
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-        nonReentrant
-        isCurrencyAccepted(currency)
-    {
-        // Set default values as if it's an ERC721
-        uint256 depositedAmount = tokenIds.length;
-        uint256[] memory tokenAmounts;
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
+        IFuulFactory.TokenType currencyType = _getCurrencyToken(currency);
 
-        _nonZeroAmount(depositedAmount);
+        if (currencyType == IFuulFactory.TokenType.ERC_721) {
+            uint256 depositedAmount = tokenIds.length;
 
-        if (currency.supportsInterface(IID_IERC721)) {
+            _nonZeroAmount(depositedAmount);
+            budgets[currency] += depositedAmount;
+
             _transferERC721Tokens(
                 currency,
                 _msgSender(),
                 address(this),
                 tokenIds
             );
-        } else if (currency.supportsInterface(IID_IERC1155)) {
+            emit ERC721BudgetDeposited(depositedAmount, currency, tokenIds);
+        } else if (currencyType == IFuulFactory.TokenType.ERC_1155) {
+            uint256 depositedAmount = _getSumFromArray(amounts);
+            _nonZeroAmount(depositedAmount);
+            budgets[currency] += depositedAmount;
             _transferERC1155Tokens(
                 currency,
                 _msgSender(),
@@ -283,23 +269,16 @@ contract FuulProject is
                 amounts
             );
 
-            // Change values for ERC1155
-            depositedAmount = _getSumFromArray(amounts);
-            tokenAmounts = amounts;
+            emit ERC1155BudgetDeposited(
+                _msgSender(),
+                depositedAmount,
+                currency,
+                tokenIds,
+                amounts
+            );
         } else {
             revert InvalidCurrency();
         }
-
-        // Update balance
-        budgets[currency] += depositedAmount;
-
-        emit NFTBudgetDeposited(
-            _msgSender(),
-            depositedAmount,
-            currency,
-            tokenIds,
-            tokenAmounts
-        );
     }
 
     /*╔═════════════════════════════╗
@@ -309,12 +288,16 @@ contract FuulProject is
     /**
      * @dev Sets timestamp for which users request to remove their budgets.
      *
+     * Emits {AppliedToRemove}.
+     *
      * Requirements:
      *
      * - Only admins can call this function.
      */
     function applyToRemoveBudget() external onlyRole(DEFAULT_ADMIN_ROLE) {
         lastRemovalApplication = block.timestamp;
+
+        emit AppliedToRemove(lastRemovalApplication);
     }
 
     /**
@@ -331,16 +314,16 @@ contract FuulProject is
         view
         returns (uint256 cooldown, uint256 removePeriodEnds)
     {
-        uint256 _lastApplication = lastRemovalApplication;
+        uint256 lastApplication = lastRemovalApplication;
 
-        if (_lastApplication == 0) {
+        if (lastApplication == 0) {
             revert NoRemovalApplication();
         }
 
         (uint256 budgetCooldown, uint256 removePeriod) = fuulFactoryInstance
             .getBudgetRemoveInfo();
 
-        cooldown = _lastApplication + budgetCooldown;
+        cooldown = lastApplication + budgetCooldown;
         removePeriodEnds = cooldown + removePeriod;
 
         return (cooldown, removePeriodEnds);
@@ -394,15 +377,18 @@ contract FuulProject is
         // Update budget - By underflow it indirectly checks that amount <= currentBudget
         budgets[currency] -= amount;
 
-        if (currency == address(0)) {
+        (IFuulFactory.TokenType currencyType, ) = fuulFactoryInstance
+            .acceptedCurrencies(currency);
+
+        if (currencyType == IFuulFactory.TokenType.NATIVE) {
             payable(_msgSender()).sendValue(amount);
-        } else if (isERC20(currency)) {
+        } else if (currencyType == IFuulFactory.TokenType.ERC_20) {
             IERC20(currency).safeTransfer(_msgSender(), amount);
         } else {
             revert InvalidCurrency();
         }
 
-        emit FungibleBudgetRemoved(_msgSender(), amount, currency);
+        emit FungibleBudgetRemoved(amount, currency);
     }
 
     /**
@@ -425,19 +411,30 @@ contract FuulProject is
         uint256[] calldata tokenIds,
         uint256[] calldata amounts
     ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant canRemove {
-        // Default amount as if it is an ERC721
-        uint256 removeAmount = tokenIds.length;
+        (IFuulFactory.TokenType currencyType, ) = fuulFactoryInstance
+            .acceptedCurrencies(currency);
 
-        _nonZeroAmount(removeAmount);
+        if (currencyType == IFuulFactory.TokenType.ERC_721) {
+            uint256 removeAmount = tokenIds.length;
+            _nonZeroAmount(removeAmount);
 
-        if (currency.supportsInterface(IID_IERC721)) {
+            // Update budget - By underflow it indirectly checks that amount <= budget
+            budgets[currency] -= removeAmount;
+
             _transferERC721Tokens(
                 currency,
                 address(this),
                 _msgSender(),
                 tokenIds
             );
-        } else if (currency.supportsInterface(IID_IERC1155)) {
+
+            emit ERC721BudgetRemoved(removeAmount, currency, tokenIds);
+        } else if (currencyType == IFuulFactory.TokenType.ERC_1155) {
+            uint256 removeAmount = _getSumFromArray(amounts);
+            _nonZeroAmount(removeAmount);
+
+            // Update budget - By underflow it indirectly checks that amount <= budget
+            budgets[currency] -= removeAmount;
             _transferERC1155Tokens(
                 currency,
                 address(this),
@@ -446,21 +443,16 @@ contract FuulProject is
                 amounts
             );
 
-            removeAmount = _getSumFromArray(amounts);
+            emit ERC1155BudgetRemoved(
+                _msgSender(),
+                removeAmount,
+                currency,
+                tokenIds,
+                amounts
+            );
         } else {
             revert InvalidCurrency();
         }
-
-        // Update budget - By underflow it indirectly checks that amount <= budget
-        budgets[currency] -= removeAmount;
-
-        emit NFTBudgetRemoved(
-            _msgSender(),
-            removeAmount,
-            currency,
-            tokenIds,
-            amounts
-        );
     }
 
     /*╔═════════════════════════════╗
@@ -488,23 +480,35 @@ contract FuulProject is
         nonZeroAmount(amount)
     {
         address currency = fuulFactoryInstance.nftFeeCurrency();
+        uint256 depositedAmount;
 
         if (currency == address(0)) {
             if (msg.value != amount) {
                 revert IncorrectMsgValue();
             }
+            depositedAmount = amount;
         } else {
+            if (msg.value > 0) {
+                revert IncorrectMsgValue();
+            }
+
+            uint256 previousBalance = IERC20(currency).balanceOf(address(this));
+
             IERC20(currency).safeTransferFrom(
                 _msgSender(),
                 address(this),
                 amount
             );
+
+            depositedAmount =
+                IERC20(currency).balanceOf(address(this)) -
+                previousBalance;
         }
 
         // Update balance
-        nftFeeBudget[currency] += amount;
+        nftFeeBudget[currency] += depositedAmount;
 
-        emit FeeBudgetDeposited(_msgSender(), amount, currency);
+        emit FeeBudgetDeposited(_msgSender(), depositedAmount, currency);
     }
 
     /**
@@ -554,7 +558,6 @@ contract FuulProject is
 
     function _calculateAmountsForFungibleToken(
         IFuulFactory.FeesInformation memory feesInfo,
-        uint256 totalAmount,
         uint256 amountToPartner,
         uint256 amountToEndUser
     )
@@ -566,11 +569,10 @@ contract FuulProject is
             uint256 netAmountToEndUser
         )
     {
-        // Can this be unchecked?
+        uint256 totalAmount = amountToPartner + amountToEndUser;
 
         // Calculate the percentage to partners
-        uint256 partnerPercentage = (100 * amountToPartner) /
-            (amountToPartner + amountToEndUser);
+        uint256 partnerPercentage = (100 * amountToPartner) / totalAmount;
 
         // Get all fees
         fees = [
@@ -595,8 +597,6 @@ contract FuulProject is
     function _calculateFeesForNFT(
         IFuulFactory.FeesInformation memory feesInfo
     ) internal pure returns (uint256[3] memory fees) {
-        // Can this be unchecked?
-
         uint256 totalAmount = feesInfo.nftFixedFeeAmount;
         fees = [
             (feesInfo.protocolFee * totalAmount) / 10000,
@@ -622,10 +622,11 @@ contract FuulProject is
      * - The sum of `amountToPartner` and `amountToEndUser` for each `Attribution` must be greater than zero.
      * - Only `MANAGER_ROLE` in {FuulFactory} addresses can call this function. This is checked through the `getFeesInformation` in {FuulFactory}.
      * - Proof must not exist (be previously attributed).
-     * - {FuulManager} must not be paused. This is checked through The `attributeTransactions` function in {FuulManager}.
+     * - {FuulManager} must not be paused. This is checked through The `attributeConversions` function in {FuulManager}.
+     * - Currency token must be accepted in {FuulFactory}
      */
 
-    function attributeTransactions(
+    function attributeConversions(
         Attribution[] calldata attributions,
         address attributorFeeCollector
     ) external nonReentrant {
@@ -640,14 +641,27 @@ contract FuulProject is
                 revert AlreadyAttributed();
             }
 
+            if (
+                keccak256(
+                    abi.encodePacked(
+                        attribution.proofWithoutProject,
+                        address(this)
+                    )
+                ) != attribution.proof
+            ) {
+                revert InvalidProof();
+            }
+
+            address currency = attribution.currency;
+
+            IFuulFactory.TokenType currencyType = _getCurrencyToken(currency);
+
             attributionProofs[attribution.proof] = true;
 
             uint256 totalAmount = attribution.amountToPartner +
                 attribution.amountToEndUser;
 
             _nonZeroAmount(totalAmount);
-
-            address currency = attribution.currency;
 
             // Calculate fees and amounts
 
@@ -656,20 +670,25 @@ contract FuulProject is
             uint256 amountToEndUser;
             address feeCurrency;
 
-            if (currency == address(0) || isERC20(currency)) {
+            if (
+                currencyType == IFuulFactory.TokenType.NATIVE ||
+                currencyType == IFuulFactory.TokenType.ERC_20
+            ) {
                 (
                     fees,
                     amountToPartner,
                     amountToEndUser
                 ) = _calculateAmountsForFungibleToken(
                     feesInfo,
-                    totalAmount,
                     attribution.amountToPartner,
                     attribution.amountToEndUser
                 );
 
                 feeCurrency = currency;
-            } else {
+            } else if (
+                currencyType == IFuulFactory.TokenType.ERC_721 ||
+                currencyType == IFuulFactory.TokenType.ERC_1155
+            ) {
                 // It is not necessary to check if it's an NFT address. If it has budget and it is not a fungible, then it's an NFT
                 fees = _calculateFeesForNFT(feesInfo);
                 amountToPartner = attribution.amountToPartner;
@@ -679,6 +698,8 @@ contract FuulProject is
 
                 // Remove from fees budget
                 nftFeeBudget[feeCurrency] -= (fees[0] + fees[1] + fees[2]);
+            } else {
+                revert InvalidCurrency();
             }
 
             // Update budget balance
@@ -739,32 +760,35 @@ contract FuulProject is
     function claimFromProject(
         address currency,
         address receiver,
+        uint256 amount,
         uint256[] calldata tokenIds,
         uint256[] calldata amounts
-    ) external nonReentrant returns (uint256 availableAmount) {
+    ) external nonReentrant {
         fuulFactoryInstance.hasManagerRole(_msgSender());
 
-        availableAmount = availableToClaim[receiver][currency];
+        // It fails with underflow if amount < avaiable to claim
+        availableToClaim[receiver][currency] -= amount;
 
-        _nonZeroAmount(availableAmount);
+        (IFuulFactory.TokenType currencyType, ) = fuulFactoryInstance
+            .acceptedCurrencies(currency);
 
-        if (currency == address(0)) {
-            payable(receiver).sendValue(availableAmount);
-        } else if (isERC20(currency)) {
-            IERC20(currency).safeTransfer(receiver, availableAmount);
-        } else if (currency.supportsInterface(IID_IERC721)) {
+        if (currencyType == IFuulFactory.TokenType.NATIVE) {
+            payable(receiver).sendValue(amount);
+        } else if (currencyType == IFuulFactory.TokenType.ERC_20) {
+            IERC20(currency).safeTransfer(receiver, amount);
+        } else if (currencyType == IFuulFactory.TokenType.ERC_721) {
             uint256 tokenIdsLength = tokenIds.length;
 
             // Check that the amount of tokenIds to claim is equal to the available amount
-            if (availableAmount != tokenIdsLength) {
+            if (amount != tokenIdsLength) {
                 revert InvalidArgument();
             }
 
             _transferERC721Tokens(currency, address(this), receiver, tokenIds);
-        } else if (currency.supportsInterface(IID_IERC1155)) {
+        } else if (currencyType == IFuulFactory.TokenType.ERC_1155) {
             // Check that the sum of the amounts of tokenIds to claim is equal to the available amount
 
-            if (availableAmount != _getSumFromArray(amounts)) {
+            if (amount != _getSumFromArray(amounts)) {
                 revert InvalidArgument();
             }
 
@@ -779,13 +803,7 @@ contract FuulProject is
             revert InvalidCurrency();
         }
 
-        // Update user budget - it will fail from underflow if insufficient funds
-
-        availableToClaim[receiver][currency] = 0;
-
-        emit Claimed(receiver, currency, availableAmount, tokenIds, amounts);
-
-        return availableAmount;
+        emit Claimed(receiver, currency, amount, tokenIds, amounts);
     }
 
     /*╔═════════════════════════════╗
@@ -840,6 +858,25 @@ contract FuulProject is
       ╚═════════════════════════════╝*/
 
     /**
+     * @dev Gets token info from {FuulFactory}.
+     */
+    function _getCurrencyToken(
+        address currency
+    ) internal view returns (IFuulFactory.TokenType currencyType) {
+        bool isAccepted;
+
+        (currencyType, isAccepted) = fuulFactoryInstance.acceptedCurrencies(
+            currency
+        );
+
+        if (!isAccepted) {
+            revert IFuulFactory.TokenCurrencyNotAccepted();
+        }
+
+        return currencyType;
+    }
+
+    /**
      * @dev Helper function to sum all amounts inside the array.
      */
     function _getSumFromArray(
@@ -855,19 +892,6 @@ contract FuulProject is
         }
 
         return result;
-    }
-
-    /**
-     * @dev Returns whether the address is an ERC20 token.
-     */
-    function isERC20(address tokenAddress) internal view returns (bool) {
-        IERC20 token = IERC20(tokenAddress);
-        try token.totalSupply() {
-            try token.allowance(_msgSender(), address(this)) {
-                return true;
-            } catch {}
-        } catch {}
-        return false;
     }
 
     /*╔═════════════════════════════╗

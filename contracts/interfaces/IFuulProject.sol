@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: MIT
-import "./IFuulManager.sol";
 
 pragma solidity ^0.8.18;
 
@@ -16,40 +15,42 @@ interface IFuulProject {
         uint256 amountToPartner;
         uint256 amountToEndUser;
         bytes32 proof;
+        bytes32 proofWithoutProject;
     }
 
     /*╔═════════════════════════════╗
       ║           EVENTS            ║
       ╚═════════════════════════════╝*/
 
-    // uint256[] tokenIds: used in ERC721 and ERC1155
-    // uint256[] amounts: used in ERC1155
-
     event ProjectInfoUpdated(string projectInfoURI);
 
-    event FungibleBudgetDeposited(
-        address indexed account,
-        uint256 indexed amount,
-        address indexed currency
+    event FungibleBudgetDeposited(uint256 amount, address indexed currency);
+
+    event ERC721BudgetDeposited(
+        uint256 amount,
+        address indexed currency,
+        uint256[] tokenIds
     );
 
-    event NFTBudgetDeposited(
+    event ERC1155BudgetDeposited(
         address indexed account,
-        uint256 indexed amount,
+        uint256 amount,
         address indexed currency,
         uint256[] tokenIds,
         uint256[] amounts
     );
 
-    event FungibleBudgetRemoved(
-        address indexed account,
-        uint256 indexed amount,
-        address indexed currency
+    event FungibleBudgetRemoved(uint256 amount, address indexed currency);
+
+    event ERC721BudgetRemoved(
+        uint256 amount,
+        address indexed currency,
+        uint256[] tokenIds
     );
 
-    event NFTBudgetRemoved(
+    event ERC1155BudgetRemoved(
         address indexed account,
-        uint256 indexed amount,
+        uint256 amount,
         address indexed currency,
         uint256[] tokenIds,
         uint256[] amounts
@@ -58,7 +59,7 @@ interface IFuulProject {
     event Claimed(
         address indexed account,
         address indexed currency,
-        uint256 indexed amount,
+        uint256 amount,
         uint256[] rewardTokenIds,
         uint256[] amounts
     );
@@ -67,7 +68,7 @@ interface IFuulProject {
 
     event Attributed(
         address indexed currency,
-        uint256 indexed totalAmount,
+        uint256 totalAmount,
         address[5] receivers,
         uint256[5] amounts,
         bytes32 proof
@@ -75,15 +76,17 @@ interface IFuulProject {
 
     event FeeBudgetDeposited(
         address indexed account,
-        uint256 indexed amount,
+        uint256 amount,
         address indexed currency
     );
 
     event FeeBudgetRemoved(
         address indexed account,
-        uint256 indexed amount,
+        uint256 amount,
         address indexed currency
     );
+
+    event AppliedToRemove(uint256 timestamp);
 
     /*╔═════════════════════════════╗
       ║           ERRORS            ║
@@ -96,6 +99,7 @@ interface IFuulProject {
     error OutsideRemovalWindow();
     error ZeroAmount();
     error AlreadyAttributed();
+    error InvalidProof();
     error Forbidden();
     error InvalidCurrency();
     error InvalidArgument();
@@ -117,11 +121,9 @@ interface IFuulProject {
 
     function projectInfoURI() external view returns (string memory);
 
-    function setProjectURI(string memory _projectURI) external;
+    function setProjectURI(string memory projectURI) external;
 
     function clientFeeCollector() external view returns (address);
-
-    function lastStatusHash() external view returns (bytes32);
 
     /*╔═════════════════════════════╗
       ║           DEPOSIT           ║
@@ -162,7 +164,7 @@ interface IFuulProject {
       ║          ATTRIBUTE          ║
       ╚═════════════════════════════╝*/
 
-    function attributeTransactions(
+    function attributeConversions(
         Attribution[] calldata attributions,
         address attributorFeeCollector
     ) external;
@@ -174,7 +176,8 @@ interface IFuulProject {
     function claimFromProject(
         address currency,
         address receiver,
+        uint256 amount,
         uint256[] memory tokenIds,
         uint256[] memory amounts
-    ) external returns (uint256);
+    ) external;
 }

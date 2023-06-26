@@ -19,16 +19,26 @@ describe("Fuul Factory - Create projects", function () {
   it("Should deploy Fuul Project and sets roles correctly", async function () {
     const signer = this.user2.address;
 
-    await expect(
-      this.fuulFactory
-        .connect(this.user2)
-        .createFuulProject(signer, signer, this.projectURI, signer)
-    ).to.emit(this.fuulFactory, "ProjectCreated");
+    const tx = await this.fuulFactory
+      .connect(this.user2)
+      .createFuulProject(signer, signer, this.projectURI, signer);
+
+    const receipt = await tx.wait();
+
+    const event = receipt.events?.filter((x) => {
+      return x.event == "ProjectCreated";
+    })[0];
+
+    expect(event.event).to.equal("ProjectCreated");
+    expect(event.args.projectId).to.equal(1);
+    expect(event.args.eventSigner).to.equal(signer);
+    expect(event.args.projectInfoURI).to.equal(this.projectURI);
+    expect(event.args.clientFeeCollector).to.equal(signer);
 
     // Projects
     expect(await this.fuulFactory.totalProjectsCreated()).to.equal(1);
 
-    const addressDeployed = await this.fuulFactory.projects(1);
+    const addressDeployed = event.args.deployedAddress;
 
     expect(addressDeployed).to.not.equal(ethers.constants.AddressZero);
 
@@ -75,7 +85,7 @@ describe("Fuul Factory - Fees management", function () {
     expect(await this.fuulFactory.attributorFee()).to.equal(this.newFee);
 
     // NFT Fixed fees
-    await this.fuulFactory.setNftFixedFeeAmounte(this.newFee);
+    await this.fuulFactory.setNftFixedFeeAmount(this.newFee);
 
     expect(await this.fuulFactory.nftFixedFeeAmount()).to.equal(this.newFee);
 
@@ -116,7 +126,7 @@ describe("Fuul Factory - Fees management", function () {
 
     // NFT Fixed fees
     await expect(
-      this.fuulFactory.connect(this.user2).setNftFixedFeeAmounte(this.newFee)
+      this.fuulFactory.connect(this.user2).setNftFixedFeeAmount(this.newFee)
     ).to.be.revertedWith(error);
 
     // NFT fee currency
@@ -146,24 +156,31 @@ describe("Fuul Factory - Token currency management", function () {
     this.adminRole = adminRole;
 
     this.newCurrency = this.nft721.address;
+    this.newCurrencyType = 2;
     this.limit = ethers.utils.parseEther("100");
   });
 
   it("Should add new currency", async function () {
-    await this.fuulFactory.addCurrencyToken(this.newCurrency);
+    await this.fuulFactory.addCurrencyToken(
+      this.newCurrency,
+      this.newCurrencyType
+    );
 
-    expect(
-      await this.fuulFactory.acceptedCurrencies(this.newCurrency)
-    ).to.equal(true);
+    const currency = await this.fuulFactory.acceptedCurrencies(
+      this.newCurrency
+    );
+
+    expect(currency.isAccepted).to.equal(true);
+    expect(currency.tokenType).to.equal(this.newCurrencyType);
   });
 
   it("Should remove currency", async function () {
     const removeCurrency = this.token.address;
     await this.fuulFactory.removeCurrencyToken(removeCurrency);
 
-    expect(await this.fuulFactory.acceptedCurrencies(removeCurrency)).to.equal(
-      false
-    );
+    const currency = await this.fuulFactory.acceptedCurrencies(removeCurrency);
+
+    expect(currency.isAccepted).to.equal(false);
   });
 
   it("Should fail to add and remove currency if not admin role", async function () {
@@ -173,7 +190,9 @@ describe("Fuul Factory - Token currency management", function () {
 
     // Add currency
     await expect(
-      this.fuulFactory.connect(this.user2).addCurrencyToken(this.newCurrency)
+      this.fuulFactory
+        .connect(this.user2)
+        .addCurrencyToken(this.newCurrency, this.newCurrencyType)
     ).to.be.revertedWith(error);
 
     // Remove currency
@@ -188,7 +207,7 @@ describe("Fuul Factory - Token currency management", function () {
     // Token already accepted
 
     await expect(
-      this.fuulFactory.addCurrencyToken(this.token.address)
+      this.fuulFactory.addCurrencyToken(this.token.address, 1)
     ).to.be.revertedWithCustomError(
       this.fuulFactory,
       "TokenCurrencyAlreadyAccepted"
@@ -214,7 +233,8 @@ describe("Fuul Factory - Remove variables management", function () {
     this.user2 = user2;
     this.adminRole = adminRole;
 
-    this.newPeriod = 5;
+    // 10 days
+    this.newPeriod = 10 * 86400;
   });
 
   it("Should set new budget cooldown", async function () {
@@ -266,6 +286,12 @@ describe("Fuul Factory - Remove variables management", function () {
 
     await expect(
       this.fuulFactory.setProjectRemoveBudgetPeriod(newPeriod)
+    ).to.be.revertedWithCustomError(this.fuulFactory, "InvalidArgument");
+
+    const belowLimitPeriod = 1;
+
+    await expect(
+      this.fuulFactory.setProjectRemoveBudgetPeriod(belowLimitPeriod)
     ).to.be.revertedWithCustomError(this.fuulFactory, "InvalidArgument");
   });
 });

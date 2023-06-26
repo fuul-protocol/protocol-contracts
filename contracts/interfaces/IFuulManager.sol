@@ -14,6 +14,7 @@ interface IFuulManager {
     struct ClaimCheck {
         address projectAddress;
         address currency;
+        uint256 amount;
         uint256[] tokenIds;
         uint256[] amounts;
     }
@@ -24,11 +25,22 @@ interface IFuulManager {
     }
 
     /*╔═════════════════════════════╗
+      ║           EVENTS            ║
+      ╚═════════════════════════════╝*/
+
+    event ClaimCooldownUpdated(uint256 value);
+    event TokenLimitAdded(address indexed token, uint256 value);
+    event TokenLimitUpdated(address indexed token, uint256 value);
+
+    /*╔═════════════════════════════╗
       ║           ERRORS            ║
       ╚═════════════════════════════╝*/
 
     error InvalidArgument();
+    error LimitAlreadySet();
     error OverTheLimit();
+    error ZeroAddress();
+    error Unauthorized();
 
     /*╔═════════════════════════════╗
       ║       PUBLIC VARIABLES      ║
@@ -45,7 +57,7 @@ interface IFuulManager {
       ║       CLAIM VARIABLES       ║
       ╚═════════════════════════════╝*/
 
-    function setClaimCooldown(uint256 _period) external;
+    function setClaimCooldown(uint256 period) external;
 
     /*╔═════════════════════════════╗
       ║       TOKEN CURRENCIES      ║
@@ -79,7 +91,7 @@ interface IFuulManager {
       ║      ATTRIBUTE AND CLAIM    ║
       ╚═════════════════════════════╝*/
 
-    function attributeTransactions(
+    function attributeConversions(
         AttributionEntity[] memory attributions,
         address attributorFeeCollector
     ) external;

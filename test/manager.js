@@ -114,11 +114,6 @@ describe("Fuul Manager - Token currency management", function () {
         this.limitAmount
       )
     ).to.be.revertedWithCustomError(this.fuulManager, "InvalidArgument");
-
-    // Limit = 0
-    await expect(
-      this.fuulManager.setCurrencyTokenLimit(this.token.address, 0)
-    ).to.be.revertedWithCustomError(this.fuulManager, "InvalidArgument");
   });
 });
 
@@ -194,7 +189,7 @@ describe("Fuul Manager - Attribute", function () {
     );
 
     // Deposit ERC721
-    await this.fuulFactory.addCurrencyToken(nft721.address);
+    await this.fuulFactory.addCurrencyToken(nft721.address, 2);
 
     await this.nft721.setApprovalForAll(this.fuulProject.address, true);
 
@@ -202,7 +197,7 @@ describe("Fuul Manager - Attribute", function () {
 
     // Deposit ERC1155
 
-    await this.fuulFactory.addCurrencyToken(nft1155.address);
+    await this.fuulFactory.addCurrencyToken(nft1155.address, 3);
 
     await this.nft1155.setApprovalForAll(this.fuulProject.address, true);
 
@@ -219,12 +214,19 @@ describe("Fuul Manager - Attribute", function () {
     );
     await this.fuulProject.depositFeeBudget(this.amount);
 
+    this.proofWithoutProject = ethers.utils.formatBytes32String("proof");
+
+    const proof = ethers.utils.solidityKeccak256(
+      ["bytes32", "address"],
+      [this.proofWithoutProject, this.fuulProject.address]
+    );
+
     // Attribution template
     this.attributionTemplate = {
       partner: this.partner.address,
       endUser: this.endUser.address,
-      proof:
-        "0x70726f6f66000000000000000000000000000000000000000000000000000000",
+      proof,
+      proofWithoutProject: this.proofWithoutProject,
     };
 
     this.feesInfo = await this.fuulFactory.getAllFees();
@@ -236,6 +238,18 @@ describe("Fuul Manager - Attribute", function () {
 
   it("Should attribute from different currencies and set correct values for users and fee collectors", async function () {
     // Attibution entities
+
+    const proofs = [];
+    for (let i = 1; i < 4; i++) {
+      let proofWOProject = ethers.utils.formatBytes32String("proof" + i);
+      let proof = ethers.utils.solidityKeccak256(
+        ["bytes32", "address"],
+        [proofWOProject, this.fuulProject.address]
+      );
+
+      proofs.push([proofWOProject, proof]);
+    }
+
     const attributionEntity = {
       projectAddress: this.fuulProject.address,
       projectAttributions: [
@@ -244,38 +258,36 @@ describe("Fuul Manager - Attribute", function () {
           currency: this.token.address,
           amountToPartner: this.attributedAmount,
           amountToEndUser: this.attributedAmount,
-          proof:
-            "0x70726f6f66310a00000000000000000000000000000000000000000000000000",
         },
         {
           ...this.attributionTemplate,
           currency: ethers.constants.AddressZero,
           amountToPartner: this.attributedAmount,
           amountToEndUser: this.attributedAmount,
-          proof:
-            "0x70726f6f66320a00000000000000000000000000000000000000000000000000",
+          proofWithoutProject: proofs[0][0],
+          proof: proofs[0][1],
         },
         {
           ...this.attributionTemplate,
           currency: this.nft721.address,
           amountToPartner: this.tokenIds.length / 2,
           amountToEndUser: this.tokenIds.length / 2,
-          proof:
-            "0x70726f6f66330a00000000000000000000000000000000000000000000000000",
+          proofWithoutProject: proofs[1][0],
+          proof: proofs[1][1],
         },
         {
           ...this.attributionTemplate,
           currency: this.nft1155.address,
           amountToPartner: this.tokenAmount / 2,
           amountToEndUser: this.tokenAmount / 2,
-          proof:
-            "0x70726f6f66340a00000000000000000000000000000000000000000000000000",
+          proofWithoutProject: proofs[2][0],
+          proof: proofs[2][1],
         },
       ],
     };
 
     // Attribute
-    await this.fuulManager.attributeTransactions(
+    await this.fuulManager.attributeConversions(
       [attributionEntity],
       this.attributor.address
     );
@@ -407,14 +419,20 @@ describe("Fuul Manager - Attribute", function () {
   it("Should attribute from different projects and set correct values for users and fee collectors", async function () {
     // Create a new project
 
-    await this.fuulFactory.createFuulProject(
+    const tx = await this.fuulFactory.createFuulProject(
       this.user1.address,
       this.user1.address,
       this.projectURI,
       this.clientFeeCollector.address
     );
 
-    const newFuulProjectAddress = await this.fuulFactory.projects(2);
+    const receipt = await tx.wait();
+
+    const event = receipt.events?.filter((x) => {
+      return x.event == "ProjectCreated";
+    })[0];
+
+    const newFuulProjectAddress = event.args.deployedAddress;
 
     const NewFuulProject = await ethers.getContractFactory("FuulProject");
     const newFuulProject = await NewFuulProject.attach(newFuulProjectAddress);
@@ -446,13 +464,18 @@ describe("Fuul Manager - Attribute", function () {
             currency,
             amountToPartner: this.attributedAmount,
             amountToEndUser: this.attributedAmount,
+            proofWithoutProject: this.proofWithoutProject,
+            proof: ethers.utils.solidityKeccak256(
+              ["bytes32", "address"],
+              [this.proofWithoutProject, newFuulProject.address]
+            ),
           },
         ],
       },
     ];
 
     // Attribute
-    await this.fuulManager.attributeTransactions(
+    await this.fuulManager.attributeConversions(
       attributionEntities,
       this.attributor.address
     );
@@ -539,7 +562,7 @@ describe("Fuul Manager - Attribute", function () {
         },
       ],
     };
-    await expect(this.fuulManager.attributeTransactions([attributionEntity])).to
+    await expect(this.fuulManager.attributeConversions([attributionEntity])).to
       .be.revertedWithPanic;
   });
 
@@ -562,7 +585,7 @@ describe("Fuul Manager - Attribute", function () {
     await expect(
       this.fuulManager
         .connect(this.partner)
-        .attributeTransactions([attributionEntity], this.attributor.address)
+        .attributeConversions([attributionEntity], this.attributor.address)
     ).to.be.revertedWith(error);
   });
 
@@ -582,7 +605,7 @@ describe("Fuul Manager - Attribute", function () {
     };
 
     await expect(
-      this.fuulManager.attributeTransactions(
+      this.fuulManager.attributeConversions(
         [attributionEntity],
         this.attributor.address
       )
@@ -664,7 +687,7 @@ describe("Fuul Manager - Claim", function () {
     );
 
     // Deposit ERC721
-    await this.fuulFactory.addCurrencyToken(nft721.address);
+    await this.fuulFactory.addCurrencyToken(nft721.address, 2);
 
     await this.fuulManager.addCurrencyLimit(nft721.address, this.tokenAmount);
 
@@ -674,7 +697,7 @@ describe("Fuul Manager - Claim", function () {
 
     // Deposit ERC1155
 
-    await this.fuulFactory.addCurrencyToken(nft1155.address);
+    await this.fuulFactory.addCurrencyToken(nft1155.address, 3);
 
     await this.fuulManager.addCurrencyLimit(nft1155.address, this.tokenAmount);
 
@@ -693,12 +716,28 @@ describe("Fuul Manager - Claim", function () {
     );
     await this.fuulProject.depositFeeBudget(this.amount);
 
+    const proofs = [];
+    for (let i = 1; i < 5; i++) {
+      let proofWOProject = ethers.utils.formatBytes32String("proof" + i);
+      let proof = ethers.utils.solidityKeccak256(
+        ["bytes32", "address"],
+        [proofWOProject, this.fuulProject.address]
+      );
+
+      proofs.push([proofWOProject, proof]);
+    }
+
+    const proofWithoutProject = ethers.utils.formatBytes32String("proof");
+
     // Attribute
     this.attributionTemplate = {
       partner: this.partner.address,
       endUser: this.endUser.address,
-      proof:
-        "0x70726f6f66000000000000000000000000000000000000000000000000000000",
+      proofWithoutProject,
+      proof: ethers.utils.solidityKeccak256(
+        ["bytes32", "address"],
+        [proofWithoutProject, this.fuulProject.address]
+      ),
     };
 
     this.attributionEntity = {
@@ -709,37 +748,37 @@ describe("Fuul Manager - Claim", function () {
           currency: this.token.address,
           amountToPartner: this.attributedAmount,
           amountToEndUser: this.attributedAmount,
-          proof:
-            "0x70726f6f66310a00000000000000000000000000000000000000000000000000",
+          proofWithoutProject: proofs[0][0],
+          proof: proofs[0][1],
         },
         {
           ...this.attributionTemplate,
           currency: ethers.constants.AddressZero,
           amountToPartner: this.attributedAmount,
           amountToEndUser: this.attributedAmount,
-          proof:
-            "0x70726f6f66320a00000000000000000000000000000000000000000000000000",
+          proofWithoutProject: proofs[1][0],
+          proof: proofs[1][1],
         },
         {
           ...this.attributionTemplate,
           currency: this.nft721.address,
           amountToPartner: 2,
           amountToEndUser: 2,
-          proof:
-            "0x70726f6f66330a00000000000000000000000000000000000000000000000000",
+          proofWithoutProject: proofs[2][0],
+          proof: proofs[2][1],
         },
         {
           ...this.attributionTemplate,
           currency: this.nft1155.address,
           amountToPartner: 2,
           amountToEndUser: 2,
-          proof:
-            "0x70726f6f66340a00000000000000000000000000000000000000000000000000",
+          proofWithoutProject: proofs[3][0],
+          proof: proofs[3][1],
         },
       ],
     };
 
-    await this.fuulManager.attributeTransactions(
+    await this.fuulManager.attributeConversions(
       [this.attributionEntity],
       this.attributor.address
     );
@@ -750,14 +789,20 @@ describe("Fuul Manager - Claim", function () {
 
     const currency = this.token.address;
 
-    await this.fuulFactory.createFuulProject(
+    const tx = await this.fuulFactory.createFuulProject(
       this.user1.address,
       this.user1.address,
       this.projectURI,
       this.clientFeeCollector.address
     );
 
-    const newFuulProjectAddress = await this.fuulFactory.projects(2);
+    const receipt = await tx.wait();
+
+    const event = receipt.events?.filter((x) => {
+      return x.event == "ProjectCreated";
+    })[0];
+
+    const newFuulProjectAddress = event.args.deployedAddress;
 
     const NewFuulProject = await ethers.getContractFactory("FuulProject");
     const newFuulProject = await NewFuulProject.attach(newFuulProjectAddress);
@@ -769,6 +814,12 @@ describe("Fuul Manager - Claim", function () {
 
     await newFuulProject.depositFungibleToken(currency, this.amount);
 
+    const proofWithoutProject = ethers.utils.formatBytes32String("proof");
+    const proof = ethers.utils.solidityKeccak256(
+      ["bytes32", "address"],
+      [proofWithoutProject, newFuulProject.address]
+    );
+
     // Attribute in new project
     const attributionEntity = {
       projectAddress: newFuulProject.address,
@@ -778,13 +829,13 @@ describe("Fuul Manager - Claim", function () {
           currency,
           amountToPartner: this.attributedAmount,
           amountToEndUser: this.attributedAmount,
-          proof:
-            "0x70726f6f66000000000000000000000000000000000000000000000000000000",
+          proofWithoutProject,
+          proof,
         },
       ],
     };
 
-    await this.fuulManager.attributeTransactions(
+    await this.fuulManager.attributeConversions(
       [attributionEntity],
       this.attributor.address
     );
@@ -793,25 +844,27 @@ describe("Fuul Manager - Claim", function () {
 
     const claimer = this.partner;
 
+    const projectClaimAmount = await this.fuulProject.availableToClaim(
+      claimer.address,
+      currency
+    );
+
     claimChecks = [
       {
         projectAddress: this.fuulProject.address,
         currency,
+        amount: projectClaimAmount,
         tokenIds: [],
         amounts: [],
       },
       {
         projectAddress: newFuulProject.address,
         currency,
+        amount: projectClaimAmount,
         tokenIds: [],
         amounts: [],
       },
     ];
-
-    const projectClaimAmount = await this.fuulProject.availableToClaim(
-      claimer.address,
-      currency
-    );
 
     await this.fuulManager.connect(claimer).claim(claimChecks);
 
@@ -857,20 +910,20 @@ describe("Fuul Manager - Claim", function () {
   it("Should claim native tokens and set correct values", async function () {
     const currency = ethers.constants.AddressZero;
     const claimer = this.partner;
+    const claimAmount = await this.fuulProject.availableToClaim(
+      claimer.address,
+      currency
+    );
 
     claimChecks = [
       {
         projectAddress: this.fuulProject.address,
         currency,
+        amount: claimAmount,
         tokenIds: [],
         amounts: [],
       },
     ];
-
-    const claimAmount = await this.fuulProject.availableToClaim(
-      claimer.address,
-      currency
-    );
 
     const balanceBefore = await this.provider.getBalance(claimer.address);
 
@@ -917,12 +970,14 @@ describe("Fuul Manager - Claim", function () {
       {
         projectAddress: this.fuulProject.address,
         currency: this.nft721.address,
+        amount: tokenIds.length,
         tokenIds,
         amounts: [],
       },
       {
         projectAddress: this.fuulProject.address,
         currency: this.nft1155.address,
+        amount: tokenIds.length,
         tokenIds,
         amounts: amounts,
       },
@@ -982,6 +1037,7 @@ describe("Fuul Manager - Claim", function () {
       {
         projectAddress: this.fuulProject.address,
         currency,
+        amount: tokenIds.length,
         tokenIds,
         amounts: [],
       },
@@ -1021,11 +1077,16 @@ describe("Fuul Manager - Claim", function () {
 
     // Claim
     const claimer = this.partner;
+    const claimAmount = await this.fuulProject.availableToClaim(
+      claimer.address,
+      currency
+    );
 
     claimChecks = [
       {
         projectAddress: this.fuulProject.address,
         currency,
+        amount: claimAmount,
         tokenIds: [],
         amounts: [],
       },
@@ -1051,7 +1112,7 @@ describe("Fuul Manager - Claim", function () {
       ],
     };
 
-    await this.fuulManager.attributeTransactions(
+    await this.fuulManager.attributeConversions(
       [attributionEntity],
       this.attributor.address
     );
@@ -1063,10 +1124,16 @@ describe("Fuul Manager - Claim", function () {
 
     // Claim again
 
+    const claimAmountAfter = await this.fuulProject.availableToClaim(
+      claimer.address,
+      currency
+    );
+
     claimChecks = [
       {
         projectAddress: this.fuulProject.address,
         currency,
+        amount: claimAmountAfter,
         tokenIds: [],
         amounts: [],
       },
@@ -1084,14 +1151,13 @@ describe("Fuul Manager - Claim", function () {
       {
         projectAddress: this.fuulProject.address,
         currency: this.token.address,
+        amount: 1,
         tokenIds: [],
         amounts: [],
       },
     ];
 
-    await expect(
-      this.fuulManager.claim(claimChecks)
-    ).to.be.revertedWithCustomError(this.fuulProject, "ZeroAmount");
+    await expect(this.fuulManager.claim(claimChecks)).to.be.reverted;
   });
 
   it("Should fail to claim if contract is paused", async function () {
@@ -1101,6 +1167,7 @@ describe("Fuul Manager - Claim", function () {
       {
         projectAddress: this.fuulProject.address,
         currency: this.token.address,
+        amount: 1,
         tokenIds: [],
         amounts: [],
       },
@@ -1136,18 +1203,23 @@ describe("Fuul Manager - Claim", function () {
       ],
     };
 
-    await this.fuulManager.attributeTransactions(
+    await this.fuulManager.attributeConversions(
       [attributionEntity],
       this.attributor.address
     );
 
     // Claim
     const claimer = this.partner;
+    const claimAmount = await this.fuulProject.availableToClaim(
+      claimer.address,
+      currency
+    );
 
     claimChecks = [
       {
         projectAddress: this.fuulProject.address,
         currency,
+        amount: claimAmount,
         tokenIds: [],
         amounts: [],
       },
@@ -1162,11 +1234,16 @@ describe("Fuul Manager - Claim", function () {
 
     // Claim
     const claimer = this.partner;
+    const claimAmount = await this.fuulProject.availableToClaim(
+      claimer.address,
+      currency
+    );
 
     claimChecks = [
       {
         projectAddress: this.fuulProject.address,
         currency,
+        amount: claimAmount,
         tokenIds: [],
         amounts: [],
       },
@@ -1192,17 +1269,22 @@ describe("Fuul Manager - Claim", function () {
       ],
     };
 
-    await this.fuulManager.attributeTransactions(
+    await this.fuulManager.attributeConversions(
       [attributionEntity],
       this.attributor.address
     );
 
     // Claim again
+    const claimAmountAfter = await this.fuulProject.availableToClaim(
+      claimer.address,
+      currency
+    );
 
     claimChecks = [
       {
         projectAddress: this.fuulProject.address,
         currency,
+        amount: claimAmountAfter,
         tokenIds: [],
         amounts: [],
       },
