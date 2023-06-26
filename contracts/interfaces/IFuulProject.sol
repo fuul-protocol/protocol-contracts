@@ -68,7 +68,7 @@ interface IFuulProject {
 
     event Attributed(
         address indexed currency,
-        uint256 indexed totalAmount,
+        uint256 totalAmount,
         address[5] receivers,
         uint256[5] amounts,
         bytes32 proof
