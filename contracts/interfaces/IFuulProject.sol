@@ -169,6 +169,8 @@ interface IFuulProject {
         address attributorFeeCollector
     ) external;
 
+    function attributionProofs(bytes32 proof) external view returns (bool);
+
     /*╔═════════════════════════════╗
       ║            CLAIM            ║
       ╚═════════════════════════════╝*/
