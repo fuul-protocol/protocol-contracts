@@ -1,7 +1,9 @@
+const deployedAddress = require("../../deployment/fuulManager.json");
+
 async function main() {
   const [signer] = await ethers.getSigners();
 
-  const address = "0x09f312aa2B138e68d45E3Ff583147eB74f44582b";
+  const address = deployedAddress.address;
   const FuulManager = await ethers.getContractFactory("FuulManager");
   const fuulManager = await FuulManager.attach(address);
 
