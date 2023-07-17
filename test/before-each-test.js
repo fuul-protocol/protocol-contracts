@@ -152,6 +152,25 @@ const setupTest = async function (deployProject = true) {
   };
 };
 
+const setupReferralStorageTest = async function (deployProject = true) {
+  await hre.network.provider.send("hardhat_reset");
+
+  [user1, user2, user3] = await hre.ethers.getSigners();
+
+  const fuulReferralStorage = await deployContract("FuulReferralStorage");
+
+  const adminRole = await fuulReferralStorage.DEFAULT_ADMIN_ROLE();
+
+  return {
+    fuulReferralStorage,
+    user1,
+    user2,
+    user3,
+    adminRole,
+  };
+};
+
 module.exports = {
   setupTest,
+  setupReferralStorageTest,
 };
