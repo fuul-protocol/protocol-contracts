@@ -2,7 +2,9 @@
 
 pragma solidity ^0.8.18;
 
-interface IFuulProject {
+import "@openzeppelin/contracts/access/IAccessControlEnumerable.sol";
+
+interface IFuulProject is IAccessControlEnumerable {
     /*╔═════════════════════════════╗
       ║           STRUCT            ║
       ╚═════════════════════════════╝*/
