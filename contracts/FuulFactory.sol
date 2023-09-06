@@ -28,16 +28,16 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
     address public nftFeeCurrency;
 
     // Fixed fee for NFT rewards
-    uint256 public nftFixedFeeAmount = 0.1 ether;
+    uint256 public nftFixedFeeAmount = 1 ether;
 
     // Protocol fee percentage. 1 => 0.01%
-    uint256 public protocolFee = 100;
+    uint256 public protocolFee = 0;
 
     // Client fee. 1 => 0.01%
-    uint256 public clientFee = 100;
+    uint256 public clientFee = 200;
 
     // Attributor fee. 1 => 0.01%
-    uint256 public attributorFee = 100;
+    uint256 public attributorFee = 600;
 
     // Amount of time that must elapse between a project's application to remove funds from its budget and the actual removal of those funds.
     uint256 public projectBudgetCooldown = 30 days;
