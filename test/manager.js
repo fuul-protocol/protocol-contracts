@@ -1253,7 +1253,24 @@ describe("Fuul Manager - Claim", function () {
 
     // Deposit and attribute new
 
-    await this.fuulProject.depositFungibleToken(currency, this.limitAmount);
+    // Add fees to limit amount
+    const limitEth = ethers.utils.formatEther(this.limitAmount);
+
+    const protocolFee = await this.fuulFactory.protocolFee();
+    const clientFee = await this.fuulFactory.clientFee();
+    const attributorFee = await this.fuulFactory.attributorFee();
+
+    const totalFee =
+      (protocolFee.toNumber() +
+        clientFee.toNumber() +
+        attributorFee.toNumber()) /
+      10000;
+
+    const limitWithFeesEth = limitEth * (1 + totalFee);
+
+    const limitWithFees = ethers.utils.parseEther(limitWithFeesEth.toString());
+
+    await this.fuulProject.depositFungibleToken(currency, limitWithFees);
 
     // Attribute
 
@@ -1263,7 +1280,7 @@ describe("Fuul Manager - Claim", function () {
         {
           ...this.attributionTemplate,
           currency,
-          amountToPartner: this.limitAmount,
+          amountToPartner: limitWithFees,
           amountToEndUser: 0,
         },
       ],
@@ -1279,6 +1296,8 @@ describe("Fuul Manager - Claim", function () {
       claimer.address,
       currency
     );
+
+    console.log("claimed", ethers.utils.formatEther(claimAmountAfter));
 
     claimChecks = [
       {

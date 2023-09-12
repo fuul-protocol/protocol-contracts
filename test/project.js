@@ -78,7 +78,7 @@ describe("Fuul Project - Deposit and remove fungible", function () {
       )
     )
       .to.emit(this.fuulProject, "FungibleBudgetDeposited")
-      .withArgs(this.user1.address, this.amount, ethers.constants.AddressZero);
+      .withArgs(this.amount, ethers.constants.AddressZero);
 
     // Budget info
 
@@ -120,7 +120,7 @@ describe("Fuul Project - Deposit and remove fungible", function () {
       )
     )
       .to.emit(this.fuulProject, "FungibleBudgetRemoved")
-      .withArgs(this.user1.address, this.amount, ethers.constants.AddressZero);
+      .withArgs(this.amount, ethers.constants.AddressZero);
 
     // Budget info
 
@@ -182,7 +182,7 @@ describe("Fuul Project - Deposit and remove fungible", function () {
       this.fuulProject.depositFungibleToken(this.token.address, this.amount)
     )
       .to.emit(this.fuulProject, "FungibleBudgetDeposited")
-      .withArgs(this.user1.address, this.amount, this.token.address);
+      .withArgs(this.amount, this.token.address);
 
     // Budget info
 
@@ -340,12 +340,7 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
       this.fuulProject.depositNFTToken(this.nft721.address, this.tokenIds, [])
     )
       .to.emit(this.fuulProject, "ERC721BudgetDeposited")
-      .withArgs(
-        this.user1.address,
-        this.tokenIds.length,
-        this.nft721.address,
-        this.tokenIds
-      );
+      .withArgs(this.tokenIds.length, this.nft721.address, this.tokenIds);
 
     // Budget info
     expect(await this.fuulProject.budgets(this.nft721.address)).to.equal(
@@ -382,12 +377,7 @@ describe("Fuul Project - Deposit and remove NFT 721", function () {
       this.fuulProject.removeNFTBudget(this.nft721.address, this.tokenIds, [])
     )
       .to.emit(this.fuulProject, "ERC721BudgetRemoved")
-      .withArgs(
-        this.user1.address,
-        this.tokenIds.length,
-        this.nft721.address,
-        this.tokenIds
-      );
+      .withArgs(this.tokenIds.length, this.nft721.address, this.tokenIds);
 
     // Budget info
     expect(await this.fuulProject.budgets(this.nft721.address)).to.equal(0);
