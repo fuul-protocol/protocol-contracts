@@ -34,10 +34,10 @@ contract FuulFactory is IFuulFactory, AccessControlEnumerable {
     uint256 public protocolFee = 0;
 
     // Client fee. 1 => 0.01%
-    uint256 public clientFee = 200;
+    uint256 public clientFee = 0;
 
     // Attributor fee. 1 => 0.01%
-    uint256 public attributorFee = 600;
+    uint256 public attributorFee = 0;
 
     // Amount of time that must elapse between a project's application to remove funds from its budget and the actual removal of those funds.
     uint256 public projectBudgetCooldown = 30 days;
