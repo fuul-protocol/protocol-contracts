@@ -2,7 +2,7 @@ const deployContract = async function (contractName) {
   const ContractFactory = await hre.ethers.getContractFactory(contractName);
   const contract = await ContractFactory.deploy();
 
-  await contract.deployed();
+  await contract.waitForDeployment();
   return contract;
 };
 
@@ -40,7 +40,7 @@ const deployManager = async function (
     limitAmount
   );
 
-  await fuulManager.deployed();
+  await fuulManager.waitForDeployment();
 
   return fuulManager;
 };
@@ -59,7 +59,7 @@ const deployFactory = async function (
     tokenAddress
   );
 
-  await fuulFactory.deployed();
+  await fuulFactory.waitForDeployment();
 
   return fuulFactory;
 };
@@ -83,31 +83,41 @@ const setupTest = async function (deployProject = true) {
 
   const { token, nftFeeCurrency, nft721, nft1155 } = await deployMocks();
 
+  const tokenAddress = await token.getAddress()
+  const nftFeeCurrencyAddress = await nftFeeCurrency.getAddress()
+  const nft721Address = await nft721.getAddress()
+  const nft1155Address = await nft1155.getAddress()
+
   // Deploy Manager
 
-  const limitAmount = ethers.utils.parseEther("10000");
+  const limitAmount = ethers.parseEther("10000");
 
   const fuulManager = await deployManager(
     user1.address,
     user1.address,
     user1.address,
-    token.address,
+    tokenAddress,
     limitAmount
   );
+
+  const fuulManagerAddress = await fuulManager.getAddress()
 
   // Deploy Factory
 
   const fuulFactory = await deployFactory(
-    fuulManager.address,
+    fuulManagerAddress,
     protocolFeeCollector.address,
-    nftFeeCurrency.address,
-    token.address
+    nftFeeCurrencyAddress,
+    tokenAddress
   );
+
+  const fuulFactoryAddress = await fuulFactory.getAddress()
 
   const adminRole = await fuulFactory.DEFAULT_ADMIN_ROLE();
   const managerRole = await fuulFactory.MANAGER_ROLE();
 
   let fuulProject;
+  let fuulProjectAddress;
 
   if (deployProject) {
     const signer = this.user2.address;
@@ -120,23 +130,29 @@ const setupTest = async function (deployProject = true) {
 
     const receipt = await tx.wait();
 
-    const event = receipt.events?.filter((x) => {
-      return x.event == "ProjectCreated";
+    const log = receipt.logs?.filter((x) => {
+      return x.fragment.name == "ProjectCreated";
     })[0];
 
-    const addressDeployed = event.args.deployedAddress;
+    fuulProjectAddress = log.args.deployedAddress;
 
     const FuulProject = await ethers.getContractFactory("FuulProject");
-    fuulProject = await FuulProject.attach(addressDeployed);
+    fuulProject = await FuulProject.attach(fuulProjectAddress);
   }
 
   return {
     fuulFactory,
+    fuulFactoryAddress,
     fuulManager,
+    fuulManagerAddress,
     fuulProject,
+    fuulProjectAddress,
     token,
+    tokenAddress,
     nft721,
+    nft721Address,
     nft1155,
+    nft1155Address,
     user1,
     user2,
     user3,
@@ -148,6 +164,7 @@ const setupTest = async function (deployProject = true) {
     limitAmount,
     protocolFeeCollector,
     nftFeeCurrency,
+    nftFeeCurrencyAddress,
     clientFeeCollector,
   };
 };
