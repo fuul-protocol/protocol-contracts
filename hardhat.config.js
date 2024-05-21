@@ -4,6 +4,9 @@ require("@nomicfoundation/hardhat-verify");
 require("@nomicfoundation/hardhat-chai-matchers");
 require("hardhat-gas-reporter");
 require("solidity-docgen");
+require("@matterlabs/hardhat-zksync-deploy");
+require("@matterlabs/hardhat-zksync-solc");
+
 
 const {
   DEPLOYER_MNEMONIC,
@@ -13,7 +16,15 @@ const {
   BASESCAN_API_KEY,
   COINMARKETCAP_API_KEY,
   BSCSCAN_API_KEY,
-  POLYGON_RPC, BASE_RPC, OPTIMISM_RPC, ARBITRUM_RPC, BSC_RPC, BASE_SEPOLIA_RPC, ZKSYNC_ERA_RPC, MAINNET_RPC, ZKTESTNET_RPC
+  POLYGON_RPC,
+  BASE_RPC,
+  OPTIMISM_RPC,
+  ARBITRUM_RPC,
+  BSC_RPC,
+  BASE_SEPOLIA_RPC,
+  ZKSYNC_ERA_RPC,
+  MAINNET_RPC,
+  ZKTESTNET_RPC
 } = process.env;
 
 module.exports = {
@@ -66,6 +77,7 @@ module.exports = {
     },
     zkTestnet: {
       url: ZKTESTNET_RPC, // The testnet RPC URL of zkSync Era network.
+      accounts: { mnemonic: DEPLOYER_MNEMONIC },
       ethNetwork: "sepolia", // The Ethereum Web3 RPC URL, or the identifier of the network (e.g. `mainnet` or `sepolia`)
       zksync: true
     }
