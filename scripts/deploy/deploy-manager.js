@@ -1,18 +1,27 @@
 const { writeFileSync } = require("fs");
+const deployVariables = require("./deploy-variables.js")
+const { ethers } = require("hardhat");
 
 async function main() {
   const [deployer, user1] = await ethers.getSigners();
+
+  const network = "haseSepolia";
 
   console.log("Deploying contracts with the account:", deployer.address);
 
   const FuulManager = await hre.ethers.getContractFactory("FuulManager");
 
-  const attributor = "0xe4566e2504eee95169fdae9c124357c80669dd5c";
-  const pauser = user1.address;
-  const unpauser = user1.address;
-  const erc20 = "0x2a61f17d6Ab1288627D8E21D75712df07007dafb";
+  const networkDeployVariables = deployVariables[network];
 
-  const limit = ethers.utils.parseEther("40000000000000");
+  const attributor = networkDeployVariables.attributor
+
+  const pauser = user1.address;
+
+  const unpauser = networkDeployVariables.contractAdmin
+
+  const erc20 = networkDeployVariables.erc20
+
+  const limit = ethers.parseEther("100000");
 
   const fuulManager = await FuulManager.deploy(
     attributor,
@@ -23,15 +32,17 @@ async function main() {
     limit
   );
 
-  await fuulManager.deployed();
+  await fuulManager.waitForDeployment();
 
-  console.log("FuulManager deployed at:", fuulManager.address);
+  const deployedAddress = await fuulManager.getAddress()
+
+  console.log("FuulManager deployed at:", deployedAddress);
 
   writeFileSync(
-    "deployment/fuulManager.json",
+    `deployment/fuulManager-${network}.json`,
     JSON.stringify(
       {
-        address: fuulManager.address,
+        address: deployedAddress,
         args: [attributor, pauser, unpauser, erc20, limit, limit],
       },
       null,

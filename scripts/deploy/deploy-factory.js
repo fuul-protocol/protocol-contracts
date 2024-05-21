@@ -1,34 +1,45 @@
 const { writeFileSync } = require("fs");
+const deployVariables = require("./deploy-variables.js")
+
 
 async function main() {
-  const [deployer, user1] = await ethers.getSigners();
+  const [deployer] = await ethers.getSigners();
+
+  const network = "baseSepolia";
 
   console.log("Deploying contracts with the account:", deployer.address);
 
   const FuulFactory = await hre.ethers.getContractFactory("FuulFactory");
 
-  const manager = user1.address;
-  const feeCollector = deployer.address;
-  const feeCurrency = ethers.constants.AddressZero;
-  const erc20 = "0x2a61f17d6Ab1288627D8E21D75712df07007dafb";
+  const networkDeployVariables = deployVariables[network];
+
+  const fuulManagerAddress = networkDeployVariables.fuulManagerAddress;
+
+  const protocolFeeCollector = networkDeployVariables.protocolFeeCollector;
+
+  const nftFeeCurrency = ethers.ZeroAddress;
+
+  const erc20 = networkDeployVariables.erc20
 
   const fuulFactory = await FuulFactory.deploy(
-    manager,
-    feeCollector,
-    feeCurrency,
+    fuulManagerAddress,
+    protocolFeeCollector,
+    nftFeeCurrency,
     erc20
   );
 
-  await fuulFactory.deployed();
+  await fuulFactory.waitForDeployment();
 
-  console.log("FuulFactory deployed at:", fuulFactory.address);
+  const deployedAddress = await fuulFactory.getAddress()
+
+  console.log("FuulFactory deployed at:", deployedAddress);
 
   writeFileSync(
-    "deployment/fuulFactory.json",
+    `deployment/fuulFactory-${network}.json`,
     JSON.stringify(
       {
-        address: fuulFactory.address,
-        args: [manager, feeCollector, feeCurrency, erc20],
+        address: deployedAddress,
+        args: [fuulManagerAddress, protocolFeeCollector, nftFeeCurrency, erc20],
       },
       null,
       2
