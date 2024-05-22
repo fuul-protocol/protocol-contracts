@@ -48,6 +48,13 @@ const deployVariables = {
         "attributor": "0xADD2e565c266D105255Eeba0d24342EA8302064e", // OZ defender relayer
         "contractAdmin": "0xB714A459b07766208daEA43568bA6962b7578512"
     },
+    "zkTestnet": {
+        "fuulManagerAddress": "0xc38e3a10b5818601b29c83f195e8b5854aae45af",
+        "protocolFeeCollector": "0xCbf3D62200EBdaC009CCF9c66d4a6431c74BfF7E",
+        "erc20": "0x1d17CBcF0D6D143135aE902365D2E5e2A16538D4", // USDC,
+        "attributor": "0xADD2e565c266D105255Eeba0d24342EA8302064e", // OZ defender relayer
+        "contractAdmin": "0xB714A459b07766208daEA43568bA6962b7578512"
+    },
 };
 
 
