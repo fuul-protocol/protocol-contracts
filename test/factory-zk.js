@@ -5,8 +5,8 @@ const { setupTest } = require("./before-each-test");
 describe("Fuul Factory - Create projects", function () {
     beforeEach(async function () {
         const { fuulFactory, fuulFactoryAddress, user1, user2, adminRole } = await setupTest(
-            (deployProject = false)
-        );
+            deployProject = false, is_zk = true)
+            ;
 
         this.fuulFactory = fuulFactory;
         this.fuulFactoryAddress = fuulFactoryAddress;
@@ -18,6 +18,7 @@ describe("Fuul Factory - Create projects", function () {
     });
 
     it("Should deploy Fuul Project and sets roles correctly", async function () {
+
         const signer = this.user2.address;
 
         const tx = await this.fuulFactory
@@ -60,7 +61,7 @@ describe("Fuul Factory - Create projects", function () {
 
 describe("Fuul Factory - Fees management", function () {
     beforeEach(async function () {
-        const { fuulFactory, user1, user2, adminRole } = await setupTest();
+        const { fuulFactory, user1, user2, adminRole } = await setupTest(is_zk = true);
 
         this.fuulFactory = fuulFactory;
         this.user1 = user1;
@@ -147,7 +148,7 @@ describe("Fuul Factory - Fees management", function () {
 describe("Fuul Factory - Token currency management", function () {
     beforeEach(async function () {
         const { fuulFactory, nft721Address, tokenAddress, user1, user2, adminRole } =
-            await setupTest();
+            await setupTest(is_zk = true);
 
         this.fuulFactory = fuulFactory;
         this.tokenAddress = tokenAddress;
@@ -224,7 +225,7 @@ describe("Fuul Factory - Token currency management", function () {
 
 describe("Fuul Factory - Remove variables management", function () {
     beforeEach(async function () {
-        const { fuulFactory, user1, user2, adminRole } = await setupTest();
+        const { fuulFactory, user1, user2, adminRole } = await setupTest(is_zk = true);
 
         this.fuulFactory = fuulFactory;
         this.user1 = user1;

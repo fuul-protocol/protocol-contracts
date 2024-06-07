@@ -6,10 +6,11 @@ require("hardhat-gas-reporter");
 require("solidity-docgen");
 require("@matterlabs/hardhat-zksync-deploy");
 require("@matterlabs/hardhat-zksync-solc");
-
+require("@matterlabs/hardhat-zksync-verify");
 
 const {
   DEPLOYER_MNEMONIC,
+  ETHERSCAN_API_KEY,
   POLYGONSCAN_API_KEY,
   OPTIMISTIC_API_KEY,
   ARBISCAN_API_KEY,
@@ -74,12 +75,14 @@ module.exports = {
       accounts: { mnemonic: DEPLOYER_MNEMONIC },
       ethNetwork: MAINNET_RPC, // The Ethereum Web3 RPC URL.
       zksync: true, // Flag that targets zkSync Era.
+      verifyURL: 'https://zksync2-mainnet-explorer.zksync.io/contract_verification'
     },
     zkTestnet: {
       url: ZKTESTNET_RPC, // The testnet RPC URL of zkSync Era network.
       accounts: { mnemonic: DEPLOYER_MNEMONIC },
       ethNetwork: "sepolia", // The Ethereum Web3 RPC URL, or the identifier of the network (e.g. `mainnet` or `sepolia`)
-      zksync: true
+      zksync: true,
+      verifyURL: 'https://explorer.sepolia.era.zksync.dev/contract_verification'
     }
   },
 
@@ -91,6 +94,7 @@ module.exports = {
       arbitrumOne: ARBISCAN_API_KEY,
       bsc: BSCSCAN_API_KEY,
       baseSepolia: BASESCAN_API_KEY,
+      mainnet: ETHERSCAN_API_KEY
     },
   },
 

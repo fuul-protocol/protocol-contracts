@@ -64,7 +64,26 @@ const deployFactory = async function (
   return fuulFactory;
 };
 
-const setupTest = async function (deployProject = true) {
+const deployzkFactory = async function (
+  fuulManagerAddress,
+  protocolFeeCollector,
+  nftFeeCurrency,
+  tokenAddress
+) {
+  const FuulFactory = await hre.ethers.getContractFactory("zkFuulFactory");
+  const fuulFactory = await FuulFactory.deploy(
+    fuulManagerAddress,
+    protocolFeeCollector,
+    nftFeeCurrency,
+    tokenAddress
+  );
+
+  await fuulFactory.waitForDeployment();
+
+  return fuulFactory;
+};
+
+const setupTest = async function (deployProject = true, is_zk = false) {
   await hre.network.provider.send("hardhat_reset");
 
   const provider = hre.ethers.provider;
@@ -104,14 +123,27 @@ const setupTest = async function (deployProject = true) {
 
   // Deploy Factory
 
-  const fuulFactory = await deployFactory(
-    fuulManagerAddress,
-    protocolFeeCollector.address,
-    nftFeeCurrencyAddress,
-    tokenAddress
-  );
+  let fuulFactory;
 
+  if (is_zk) {
+    fuulFactory = await deployFactory(
+      fuulManagerAddress,
+      protocolFeeCollector.address,
+      nftFeeCurrencyAddress,
+      tokenAddress
+    );
+  }
+  else {
+    fuulFactory = await deployzkFactory(
+      fuulManagerAddress,
+      protocolFeeCollector.address,
+      nftFeeCurrencyAddress,
+      tokenAddress
+    );
+
+  }
   const fuulFactoryAddress = await fuulFactory.getAddress()
+
 
   const adminRole = await fuulFactory.DEFAULT_ADMIN_ROLE();
   const managerRole = await fuulFactory.MANAGER_ROLE();
@@ -139,6 +171,8 @@ const setupTest = async function (deployProject = true) {
     const FuulProject = await ethers.getContractFactory("FuulProject");
     fuulProject = await FuulProject.attach(fuulProjectAddress);
   }
+
+
 
   return {
     fuulFactory,

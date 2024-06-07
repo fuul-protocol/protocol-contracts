@@ -19,7 +19,7 @@ async function main() {
 
   const erc20 = networkDeployVariables.erc20
 
-  const limit = ethers.parseEther("100000");
+  const limit = "100000000000000000000000";
 
   const fuulManager = await hre.deployer.deploy("FuulManager",
     [attributor,
