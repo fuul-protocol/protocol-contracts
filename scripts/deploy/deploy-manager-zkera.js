@@ -3,7 +3,7 @@ const deployVariables = require("./deploy-variables.js")
 
 async function main() {
 
-  const network = "zkSyncEra";
+  const network = "abstract";
 
   const deployer = await hre.deployer.getWallet(0);
   // const pauser = await hre.deployer.getWallet(1);

@@ -6,7 +6,7 @@ async function main() {
 
   const deployer = await hre.deployer.getWallet(0);
 
-  const network = "zkSyncEra";
+  const network = "abstract";
 
   console.log("Deploying contracts with the account:", deployer.address);
 

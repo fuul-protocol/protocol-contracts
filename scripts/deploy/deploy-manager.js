@@ -5,7 +5,7 @@ const { ethers } = require("hardhat");
 async function main() {
   const [deployer, user1] = await ethers.getSigners();
 
-  const network = "baseSepolia";
+  const network = "HyperEVM";
 
   console.log("Deploying contracts with the account:", deployer.address);
 
@@ -43,7 +43,7 @@ async function main() {
     JSON.stringify(
       {
         address: deployedAddress,
-        args: [attributor, pauser, unpauser, erc20, limit, limit],
+        args: [attributor, pauser, unpauser, erc20, limit.toString(), limit.toString()],
       },
       null,
       2

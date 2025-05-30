@@ -5,7 +5,7 @@ const deployVariables = require("./deploy-variables.js")
 async function main() {
   const [deployer] = await ethers.getSigners();
 
-  const network = "baseSepolia";
+  const network = "HyperEVM";
 
   console.log("Deploying contracts with the account:", deployer.address);
 

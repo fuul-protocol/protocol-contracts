@@ -28,15 +28,30 @@ A more detailed description of the Fuul protocol can be found in the [docs](http
 - [FuulFactory](https://arbiscan.io/address/0x457dca0de973e01d36cedaf7f5b4b8b66d6c0ef5)
 - [FuulManager](https://arbiscan.io/address/0xc38e3a10b5818601b29c83f195e8b5854aae45af)
 
-### BSC Chain
+### BNB Chain
 
 - [FuulFactory](https://bscscan.com/address/0x457dca0de973e01d36cedaf7f5b4b8b66d6c0ef5)
 - [FuulManager](https://bscscan.com/address/0xC38E3A10B5818601b29c83F195E8b5854AAE45aF)
 
 ### zkSyncEra
 
-- [FuulFactory](https://explorer.zksync.io/address/0xA0Ae35bA13F677153707414E3cb82faCc69e8AeB#contract)
-- [FuulManager](https://explorer.zksync.io/address/0xFB2Fb33db1D69C5c0dD71D31bb75082aD4E52E9f#transactions)
+- [FuulFactory](https://explorer.zksync.io/address/0xA0Ae35bA13F677153707414E3cb82faCc69e8AeB)
+- [FuulManager](https://explorer.zksync.io/address/0xFB2Fb33db1D69C5c0dD71D31bb75082aD4E52E9f)
+
+### Abstract
+
+- [FuulFactory](https://abscan.org/address/0x48955e80B47e0FC170D3BFA3e85d15960388c0EC)
+- [FuulManager](https://abscan.org/address/0xFB2Fb33db1D69C5c0dD71D31bb75082aD4E52E9f)
+
+### Lukso
+
+- [FuulFactory](https://explorer.execution.mainnet.lukso.network/address/0x457DCa0de973E01d36CEdaF7f5b4b8b66D6C0ef5)
+- [FuulManager](https://explorer.execution.mainnet.lukso.network/address/0xB9B0C1FDAD70398e76954feF91ADD60f3D21C043)
+
+### Mode
+
+- [FuulFactory](https://modescan.io/address/0x457DCa0de973E01d36CEdaF7f5b4b8b66D6C0ef5)
+- [FuulManager](https://modescan.io/address/0xC38E3A10B5818601b29c83F195E8b5854AAE45aF)
 
 ### Base Sepolia
 

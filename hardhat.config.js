@@ -1,3 +1,5 @@
+const { abstract, monadTestnet } = require("./scripts/deploy/deploy-variables");
+
 require("dotenv").config();
 require("hardhat-abi-exporter");
 require("@nomicfoundation/hardhat-verify");
@@ -25,12 +27,26 @@ const {
   BASE_SEPOLIA_RPC,
   ZKSYNC_ERA_RPC,
   MAINNET_RPC,
-  ZKTESTNET_RPC
+  ZKTESTNET_RPC,
+  MODE_RPC,
+  LUKSOTESTNET_RPC,
+  LUKSO_RPC,
+  ABSTRACT_RPC,
+  HYPEREVM_RPC,
+  ABSTRACTTESTNET_API_KEY,
+  ABSTRACT_API_KEY,
+  MONADTESTNET_RPC,
+  HYPEREVMTESTNET_RPC
 } = process.env;
 
 module.exports = {
   solidity: {
     version: "0.8.18",
+    // compilers: [
+    //   {
+    //     eraVersion: '1.0.0', //optional. Compile contracts with EraVM compiler
+    //   },
+    // ],
   },
   settings: { optimizer: { enabled: true, runs: 1000000 } },
   abiExporter: {
@@ -70,6 +86,50 @@ module.exports = {
       url: BASE_SEPOLIA_RPC,
       accounts: { mnemonic: DEPLOYER_MNEMONIC }
     },
+    mode: {
+      url: MODE_RPC,
+      accounts: { mnemonic: DEPLOYER_MNEMONIC },
+      chainId: 34443,
+    },
+    luksoTestnet: {
+      url: LUKSOTESTNET_RPC,
+      chainId: 4201,
+      accounts: { mnemonic: DEPLOYER_MNEMONIC },
+    },
+    lukso: {
+      url: LUKSO_RPC,
+      chainId: 42,
+      accounts: { mnemonic: DEPLOYER_MNEMONIC },
+    },
+    hyperEVM: {
+      url: HYPEREVM_RPC,
+      chainId: 999,
+      accounts: { mnemonic: DEPLOYER_MNEMONIC },
+    },
+    hyperEVMTestnet: {
+      url: HYPEREVMTESTNET_RPC,
+      chainId: 998,
+      accounts: { mnemonic: DEPLOYER_MNEMONIC },
+    },
+    monadTestnet: {
+      url: MONADTESTNET_RPC,
+      chainId: 10143,
+      accounts: { mnemonic: DEPLOYER_MNEMONIC },
+    },
+    abstractTestnet: {
+      url: "https://api.testnet.abs.xyz",
+      ethNetwork: "sepolia",
+      zksync: true,
+      chainId: 11124,
+      accounts: { mnemonic: DEPLOYER_MNEMONIC },
+    },
+    abstractMainnet: {
+      url: ABSTRACT_RPC,
+      accounts: { mnemonic: DEPLOYER_MNEMONIC },
+      ethNetwork: "mainnet",
+      zksync: true,
+      chainId: 2741,
+    },
     zkSyncEra: {
       url: ZKSYNC_ERA_RPC,
       accounts: { mnemonic: DEPLOYER_MNEMONIC },
@@ -85,6 +145,9 @@ module.exports = {
       verifyURL: 'https://explorer.sepolia.era.zksync.dev/contract_verification'
     }
   },
+  sourcify: {
+    enabled: true,
+  },
 
   etherscan: {
     apiKey: {
@@ -94,8 +157,62 @@ module.exports = {
       arbitrumOne: ARBISCAN_API_KEY,
       bsc: BSCSCAN_API_KEY,
       baseSepolia: BASESCAN_API_KEY,
-      mainnet: ETHERSCAN_API_KEY
+      mainnet: ETHERSCAN_API_KEY,
+      mode: ETHERSCAN_API_KEY,
+      luksoTestnet: 'no-api-key-needed',
+      lukso: 'no-api-key-needed',
+      abstractTestnet: ABSTRACTTESTNET_API_KEY,
+      abstractMainnet: ABSTRACT_API_KEY,
+      monadTestnet: 'no-api-key-needed'
     },
+    customChains: [{
+      network: 'mode',
+      chainId: 34443,
+      urls: {
+        apiURL: 'https://explorer.mode.network/api',
+        browserURL: 'https://explorer.mode.network/',
+      }
+    }, {
+      network: "luksoTestnet",
+      chainId: 4201,
+      urls: {
+        apiURL: "https://api.explorer.execution.testnet.lukso.network/api",
+        browserURL: "https://explorer.execution.testnet.lukso.network/",
+      },
+    },
+    {
+      network: "lukso",
+      chainId: 42,
+      urls: {
+        apiURL: "https://explorer.execution.mainnet.lukso.network/api",
+        browserURL: "https://explorer.execution.mainnet.lukso.network",
+      },
+    },
+    {
+      network: "abstractTestnet",
+      chainId: 11124,
+      urls: {
+        apiURL: "https://api-sepolia.abscan.org/api",
+        browserURL: "https://sepolia.abscan.org/",
+      },
+    },
+    {
+      network: "abstractMainnet",
+      chainId: 2741,
+      urls: {
+        apiURL: "https://api.abscan.org/api",
+        browserURL: "https://abscan.org/",
+      },
+    },
+    {
+      network: "monadTestnet",
+      chainId: 10143,
+      urls: {
+        apiURL: "https://sourcify-api-monad.blockvision.org",
+        browserURL: "https://testnet.monadexplorer.com/",
+      },
+    },
+    ]
   },
 
   gasReporter: {
